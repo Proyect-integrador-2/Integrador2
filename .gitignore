@@ -1,0 +1,33 @@
+# Secretos: nunca versionar
+**/.env
+**/.env.*
+!**/.env.example
+*.pem
+*.key
+secrets/
+
+# Dependencias y builds
+node_modules/
+__pycache__/
+.venv/
+
+# Salidas del RPA (se envían a Zabbix; la evidencia va a Confluence)
+rpa/results/
+rpa/**/output.xml
+rpa/**/log.html
+rpa/**/report.html
+
+# Respaldos de VMs y bases de datos
+*.vma
+*.vma.zst
+*.sql.gz
+backups/
+
+# Logs y SO
+*.log
+Thumbs.db
+.DS_Store
+
+# Herramientas locales
+.claude/
+graphify-out/
