@@ -1,0 +1,161 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Mi Perfil</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="cargar(); $event.target.complete()">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="perfil">
+    <!-- Skeleton -->
+    <div *ngIf="cargando" style="display:flex;flex-direction:column;gap:14px">
+      <div class="skeleton" style="height:104px"></div>
+      <div class="skeleton" style="height:220px"></div>
+    </div>
+
+    <ng-container *ngIf="!cargando">
+      <!-- Cabecera -->
+      <div class="profile-header">
+        <div class="avatar-wrap">
+          <button type="button" class="avatar" (click)="abrirAvatar(fotoInput)" [disabled]="subiendoFoto"
+                  [attr.aria-label]="perfil?.foto ? 'Ver foto de perfil' : 'Agregar foto de perfil'">
+            <img *ngIf="perfil?.foto; else iniTpl" [src]="perfil.foto" alt="Foto de perfil">
+            <ng-template #iniTpl>{{ iniciales }}</ng-template>
+          </button>
+          <button type="button" class="avatar-cam" [class.cargando]="subiendoFoto" (click)="fotoInput.click()"
+                  [disabled]="subiendoFoto" aria-label="Cambiar foto de perfil">
+            <ion-icon [name]="subiendoFoto ? 'hourglass-outline' : 'camera'"></ion-icon>
+          </button>
+          <input #fotoInput type="file" accept="image/*" hidden (change)="onFoto($event)">
+        </div>
+        <div class="info">
+          <h2>{{ cuenta.nombre }} {{ cuenta.apellido }}</h2>
+          <p class="contact">{{ cuenta.email || '—' }}</p>
+          <p class="contact" *ngIf="cuenta.telefono"><ion-icon name="call-outline"></ion-icon> {{ cuenta.telefono }}</p>
+          <button type="button" class="quitar-foto" *ngIf="perfil?.foto" (click)="quitarFoto()" [disabled]="subiendoFoto">Quitar foto</button>
+        </div>
+      </div>
+
+      <!-- Información personal -->
+      <section class="card">
+        <span class="section-label">Información personal</span>
+        <div class="ig"><label>Nombre</label><input [(ngModel)]="cuenta.nombre" placeholder="Tu nombre"></div>
+        <div class="ig"><label>Apellido</label><input [(ngModel)]="cuenta.apellido" placeholder="Tu apellido"></div>
+        <div class="ig"><label>Teléfono</label><input type="tel" [(ngModel)]="cuenta.telefono" placeholder="8888-8888"></div>
+        <div class="ig"><label>Correo electrónico</label><input type="email" [(ngModel)]="cuenta.email" placeholder="correo@ejemplo.com"></div>
+        <button class="cta" [disabled]="guardando" (click)="guardarCuenta()">Guardar cambios</button>
+      </section>
+
+      <!-- Correo nuevo a la espera de confirmación. Hasta que se confirme, la cuenta
+           sigue funcionando con el correo de siempre. -->
+      <section class="card correo-pendiente" *ngIf="perfil?.email_pendiente">
+        <span class="section-label">Confirmá tu correo nuevo</span>
+        <p class="cp-texto">
+          Te enviamos un código de 6 dígitos a <strong>{{ perfil.email_pendiente }}</strong>.
+          Mientras tanto seguís entrando con <strong>{{ perfil.email }}</strong>.
+        </p>
+        <div class="ig">
+          <label>Código</label>
+          <input type="text" inputmode="numeric" maxlength="6" [(ngModel)]="codigoCorreo"
+                 placeholder="000000" class="cp-codigo" (keyup.enter)="confirmarCorreo()">
+        </div>
+        <button class="cta" [disabled]="confirmandoCorreo" (click)="confirmarCorreo()">
+          {{ confirmandoCorreo ? 'Confirmando…' : 'Confirmar correo' }}
+        </button>
+        <div class="cp-acciones">
+          <button type="button" class="cp-link" [disabled]="cooldown > 0 || reenviandoCorreo" (click)="reenviarCorreo()">
+            {{ cooldown > 0 ? 'Reenviar en ' + cooldown + 's' : 'Reenviar código' }}
+          </button>
+          <button type="button" class="cp-link cp-cancelar" (click)="cancelarCorreo()">Cancelar el cambio</button>
+        </div>
+        <p class="cp-ayuda">¿No te llegó? Revisá el correo no deseado.</p>
+      </section>
+
+      <!-- Accesibilidad -->
+      <section class="card">
+        <span class="section-label">Accesibilidad</span>
+        <div class="a11y-row">
+          <div class="a11y-info">
+            <strong>Tamaño de texto</strong>
+            <span>{{ nivelesTexto[a11y.nivel].nombre }}</span>
+          </div>
+          <div class="a11y-opts" role="group" aria-label="Tamaño de texto">
+            <button *ngFor="let n of nivelesTexto" class="a11y-opt" [class.on]="a11y.nivel === n.i"
+                    (click)="setTexto(n.i)" [attr.aria-pressed]="a11y.nivel === n.i" [attr.aria-label]="n.nombre"
+                    [style.font-size.px]="13 + n.i * 5">{{ n.etiqueta }}</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Preferencias de notificación -->
+      <section class="card">
+        <span class="section-label">Notificaciones</span>
+        <div class="notif-row">
+          <div class="notif-info">
+            <strong>Avisos de avance</strong>
+            <span>Cuando cambia el estado de tu servicio</span>
+          </div>
+          <ion-toggle [(ngModel)]="notif.avances" (ionChange)="guardarNotif('avances')"
+                      [disabled]="guardandoNotif" aria-label="Avisos de avance"></ion-toggle>
+        </div>
+        <div class="notif-row">
+          <div class="notif-info">
+            <strong>Recordatorios de cita</strong>
+            <span>Un aviso antes de tu próxima cita</span>
+          </div>
+          <ion-toggle [(ngModel)]="notif.recordatorios" (ionChange)="guardarNotif('recordatorios')"
+                      [disabled]="guardandoNotif" aria-label="Recordatorios de cita"></ion-toggle>
+        </div>
+      </section>
+
+      <!-- Seguridad: ingreso con huella / Face ID (solo app móvil con biometría) -->
+      <section class="card" *ngIf="bioDisponible">
+        <span class="section-label">Seguridad</span>
+        <div class="a11y-row">
+          <div class="a11y-info">
+            <strong>Ingreso con huella / Face ID</strong>
+            <span>{{ bioActivado ? 'Activado en este dispositivo' : 'Entrá sin escribir tu contraseña' }}</span>
+          </div>
+          <button type="button" class="bio-btn" [class.on]="bioActivado" [disabled]="bioProcesando"
+                  (click)="bioActivado ? desactivarBiometria() : activarBiometria()"
+                  [attr.aria-pressed]="bioActivado">
+            <ion-icon name="finger-print"></ion-icon>
+            {{ bioActivado ? 'Desactivar' : 'Activar' }}
+          </button>
+        </div>
+      </section>
+
+      <!-- Información legal -->
+      <section class="card">
+        <span class="section-label">Información legal</span>
+        <a class="legal-row" [routerLink]="['/portal/legal/terminos']">
+          <ion-icon name="document-text-outline"></ion-icon>
+          <span>Términos y condiciones</span>
+          <ion-icon name="chevron-forward" class="chev"></ion-icon>
+        </a>
+        <a class="legal-row" [routerLink]="['/portal/legal/privacidad']">
+          <ion-icon name="shield-checkmark-outline"></ion-icon>
+          <span>Política de privacidad</span>
+          <ion-icon name="chevron-forward" class="chev"></ion-icon>
+        </a>
+      </section>
+
+      <button class="cta danger" (click)="logout()"><ion-icon name="log-out-outline"></ion-icon> Cerrar sesión</button>
+      <button class="cta danger-outline" [disabled]="eliminando" (click)="eliminarCuenta()"><ion-icon name="trash-outline"></ion-icon> Eliminar cuenta</button>
+    </ng-container>
+
+    <div style="height:90px"></div>
+  </div>
+
+  <!-- Visor con zoom de la foto de perfil -->
+  <div class="foto-zoom" *ngIf="zoomAbierto && perfil?.foto" (click)="cerrarZoom()">
+    <button class="fz-close" (click)="cerrarZoom()" aria-label="Cerrar"><ion-icon name="close"></ion-icon></button>
+    <div class="fz-stage" [class.zoom]="zoomActivo">
+      <img [src]="perfil.foto" alt="Foto de perfil" (click)="toggleZoom($event)">
+    </div>
+    <span class="fz-hint">{{ zoomActivo ? 'Tocá la imagen para alejar' : 'Tocá la imagen para acercar' }}</span>
+  </div>
+</ion-content>

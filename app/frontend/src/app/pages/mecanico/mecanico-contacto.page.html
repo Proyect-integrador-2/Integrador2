@@ -1,0 +1,17 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start"><ion-menu-button></ion-menu-button></ion-buttons>
+    <ion-title>Mensajes</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="mec">
+    <app-chat-contactos *ngIf="!chatAbierto && !verAvisos"
+                        (abrir)="abrirChat($event)"
+                        (abrirAvisos)="verAvisos = true"></app-chat-contactos>
+
+    <app-chat-hilo *ngIf="chatAbierto" [contacto]="chatAbierto" (volver)="cerrar()"></app-chat-hilo>
+    <app-chat-hilo *ngIf="verAvisos" modo="avisos" (volver)="cerrar()"></app-chat-hilo>
+  </div>
+</ion-content>

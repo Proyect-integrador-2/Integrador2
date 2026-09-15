@@ -1,0 +1,97 @@
+// ────────────────────────────────────────────────
+// Admin Tareas — component-scoped styles
+// Hereda los tokens (--sur, --bd, --tx…) de .admin-dark global.
+// ────────────────────────────────────────────────
+
+.tareas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.tareas-header .cd-title {
+  margin: 0;
+}
+
+.asignar-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  ion-icon { font-size: 15px; }
+}
+
+// —— Barra de filtros ——
+.tareas-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+
+.tareas-filter {
+  padding: 7px 10px;
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  background: var(--sur2);
+  color: var(--tx);
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.ver-hechas {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--tx2);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+
+  input { accent-color: var(--cr); width: 14px; height: 14px; cursor: pointer; }
+  &:hover { color: var(--tx); }
+}
+
+.tareas-progress {
+  font-size: 12px;
+  color: var(--tx2);
+  margin-bottom: 12px;
+
+  .tp-ocultas { color: var(--tx3); }
+}
+
+.tareas-detalle {
+  font-size: 11px;
+  color: var(--tx3);
+  margin-top: 2px;
+}
+
+.fw-600 {
+  font-weight: 600;
+}
+
+.tareas-vence {
+  font-size: 11px;
+  color: var(--tx2);
+
+  &.vencida {
+    color: var(--rd);
+  }
+}
+
+.empty-accion {
+  margin-top: 10px;
+}
+
+// Editar / Eliminar: envuelven en pantallas angostas en vez de estirar la columna.
+.fila-acciones {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}

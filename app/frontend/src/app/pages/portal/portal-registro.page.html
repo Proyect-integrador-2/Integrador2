@@ -1,0 +1,90 @@
+<ion-content class="login-content">
+  <div class="login-container">
+    <div class="login-header">
+      <div class="logo-wrapper">
+        <img src="assets/logo/ms-iso-white.png" alt="MS Motos" />
+      </div>
+      <h1>Crear cuenta</h1>
+      <p *ngIf="paso === 1">Seguí el estado de tu moto</p>
+      <p *ngIf="paso === 2">Escribí el código que te llegó a {{ email }}</p>
+    </div>
+
+    <!-- Paso 1: datos de la cuenta -->
+    <ion-card *ngIf="paso === 1">
+      <ion-card-content>
+        <ion-item lines="full">
+          <ion-label position="stacked">Nombre</ion-label>
+          <!-- aria-label explícito: el <input> real vive dentro del shadow DOM de Ionic
+               y no queda asociado al ion-label, así que un lector de pantalla anunciaba
+               "cuadro de edición" sin decir qué se pide. Los otros campos se salvaban de
+               casualidad por su placeholder; acá se dice de forma explícita. -->
+          <ion-input [(ngModel)]="nombre" autocomplete="given-name" aria-label="Nombre"></ion-input>
+        </ion-item>
+        <ion-item lines="full">
+          <ion-label position="stacked">Apellido</ion-label>
+          <ion-input [(ngModel)]="apellido" autocomplete="family-name" aria-label="Apellido"></ion-input>
+        </ion-item>
+        <ion-item lines="full">
+          <ion-label position="stacked">Teléfono</ion-label>
+          <ion-input type="tel" [(ngModel)]="telefono" placeholder="8888-1234"></ion-input>
+        </ion-item>
+        <ion-item lines="full">
+          <ion-label position="stacked">Correo</ion-label>
+          <ion-input type="email" [(ngModel)]="email" autocomplete="email" placeholder="tu@correo.com"></ion-input>
+        </ion-item>
+        <ion-item lines="full">
+          <ion-label position="stacked">Cédula *</ion-label>
+          <ion-input [(ngModel)]="cedula" placeholder="1-2345-6789"></ion-input>
+        </ion-item>
+        <ion-item lines="full">
+          <ion-label position="stacked">Contraseña</ion-label>
+          <ion-input [type]="verPass ? 'text' : 'password'" [(ngModel)]="password" placeholder="Mínimo 8 caracteres">
+            <ion-button fill="clear" slot="end" (click)="verPass = !verPass" aria-label="Mostrar contraseña">
+              <ion-icon slot="icon-only" [name]="verPass ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+            </ion-button>
+          </ion-input>
+        </ion-item>
+        <ion-item lines="none">
+          <ion-label position="stacked">Confirmar contraseña</ion-label>
+          <ion-input [type]="verConfirmar ? 'text' : 'password'" [(ngModel)]="confirmar" (keyup.enter)="registrar()"
+                     aria-label="Confirmar contraseña">
+            <ion-button fill="clear" slot="end" (click)="verConfirmar = !verConfirmar" aria-label="Mostrar contraseña">
+              <ion-icon slot="icon-only" [name]="verConfirmar ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+            </ion-button>
+          </ion-input>
+        </ion-item>
+
+        <ion-button expand="block" (click)="registrar()" [disabled]="!valido">
+          Crear cuenta
+          <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Paso 2: confirmar el correo -->
+    <ion-card *ngIf="paso === 2">
+      <ion-card-content>
+        <ion-item lines="full">
+          <ion-label position="stacked">Código de 6 dígitos</ion-label>
+          <ion-input type="text" inputmode="numeric" maxlength="6" [(ngModel)]="codigo" placeholder="000000" (keyup.enter)="verificar()"></ion-input>
+        </ion-item>
+        <p class="ayuda-correo">El código puede tardar un par de minutos. Si no llega, revisá la carpeta de spam.</p>
+
+        <ion-button expand="block" (click)="verificar()" [disabled]="!codigo || verificando">
+          {{ verificando ? 'Verificando...' : 'Confirmar' }}
+        </ion-button>
+
+        <a class="portal-link sub" [class.disabled]="cooldown > 0 || reenviando" (click)="reenviar()">
+          {{ cooldown > 0 ? 'Reenviar código en ' + cooldown + 's' : 'Reenviar código' }}
+        </a>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Anti-bot (fuera de los cards para persistir entre pasos): honeypot + captcha. -->
+    <input type="text" [(ngModel)]="website" name="website" tabindex="-1" autocomplete="off"
+           aria-hidden="true" class="hp-field">
+    <div #tsBox *ngIf="mostrarCaptcha" class="turnstile-box"></div>
+
+    <a *ngIf="paso === 1" class="portal-link" (click)="irLogin()">¿Ya tenés cuenta? Iniciá sesión</a>
+  </div>
+</ion-content>

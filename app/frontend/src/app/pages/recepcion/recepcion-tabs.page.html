@@ -1,0 +1,53 @@
+<ion-split-pane contentId="recepcion-content" when="lg">
+  <ion-menu contentId="recepcion-content" type="overlay" class="admin-sidebar">
+    <ion-content class="admin-dark sidebar-content">
+      <div class="sb-logo">
+        <img class="sb-brand" src="assets/logo/ms-logo-white.png" alt="MS Motos" />
+        <span>Recepción</span>
+      </div>
+
+      <ion-menu-toggle auto-hide="false">
+        <nav class="sb-nav">
+          <div class="sb-section">Principal</div>
+          <a class="nav-item" routerLink="/recepcion/inicio" routerLinkActive="on">
+            <ion-icon name="home-outline"></ion-icon> Inicio
+          </a>
+          <a class="nav-item" routerLink="/recepcion/agenda" routerLinkActive="on">
+            <ion-icon name="calendar-outline"></ion-icon> Agenda
+          </a>
+          <a class="nav-item" routerLink="/recepcion/ordenes" routerLinkActive="on">
+            <ion-icon name="clipboard-outline"></ion-icon> Órdenes
+          </a>
+          <a class="nav-item" routerLink="/recepcion/cotizaciones" routerLinkActive="on">
+            <ion-icon name="receipt-outline"></ion-icon> Precios
+          </a>
+          <a class="nav-item" routerLink="/recepcion/mensajes" routerLinkActive="on">
+            <ion-icon name="chatbubbles-outline"></ion-icon> Mensajes
+            <span class="nav-badge" *ngIf="noLeidos > 0">{{ noLeidos }}</span>
+          </a>
+          <a class="nav-item" routerLink="/recepcion/clientes" routerLinkActive="on">
+            <ion-icon name="people-outline"></ion-icon> Clientes
+          </a>
+
+          <div class="sb-section">Acciones</div>
+          <a class="nav-item" routerLink="/recepcion/recibir" routerLinkActive="on">
+            <ion-icon name="person-add-outline"></ion-icon> Recibir cliente
+          </a>
+          <a class="nav-item" routerLink="/recepcion/perfil" routerLinkActive="on">
+            <ion-icon name="person-circle-outline"></ion-icon> Mi perfil
+          </a>
+        </nav>
+      </ion-menu-toggle>
+    </ion-content>
+
+    <ion-footer class="admin-dark">
+      <div class="sb-user">
+        <div class="sb-av"><img *ngIf="foto; else sbIni" [src]="foto" alt="Foto" /><ng-template #sbIni>{{ iniciales }}</ng-template></div>
+        <div class="sb-info"><strong>{{ nombre }}</strong><span>{{ rolLabel }}</span></div>
+        <button class="sb-logout" (click)="logout()" title="Cerrar sesión"><ion-icon name="log-out-outline"></ion-icon></button>
+      </div>
+    </ion-footer>
+  </ion-menu>
+
+  <ion-router-outlet id="recepcion-content"></ion-router-outlet>
+</ion-split-pane>

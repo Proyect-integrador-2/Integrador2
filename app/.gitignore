@@ -1,0 +1,29 @@
+# Dependencias
+node_modules/
+
+# Builds
+frontend/www/
+frontend/.angular/
+backend/dist/
+
+# Entorno
+**/.env
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Config local de Claude Code
+.claude/
+
+# Salida de graphify (grafo de conocimiento local, no versionar)
+graphify-out/
+
+# Respaldos de la base: contienen datos reales de clientes. NUNCA versionar.
+backend/backups/
+
+# Informes crudos de Lighthouse: pesan MB y se regeneran con el comando de INFORME.md
+pruebas-carga/lighthouse/

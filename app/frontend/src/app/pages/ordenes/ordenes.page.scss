@@ -1,0 +1,160 @@
+.ordenes-count {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--n-400);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 14px 22px 6px;
+}
+
+.orden-item {
+  --background: transparent;
+  --padding-start: 0;
+  --padding-end: 0;
+  --inner-padding-end: 0;
+  --min-height: auto;
+  margin-bottom: 12px;
+}
+
+.orden-card {
+  display: flex;
+  align-items: stretch;
+  background: var(--ion-card-background);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  width: 100%;
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-out), box-shadow .15s var(--ease-out);
+
+  &:active { transform: scale(0.985); }
+}
+
+.estado-bar {
+  width: 6px;
+  flex-shrink: 0;
+}
+
+.orden-info {
+  flex: 1;
+  padding: 15px 14px;
+  min-width: 0;
+}
+
+.orden-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.orden-numero {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-accent);  // AA
+  letter-spacing: 0;
+}
+
+.orden-badge {
+  font-size: 10px;
+}
+
+.orden-moto, .orden-cliente {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+
+  ion-icon {
+    font-size: 14px;
+    color: var(--ion-color-primary);
+    flex-shrink: 0;
+  }
+}
+
+.orden-cliente {
+  font-weight: 500;
+  color: var(--n-500);
+  font-size: 13px;
+}
+
+.placa-inline {
+  font-weight: 500;
+  color: var(--n-400);
+}
+
+.orden-problema {
+  font-size: 12px;
+  color: var(--n-500);
+  margin: 6px 0;
+  line-height: 1.5;
+}
+
+.orden-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--n-400);
+  margin-top: 8px;
+  font-weight: 600;
+
+  ion-icon {
+    font-size: 12px;
+    vertical-align: middle;
+  }
+
+  .sin-tecnico { color: var(--amber-700); }
+  .orden-fecha { margin-left: auto; }
+}
+
+.orden-chevron {
+  font-size: 18px;
+  color: var(--n-300);
+  align-self: center;
+  padding-right: 12px;
+  flex-shrink: 0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 24px;
+  color: var(--n-400);
+
+  ion-icon {
+    font-size: 54px;
+    margin-bottom: 12px;
+    opacity: 0.4;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  p {
+    font-size: 15px;
+    margin-bottom: 20px;
+  }
+}
+
+// Responsive: en tablet/desktop la lista se vuelve grilla multi-columna
+@media (min-width: 820px) {
+  ion-content ion-list {
+    max-width: 1240px;
+    margin-left: auto;
+    margin-right: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 14px;
+    padding: 10px 16px !important;
+  }
+  .orden-item { margin-bottom: 0; }
+  .empty-state { grid-column: 1 / -1; }
+  .ordenes-count { max-width: 1240px; margin: 0 auto; }
+}

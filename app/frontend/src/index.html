@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8" />
+  <title>MS Motos · Taller</title>
+
+  <base href="/" />
+
+  <meta name="color-scheme" content="light dark" />
+
+  <!-- Fuentes (Outfit / Plus Jakarta Sans / JetBrains Mono): carga no bloqueante -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style"
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap"
+    onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript>
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap" />
+  </noscript>
+  <!-- Se permite el zoom con los dedos. El valor por defecto de Ionic lleva
+       `user-scalable=no, maximum-scale=1`, que Lighthouse marca como falla de
+       accesibilidad en TODAS las pantallas: alguien con baja visión no puede ampliar.
+       Chocaba además con que la propia app ofrezca ajuste de tamaño de texto. -->
+  <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="msapplication-tap-highlight" content="no" />
+
+  <link rel="icon" type="image/png" href="assets/logo/ms-iso.png" />
+  <meta name="theme-color" content="#E11D48" />
+
+  <!-- Instalada en la pantalla de inicio, la app abre SIN la barra de direcciones.
+       Hacen falta las dos cosas y por motivos distintos:
+       · Android/Chrome lo decide por `display: standalone` del manifiesto.
+       · iOS/Safari lo decide por `apple-mobile-web-app-capable`; el `mobile-web-app-capable`
+         de abajo es el nombre nuevo y estándar, pero Safari solo lo respeta en versiones
+         recientes, así que se dejan ambos.
+       Ojo: el atajo guarda estos valores el día que se agrega. Si ya está en la pantalla
+       de inicio, hay que borrarlo y volver a agregarlo para que tome el modo standalone. -->
+  <link rel="manifest" href="assets/manifest.webmanifest" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="MS Motos" />
+  <link rel="apple-touch-icon" href="assets/logo/ms-iso.png" />
+
+  <!-- Pantalla de arranque ("Pulso mínimo"): cubre el instante entre el HTML
+       inicial y la primera pantalla real de Angular (tanto en web como justo
+       después del splash nativo en la app). Mismo carmesí que el splash nativo
+       (capacitor.config.ts) para que la transición sea continua, sin salto de color. -->
+  <style>
+    #boot-splash {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #E11D48;
+      transition: opacity .35s ease;
+    }
+    #boot-splash.hide { opacity: 0; pointer-events: none; }
+    .boot-glow {
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 255, 255, .35), transparent 70%);
+      opacity: 0;
+      transform: scale(.7);
+      animation: boot-glow 1.6s ease-out forwards;
+    }
+    .boot-mark {
+      position: relative;
+      width: 84px;
+      height: 84px;
+      opacity: 0;
+      transform: scale(.94);
+      animation: boot-mark 1.6s cubic-bezier(.2, .7, .3, 1) forwards;
+    }
+    @keyframes boot-glow {
+      0%, 8% { opacity: 0; transform: scale(.7); }
+      30% { opacity: .7; transform: scale(1.15); }
+      55%, 100% { opacity: .25; transform: scale(1); }
+    }
+    @keyframes boot-mark {
+      0%, 6% { opacity: 0; transform: scale(.94); }
+      22%, 100% { opacity: 1; transform: scale(1); }
+    }
+    /* Recarga (misma sesión, ver script abajo): la animación corre más rápido —
+       ya viste el arranque completo hace un momento, no hace falta repetirlo entero. */
+    #boot-splash.recarga .boot-glow { animation-duration: .9s; }
+    #boot-splash.recarga .boot-mark { animation-duration: .9s; }
+    @media (prefers-reduced-motion: reduce) {
+      .boot-glow, .boot-mark { animation-duration: .01ms !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="boot-splash" aria-hidden="true">
+    <div class="boot-glow"></div>
+    <img class="boot-mark" src="assets/logo/ms-iso-white.png" alt="" />
+  </div>
+  <script>
+    (function () {
+      var el = document.getElementById('boot-splash');
+      if (!el) return;
+      // Primera carga de la sesión = apertura real de la app (respiro completo,
+      // 1.6s). Si sessionStorage ya tenía la marca, es una recarga (F5, o volver a
+      // cargar sin cerrar del todo la app): más corta, 0.9s. Se decide ANTES de que
+      // arranque la animación, para que CSS y el mínimo de espera queden en sync.
+      var esRecarga = false;
+      try {
+        esRecarga = sessionStorage.getItem('tallerms_boot_visto') === '1';
+        sessionStorage.setItem('tallerms_boot_visto', '1');
+      } catch (e) { /* modo privado sin sessionStorage: siempre cuenta como apertura */ }
+      if (esRecarga) el.classList.add('recarga');
+
+      var inicio = Date.now();
+      // En el teléfono, con los assets locales, Angular puede arrancar y navegar
+      // casi al instante — sin este mínimo, la animación se corta a mitad y se
+      // siente como un parpadeo. Se sostiene lo que falte para completar el respiro.
+      var MOSTRAR_MIN_MS = esRecarga ? 900 : 1600;
+      var hidden = false;
+      function ocultarYa() {
+        if (hidden) return;
+        hidden = true;
+        el.classList.add('hide');
+        setTimeout(function () { el.remove(); }, 400);
+      }
+      function hide() {
+        var faltan = MOSTRAR_MIN_MS - (Date.now() - inicio);
+        if (faltan > 0) { setTimeout(ocultarYa, faltan); } else { ocultarYa(); }
+      }
+      window.__hideBootSplash = hide;
+      // Salvavidas: si algo falla al iniciar Angular, no dejar la pantalla trabada.
+      setTimeout(ocultarYa, 4000);
+    })();
+  </script>
+  <app-root></app-root>
+</body>
+
+</html>

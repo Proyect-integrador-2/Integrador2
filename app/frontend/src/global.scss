@@ -1,0 +1,1251 @@
+@import "@ionic/angular/css/core.css";
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
+
+// ————————————————————————————————
+// Tipografía: Outfit (display) + Plus Jakarta Sans (cuerpo) + JetBrains Mono (cifras)
+// Las fuentes se cargan de forma no bloqueante desde index.html (preconnect + preload).
+// ————————————————————————————————
+
+* { box-sizing: border-box; }
+
+ion-app {
+  font-family: var(--ion-font-family);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+// Display: títulos, montos y números grandes con carácter (Outfit)
+ion-title,
+ion-card-title,
+.stat-number, .kpi-num, .etapa-horas, .orden-numero, .garantia-orden,
+h1, h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+// Monoespaciada para datos: montos ₡, fechas, placas, IDs
+.mono, .placa, .orden-numero, .avance-fecha, .monto, .kpi-num {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum" 1;
+}
+
+// Eyebrow: etiqueta de sección diminuta en mayúsculas
+.section-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--n-500);
+  margin: 0 0 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+// ————————————————————————————————
+// Toolbars limpias de superficie (el carmesí es acento, no toda la barra)
+// ————————————————————————————————
+ion-toolbar {
+  --min-height: 56px;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --border-width: 0;
+
+  ion-title {
+    font-weight: 700;
+    font-size: 19px;
+    letter-spacing: -0.03em;
+  }
+}
+
+ion-toolbar.ion-color-primary {
+  --ion-color-base: var(--ion-toolbar-background) !important;
+  --ion-color-contrast: var(--ion-toolbar-color) !important;
+  --ion-color-shade: var(--ion-toolbar-background) !important;
+  --ion-color-tint: var(--ion-toolbar-background) !important;
+}
+
+ion-header ion-toolbar:last-of-type {
+  --border-width: 0 0 1px 0;
+  --border-color: var(--hairline);
+}
+ion-header.header-collapse-condense ion-toolbar { --border-width: 0; }
+ion-header { box-shadow: none; }
+
+// ————————————————————————————————
+// Cards — radio 24px, hairline + sombra sutil, entrada suave
+// ————————————————————————————————
+@keyframes cardRise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+ion-card {
+  --background: var(--ion-card-background);
+  border-radius: var(--radius-card) !important;
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-sm) !important;
+  margin: 14px 16px !important;
+  animation: cardRise .36s var(--ease-out) both;
+
+  ion-card-header { padding: 18px 18px 8px; }
+
+  ion-card-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ion-text-color);
+    letter-spacing: -0.03em;
+  }
+
+  ion-card-subtitle {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+    margin-bottom: 2px;
+    color: var(--ion-color-medium);
+  }
+
+  ion-card-content { padding: 14px 18px 18px; }
+}
+
+// Cards interactivas: feedback físico al tocar
+ion-card[button], a > ion-card, ion-card.orden-card, ion-card.garantia-card, ion-card.promo-card {
+  transition: transform .2s var(--ease-out), box-shadow .2s var(--ease-out), border-color .2s var(--ease-out);
+  &:active { transform: scale(0.985); }
+}
+
+// ————————————————————————————————
+// Items y listas
+// ————————————————————————————————
+ion-list {
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+ion-item {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --inner-padding-end: 0;
+  --min-height: 56px;
+  --border-color: var(--hairline);
+  --transition: background .15s var(--ease-out);
+  font-size: 14px;
+
+  &:last-child { --border-color: transparent; }
+
+  ion-label {
+    h2 { font-size: 15px; font-weight: 700; margin-bottom: 2px; letter-spacing: -0.01em; }
+    h3 { font-size: 14px; font-weight: 600; }
+    p  { font-size: 13px; color: var(--ion-color-medium); margin: 1px 0; }
+  }
+}
+
+// ————————————————————————————————
+// Badges — píldora redonda
+// ————————————————————————————————
+ion-badge {
+  border-radius: var(--radius-pill);
+  padding: 5px 11px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+// ————————————————————————————————
+// Botones — radio 16px, easing real, presión física
+// ————————————————————————————————
+ion-button {
+  --border-radius: var(--radius-control);
+  --box-shadow: none;
+  --transition: background .2s var(--ease-out);
+  font-family: var(--ion-font-family);
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  height: 50px;
+  font-size: 15px;
+  transition: transform .18s var(--ease-out);
+
+  &:active { transform: scale(0.97); }
+  &[size="small"] { height: 38px; font-size: 13px; }
+}
+
+ion-button[fill="solid"], ion-button:not([fill]) {
+  --box-shadow: 0 1px 2px rgba(10, 10, 10, .08);
+}
+// CTA principal carmesí: sombra tintada
+ion-button[color="primary"][fill="solid"], ion-button[color="primary"]:not([fill]) {
+  --box-shadow: 0 8px 20px rgba(225, 29, 72, .22);
+}
+
+// Utilidad para CTAs en mayúsculas (Confirmar, Facturar y entregar, etc.)
+ion-button.cta-upper {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+// Anillo de foco accesible
+ion-button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+// ————————————————————————————————
+// Inputs
+// ————————————————————————————————
+ion-input, ion-textarea, ion-select, ion-searchbar {
+  --border-radius: var(--radius-input);
+}
+
+ion-searchbar {
+  --border-radius: var(--radius-input);
+  --box-shadow: none;
+  --background: rgba(var(--ion-text-color-rgb), .05);
+  padding: 8px 12px !important;
+  font-size: 14px;
+}
+
+// ————————————————————————————————
+// Segmento — píldora con indicador carmesí
+// ————————————————————————————————
+ion-segment {
+  --background: var(--n-100);
+  border-radius: var(--radius-control);
+  margin: 8px 16px;
+  padding: 4px;
+  gap: 2px;
+}
+
+ion-segment-button {
+  --border-radius: 11px;
+  --indicator-color: var(--ion-color-primary);
+  --color: var(--n-500);
+  --color-checked: #ffffff;
+  --indicator-box-shadow: 0 2px 6px rgba(225, 29, 72, .25);
+  font-size: 12px;
+  font-weight: 700;
+  min-height: 36px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+// ————————————————————————————————
+// Tab bar
+// ————————————————————————————————
+ion-tab-bar {
+  border-top: 1px solid var(--hairline);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  height: calc(62px + env(safe-area-inset-bottom, 0));
+
+  ion-tab-button {
+    font-size: 11px;
+    font-weight: 700;
+    --color-selected: var(--ion-color-primary);
+
+    ion-icon { font-size: 22px; margin-bottom: 3px; }
+  }
+}
+
+// ————————————————————————————————
+// FAB — carmesí redondo con sombra tintada
+// ————————————————————————————————
+ion-fab-button {
+  --border-radius: var(--radius-pill);
+  --box-shadow: var(--shadow-accent);
+  --background: var(--ion-color-primary);
+  --background-activated: var(--ion-color-primary-shade);
+  transition: transform .25s var(--ease-out);
+  &:hover { transform: rotate(90deg); }
+}
+
+// ————————————————————————————————
+// Spinner
+// ————————————————————————————————
+ion-spinner {
+  color: var(--ion-color-primary);
+  width: 38px;
+  height: 38px;
+}
+
+// ————————————————————————————————
+// Toast — píldora
+// ————————————————————————————————
+ion-toast {
+  --border-radius: var(--radius-pill);
+  --box-shadow: var(--shadow-md);
+  font-weight: 600;
+}
+
+// ————————————————————————————————
+// Skeleton loader (shimmer)
+// ————————————————————————————————
+@keyframes shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg,
+    rgba(var(--ion-text-color-rgb), .05) 25%,
+    rgba(var(--ion-text-color-rgb), .10) 37%,
+    rgba(var(--ion-text-color-rgb), .05) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 16px;
+}
+.skeleton-card {
+  height: 96px;
+  margin: 14px 16px;
+  border-radius: var(--radius-card);
+}
+.skeleton-line {
+  height: 13px;
+  border-radius: 7px;
+  margin: 9px 0;
+  &.sk-70 { width: 70%; }
+  &.sk-50 { width: 50%; }
+  &.sk-35 { width: 35%; }
+}
+.skeleton-pill { height: 26px; width: 96px; border-radius: var(--radius-pill); }
+// Contenedor de skeletons centrado igual que el contenido real
+.skeleton-wrap { max-width: 1240px; margin: 0 auto; padding: 14px 16px 0; }
+// Filas skeleton (listas tipo avatar + texto)
+.sk-row { display: flex; align-items: center; gap: 14px; padding: 14px 4px; }
+.sk-av { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
+.sk-col { flex: 1; }
+.sk-clientes { max-width: 920px; }
+
+// ————————————————————————————————
+// Revelado en cascada (staggered) — listas y grillas entran con waterfall sutil
+// ————————————————————————————————
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+.orden-list > *,
+.bike-list > .bike-row,
+.cita-list > .cita-row,
+.kpi-grid > *,
+.tec-list > .tec-row,
+.estado-list > .estado-row,
+.promos-scroll > * {
+  animation: riseIn .42s var(--ease-out) both;
+}
+@for $i from 1 through 8 {
+  .orden-list > *:nth-child(#{$i}),
+  .bike-list > .bike-row:nth-child(#{$i}),
+  .cita-list > .cita-row:nth-child(#{$i}),
+  .kpi-grid > *:nth-child(#{$i}),
+  .promos-scroll > *:nth-child(#{$i}) {
+    animation-delay: #{($i - 1) * 0.05}s;
+  }
+}
+
+// ————————————————————————————————
+// Patrones reutilizables del export
+// ————————————————————————————————
+
+// Stat-card: tarjeta blanca con número carmesí gigante
+.stat-card {
+  background: var(--ion-card-background);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+
+  .stat-number {
+    font-family: var(--font-display);
+    font-size: 44px;
+    font-weight: 900;
+    color: var(--ion-color-primary);
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+  .stat-label {
+    display: block;
+    font-size: 11px;
+    color: var(--n-500);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 8px;
+  }
+  // adorno: círculo en esquina
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 64px; height: 64px;
+    background: var(--n-100);
+    border-bottom-left-radius: 999px;
+    z-index: 0;
+  }
+  &.accent::after { background: var(--rose-50); }
+  .stat-number, .stat-label { position: relative; z-index: 1; }
+}
+
+// Píldora de estado genérica
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: var(--radius-pill);
+  background: var(--n-100);
+  color: var(--n-600);
+}
+.pill.rose   { background: var(--rose-50);    color: var(--rose-700); }
+.pill.green  { background: var(--emerald-50); color: var(--emerald-700); }
+.pill.amber  { background: var(--amber-100);  color: var(--amber-700); }
+.pill.indigo { background: var(--indigo-50);  color: var(--indigo-600); }
+.pill.gris   { background: var(--n-100);      color: var(--n-500); }
+.pill.solid  { background: var(--ion-color-primary); color: #fff; }
+
+// Badge de proximidad de una cita ("Hoy" / "Mañana" / "En N días"). Portal cliente.
+.prox-badge {
+  display: inline-flex; align-items: center; white-space: nowrap;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.01em;
+  padding: 3px 10px; border-radius: var(--radius-pill);
+  &.pb-hoy    { background: var(--rose-50);   color: var(--rose-700); }
+  &.pb-pronto { background: var(--amber-100);  color: var(--amber-700); }
+  &.pb-futuro { background: var(--n-100);      color: var(--n-500); }
+}
+
+// Segment tipo "pill" (carmesí en el activo) — usado en el panel de recepción
+.segment {
+  display: flex;
+  background: var(--n-100);
+  border-radius: var(--radius-control, 16px);
+  padding: 4px;
+  gap: 2px;
+  margin-bottom: 14px;
+}
+.seg-btn {
+  flex: 1;
+  padding: 9px 8px;
+  border: none;
+  background: none;
+  font-family: var(--font-body, inherit);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--n-500);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease, cubic-bezier(0.32, 0.72, 0, 1));
+}
+.seg-btn.on {
+  background: var(--ion-color-primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.25);
+}
+
+// Fila de filtros rápidos. Se distingue del .segment de arriba a propósito: aquel
+// cambia de pantalla (son secciones distintas), esta acota lo que ya se está viendo.
+// Por eso va suelta y no dentro de un carril: se lee como un accesorio de la lista.
+// Es hermana de .pill, que es la insignia de estado — esta se toca, aquella no.
+//
+// El nombre lleva sufijo porque `.filtros` y `.chip` ya están tomados dentro de
+// admin-opiniones y portal-citas, con otro significado: allá `.filtros` es el
+// contenedor de buscador + chips, no la fila en sí. Como los estilos globales no
+// están encapsulados, reusar esos nombres les cambiaría la maqueta.
+.chips-filtro {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  // La barra de desplazamiento tapa los chips en pantallas angostas y no hace falta:
+  // se nota que hay más porque el último queda cortado.
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+.chip-filtro {
+  flex: none;
+  padding: 7px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--n-500);
+  font-family: var(--font-body, inherit);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s var(--ease, cubic-bezier(0.32, 0.72, 0, 1));
+  &:active { transform: scale(.96); }
+}
+.chip-filtro.on {
+  border-color: transparent;
+  background: var(--ion-color-primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.2);
+}
+
+// Timeline vertical con línea y nodos carmesí
+.timeline {
+  position: relative;
+  padding-left: 22px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 7px; top: 6px; bottom: 6px;
+    width: 1.5px;
+    background: var(--ion-color-primary);
+  }
+  .tl-item { position: relative; padding-bottom: 16px; }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-item::before {
+    content: '';
+    position: absolute;
+    left: -22px; top: 4px;
+    width: 14px; height: 14px;
+    border-radius: 999px;
+    background: var(--ion-card-background);
+    border: 2px solid var(--ion-color-primary);
+    z-index: 1;
+  }
+  .tl-item.done::before { background: var(--ion-color-primary); }
+}
+
+// ————————————————————————————————
+// Login — negro neutro + tarjeta "marco de teléfono"
+// ————————————————————————————————
+.login-content {
+  // Foto del taller de fondo + velo oscuro para mantener legible la tarjeta
+  --background:
+    linear-gradient(180deg, rgba(10,10,10,.80) 0%, rgba(10,10,10,.88) 45%, rgba(10,10,10,.94) 100%),
+    url('/assets/portal/taller-bg.jpg') center / cover no-repeat fixed;
+
+  .login-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100%;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+
+    // resplandores de fondo
+    &::before, &::after {
+      content: '';
+      position: absolute;
+      width: 320px; height: 320px;
+      border-radius: 999px;
+      filter: blur(80px);
+      pointer-events: none;
+    }
+    &::before { top: -40px; left: -60px;  background: rgba(190, 18, 60, .14); }
+    &::after  { bottom: -40px; right: -60px; background: rgba(225, 29, 72, .12); }
+
+    .login-header {
+      text-align: center;
+      color: white;
+      margin-bottom: 26px;
+      position: relative;
+      z-index: 1;
+
+      .logo-wrapper {
+        width: 76px;
+        height: 76px;
+        background: #0a0a0a;
+        border: 1px solid #262626;
+        border-radius: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 18px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 10px 30px rgba(0,0,0,.6);
+
+        ion-icon { font-size: 38px; color: var(--ion-color-primary); }
+        img { width: 54px; height: 54px; object-fit: contain; }
+      }
+
+      h1 {
+        font-family: var(--font-display);
+        font-size: 32px;
+        font-weight: 800;
+        margin: 0 0 6px;
+        letter-spacing: -0.04em;
+        color: #fff;
+      }
+
+      p {
+        font-size: 11px;
+        // #737373 daba 4,04:1 sobre el fondo oscuro del portal (hace falta 4,5).
+        color: #8A8A8A;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        font-weight: 700;
+      }
+    }
+
+    ion-card {
+      width: 100%;
+      max-width: 420px;
+      --background: #171717;
+      border: 1px solid #262626;
+      border-radius: 36px !important;
+      box-shadow: 0 24px 70px rgba(0,0,0,.6) !important;
+      position: relative;
+      z-index: 1;
+      padding: 12px 8px;
+
+      ion-item {
+        --background: transparent;
+        --border-color: #262626;
+        --color: #fff;
+        --highlight-color-focused: var(--ion-color-primary);
+
+        ion-label {
+          color: #8A8A8A !important;   // 4,04:1 -> cumple 4,5:1 en oscuro
+          font-size: 11px !important;
+          font-weight: 700 !important;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        ion-input { color: #fff; font-weight: 500; --placeholder-color: #525252; }
+      }
+
+      // CTA principal (Ingresar / Crear cuenta / Enviar código)
+      ion-button[expand="block"] {
+        margin-top: 14px;
+        --background: var(--ion-color-primary);
+        --background-activated: var(--ion-color-primary-shade);
+        --box-shadow: 0 8px 24px rgba(225, 29, 72, .35);
+      }
+
+      // Botón "ojo" para ver/ocultar la contraseña dentro del campo
+      ion-button[fill="clear"] {
+        margin: 0;
+        height: 38px;
+        --background: transparent;
+        --background-activated: transparent;
+        --background-hover: transparent;
+        --box-shadow: none;
+        --color: #8a8a8a;
+        --padding-start: 6px;
+        --padding-end: 6px;
+      }
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Panel del administrador — tema oscuro, AISLADO bajo .admin-dark.
+   Una sola copia (no se duplica por componente). No afecta el resto
+   del sistema (claro Crimson Ops): nada aplica sin la clase .admin-dark.
+   Topbar y sidebar van con color fijo porque quedan fuera de .admin-dark.
+   ═══════════════════════════════════════════════════════════ */
+/* Isotipo de marca en las toolbars de rol (mecánico/recepción): color en claro, blanco en oscuro. */
+.brand-hd { height: 26px; width: auto; margin-inline-start: 12px; }
+.brand-hd.dark-only { display: none; }
+@media (prefers-color-scheme: dark) {
+  .brand-hd.light-only { display: none; }
+  .brand-hd.dark-only { display: inline-block; }
+}
+
+.admin-topbar {
+  --background: #111111; --color: #F5F5F5; --border-color: #2A2A2A; --border-width: 0 0 1px 0;
+  ion-title { font-family: 'Outfit', sans-serif; font-weight: 800; letter-spacing: -.03em; font-size: 17px; }
+  ion-menu-button, ion-buttons ion-button { --color: #A3A3A3; }
+  // Acciones del topbar (fecha de hoy + botón Nueva cita), estilo del mockup.
+  app-admin-actions { display: flex; align-items: center; gap: 8px; padding-right: 6px; }
+  .adm-date { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #A3A3A3;
+    background: #1A1A1A; border: 1px solid #2A2A2A; border-radius: 999px; padding: 5px 12px; white-space: nowrap; }
+  .adm-nueva { --background: var(--ion-color-primary); --background-hover: var(--ion-color-primary-shade); --background-activated: var(--ion-color-primary-shade); --color: #fff;
+    --border-radius: 9px; --box-shadow: none; font-weight: 700; text-transform: none; font-size: 12px; letter-spacing: 0; margin: 0;
+    flex-shrink: 0;
+    ion-icon { font-size: 15px; }
+    .adm-nueva-txt { margin-left: 5px; white-space: nowrap; }
+  }
+  // El título necesita poder recortarse: si no, empuja al botón fuera de la barra.
+  ion-title { min-width: 0; }
+}
+@media (max-width: 640px) { .admin-topbar .adm-date { display: none; } }
+// Debajo de 560px el título largo ("Gestión de Citas y Órdenes") y el botón no
+// conviven: se deja el botón como un "+" compacto y el título recupera el ancho.
+@media (max-width: 560px) {
+  .admin-topbar .adm-nueva .adm-nueva-txt { display: none; }
+  .admin-topbar .adm-nueva { --padding-start: 7px; --padding-end: 7px; }
+  .admin-topbar .adm-nueva ion-icon { font-size: 18px; }
+}
+.admin-sidebar { --width: 240px; --background: #111111; --border-color: #2A2A2A; }
+ion-footer.admin-dark { background: #111111; }
+
+.admin-dark {
+  // Superficies/bordes/textos: escala oscura propia del panel (sin equivalente
+  // semántico en el sistema en modo oscuro), se dejan literales a propósito.
+  --sur: #111111; --sur2: #1A1A1A; --sur3: #222222;
+  --bd: #2A2A2A; --bd2: #333333;
+  // --tx3 era #525252: sobre los fondos oscuros de este tema daba un contraste de
+  // 2,2 a 2,5, muy lejos del 4,5 que exige WCAG. Se usa en etiquetas de sección y
+  // textos de apoyo, así que la falla aparecía en TODAS las pantallas del panel.
+  // #8A8A8A es el gris más tenue que supera 4,5:1 contra el fondo más claro (#1a1a1a).
+  --tx: #F5F5F5; --tx2: #A3A3A3; --tx3: #8A8A8A;
+  // Acentos y estados: derivados del sistema (una sola fuente de verdad). Se usan
+  // los *-tint porque los colores base están pensados para fondo claro y caen bajo
+  // AA sobre el panel #111 (p. ej. tertiary base ≈3.2:1); los tint mantienen contraste.
+  --cr: var(--ion-color-primary); --cr-d: var(--ion-color-primary-shade);
+  --em: var(--ion-color-success-tint); --am: var(--ion-color-warning-tint);
+  --in: var(--ion-color-tertiary-tint); --rd: var(--ion-color-danger-tint);
+  --fd: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  --fm: 'JetBrains Mono', ui-monospace, monospace;
+  --background: #0A0A0A;
+  color: var(--tx);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+
+  .sidebar-content { --background: #111111; }
+  .sb-logo { padding: 20px 20px 18px; border-bottom: 1px solid var(--bd);
+    .sb-brand { width: 152px; max-width: 100%; height: auto; display: block; margin-bottom: 8px; }
+    h1 { font-family: var(--fd); font-size: 20px; font-weight: 900; letter-spacing: -.04em; margin: 0; .dot { color: var(--cr); } }
+    span { font-size: 11px; color: var(--tx3); font-weight: 600; } }
+  .sb-nav { padding: 12px 10px; }
+  .sb-section { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; color: var(--tx3); padding: 14px 10px 6px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; font-size: 13px; font-weight: 600;
+    color: var(--tx2); cursor: pointer; margin-bottom: 2px; text-decoration: none; transition: background .15s, color .15s;
+    ion-icon { font-size: 17px; }
+    &:hover { background: var(--sur2); color: var(--tx); }
+    &.on { background: var(--cr); color: #fff; }
+    .nav-badge { margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 800; color: #fff; background: var(--rd, #ef4444);
+      border-radius: 999px; } }
+  .sb-user { display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: var(--sur); border-top: 1px solid var(--bd);
+    .sb-av { width: 36px; height: 36px; border-radius: 50%; background: var(--cr); color: #fff; flex-shrink: 0; overflow: hidden;
+      display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700;
+      img { width: 100%; height: 100%; object-fit: cover; } }
+    .sb-info { flex: 1; min-width: 0; strong { display: block; font-size: 13px; font-weight: 700; } span { display: block; font-size: 11px; color: var(--tx3); } }
+    .sb-logout { background: none; border: none; color: var(--tx3); cursor: pointer; padding: 6px; ion-icon { font-size: 19px; } &:hover { color: var(--rd); } } }
+
+  .admin { max-width: 1120px; margin: 0 auto; padding: 18px 16px 60px; }
+  .cd { background: var(--sur); border: 1px solid var(--bd); border-radius: 24px; padding: 20px; }
+  .cd-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--tx3); margin-bottom: 14px; display: block; }
+  .mb { margin-bottom: 18px; }
+  .section-sub { font-family: var(--fd); font-size: 16px; font-weight: 800; margin-bottom: 14px; color: var(--tx); }
+  .g2 { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 18px; }
+  .g21 { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 18px; }
+  .mono { font-family: var(--fm); font-feature-settings: "tnum" 1; }
+
+  .kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+  .kpi { background: var(--sur); border: 1px solid var(--bd); border-radius: 24px; padding: 18px; position: relative; overflow: hidden;
+    &::after { content: ''; position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; border-radius: 50%; opacity: .08; }
+    &.cr::after { background: var(--cr); } &.em::after { background: var(--em); } &.am::after { background: var(--am); } &.in::after { background: var(--in); }
+    .kpi-label { font-size: 11px; font-weight: 700; color: var(--tx3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+    .kpi-val { font-family: var(--fd); font-size: 28px; font-weight: 900; letter-spacing: -.04em; line-height: 1; }
+    &.cr .kpi-val { color: var(--cr); } &.em .kpi-val { color: var(--em); } &.am .kpi-val { color: var(--am); } &.in .kpi-val { color: var(--in); } }
+
+  .bar-item { margin-bottom: 12px; &:last-child { margin-bottom: 0; } }
+  .bar-head { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; gap: 10px;
+    span { color: var(--tx2); } strong { color: var(--tx); font-family: var(--fm); white-space: nowrap; } }
+  .bar-track { height: 8px; background: var(--sur3); border-radius: 999px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--cr), #F43F5E); }
+
+  .tbl { width: 100%; border-collapse: collapse;
+    th { text-align: left; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--tx3); padding: 10px 12px; border-bottom: 1px solid var(--bd); white-space: nowrap; }
+    td { padding: 11px 12px; font-size: 13px; border-bottom: 1px solid var(--bd2); vertical-align: middle; color: var(--tx); }
+    tr:last-child td { border-bottom: none; }
+    .mono { font-family: var(--fm); font-size: 12px; } }
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch;
+    position: relative;
+    &::after { content: ''; position: sticky; right: 0; top: 0; bottom: 0; width: 24px;
+      background: linear-gradient(to left, var(--sur), transparent); pointer-events: none; } }
+  .pct-bar { height: 5px; background: var(--sur3); border-radius: 999px; overflow: hidden; margin-top: 3px; width: 80px; }
+  .pct-fill { height: 100%; background: var(--cr); border-radius: 999px; }
+
+  .fw-bold { font-weight: 600; }
+  .clr-em { color: var(--em); }
+  .clr-rd { color: var(--rd); }
+  .clr-cr { color: var(--cr); }
+  .clr-am { color: var(--am); }
+  .clr-in { color: var(--in); }
+
+  .bg { font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 999px; display: inline-flex; white-space: nowrap; }
+  .bg-cr { background: #2C0A12; color: #FB7185; } .bg-am { background: #2C1A00; color: #FBB834; }
+  .bg-em { background: #0A1F0A; color: #4ADE80; } .bg-in { background: #0A0F2E; color: #818CF8; }
+  .bg-n { background: var(--sur2); color: var(--tx2); } .bg-rd { background: #2B0D0D; color: #F87171; }
+
+  .btn { padding: 12px 20px; border-radius: 14px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; border: none;
+    min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: background .15s, border-color .15s; ion-icon { font-size: 16px; }
+    &:active { transform: scale(.97); } &:disabled { opacity: .5; } }
+  .btn-cr { background: var(--cr); color: #fff; &:hover { background: var(--cr-d); } }
+  .btn-ou { background: none; border: 1px solid var(--bd); color: var(--tx2); &:hover { border-color: var(--tx2); color: var(--tx); } }
+  .btn-em { background: #0D2B0D; color: #4ADE80; border: 1px solid #14532D; }
+  .btn-rd { background: #2B0D0D; color: #F87171; border: 1px solid #7F1D1D; }
+  .btn-am { background: #2C1A00; color: #FBB834; border: 1px solid #78350F; }
+  .btn-sm { padding: 5px 10px; font-size: 11px; border-radius: 7px; }
+  .btn-block { width: 100%; padding: 12px; }
+
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .filter-btn { padding: 7px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid var(--bd); background: none; color: var(--tx2);
+    &.on { background: var(--cr); color: #fff; border-color: var(--cr); } }
+  .search-row { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center;
+    input, select { padding: 11px 14px; border: 1px solid var(--bd); border-radius: 12px; font-family: inherit; font-size: 14px; background: var(--sur2); color: var(--tx); outline: none; min-height: 44px; &:focus { border-color: var(--cr); } }
+    input.grow { flex: 1; min-width: 160px; } }
+
+  .fg { margin-bottom: 14px;
+    label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--tx3); margin-bottom: 6px; }
+    input, select, textarea { width: 100%; padding: 11px 14px; border: 1px solid var(--bd); border-radius: 12px; font-family: inherit; font-size: 14px; background: var(--sur2); color: var(--tx); outline: none; transition: border-color .2s; &:focus { border-color: var(--cr); } }
+    &.error input, &.error select { border-color: var(--rd); }
+    select option { background: var(--sur2); }
+    textarea { resize: none; min-height: 72px; }
+    .hint { font-size: 11px; color: var(--tx3); margin-top: 4px; } }
+  // Pares de campos (fecha/hora, etc.): en teléfonos angostos se apilan en vez de
+  // quedar dos inputs de ~130px donde no se lee ni el placeholder. Mismo patrón
+  // mobile-first que .promo-grid de más abajo.
+  .fg-row { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  @media (min-width: 480px) { .fg-row { grid-template-columns: 1fr 1fr; } }
+
+  // La fila envuelve: en pantallas angostas el bloque de acciones (estado +
+  // activar/desactivar + eliminar) no cabe junto al nombre, y sin wrap estiraba
+  // la tarjeta y desbordaba toda la página en horizontal.
+  .emp-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px; background: var(--sur2); border-radius: 16px; margin-bottom: 10px; border: 1px solid var(--bd);
+    &.inactivo { opacity: .55; }
+    .emp-av { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; background: var(--cr);
+      &.in { background: var(--in); } &.am { background: #78350F; } &.off { background: var(--sur3); } }
+    // Con base 140px pide su espacio, pero cede y deja que las acciones bajen a otra línea.
+    .emp-info { flex: 1 1 140px; min-width: 0; strong { display: block; font-size: 13px; font-weight: 700; } span { display: block; font-size: 11px; color: var(--tx3); margin-top: 1px; } }
+    // margin-left:auto lo mantiene pegado a la derecha, tanto en una línea como al envolver.
+    .emp-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; } }
+
+  .promo-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  @media (min-width: 640px) { .promo-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1024px) { .promo-grid { grid-template-columns: repeat(3, 1fr); } }
+  .promo-card { background: var(--sur2); border: 1px solid var(--bd); border-radius: 20px; overflow: hidden;
+    &.inactiva { opacity: .55; }
+    .promo-img { width: 100%; height: 90px; object-fit: cover; display: block; }
+    .promo-img-ph { height: 80px; display: flex; align-items: center; justify-content: center; font-size: 28px; background: linear-gradient(135deg, #2C0A12, #1A0A1A); }
+    .promo-body { padding: 12px; }
+    .promo-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; h4 { font-size: 14px; font-weight: 700; margin: 0; } }
+    .promo-body p { font-size: 11px; color: var(--tx2); margin: 0 0 8px; line-height: 1.5; }
+    .promo-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .promo-price { font-family: var(--fm); font-size: 14px; font-weight: 700; color: var(--em); }
+    .promo-btns { display: flex; gap: 6px; flex-wrap: wrap; } }
+  .upload-box { border: 2px dashed var(--bd2); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer;
+    .up-ico { font-size: 26px; margin-bottom: 6px; } .up-txt { font-size: 12px; color: var(--tx3); }
+    img { max-height: 110px; border-radius: 8px; } }
+
+  .empty { text-align: center; padding: 48px 20px; color: var(--tx3);
+    ion-icon { font-size: 46px; opacity: .4; display: block; margin: 0 auto 10px; } p { font-size: 13px; margin: 0; } }
+  .placeholder { text-align: center; padding: 70px 24px; color: var(--tx3);
+    ion-icon { font-size: 54px; opacity: .35; display: block; margin: 0 auto 14px; color: var(--cr); }
+    h3 { font-family: var(--fd); font-size: 18px; color: var(--tx); margin: 0 0 6px; } p { font-size: 13px; margin: 0; } }
+  .sk-dark { background: linear-gradient(90deg, var(--sur2) 25%, var(--sur3) 37%, var(--sur2) 63%); background-size: 400% 100%; animation: shimmer 1.5s infinite; border-radius: 16px; min-height: 20px; }
+
+  // ——— Calendario de citas ———
+  .cal-wrap { display: grid; grid-template-columns: 1fr; gap: 20px; }
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+    h3 { font-family: var(--fd); font-size: 18px; font-weight: 800; letter-spacing: -.03em; margin: 0; } }
+  .cal-nav { display: flex; gap: 6px;
+    button { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--bd); background: none; color: var(--tx2); font-size: 13px; font-weight: 700; cursor: pointer;
+      &:hover { background: var(--sur2); color: var(--tx); } &.on { background: var(--cr); color: #fff; border-color: var(--cr); } } }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 4px; }
+  .cal-dow { text-align: center; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--tx3); padding: 8px 0; }
+  .cal-day { min-height: 56px; background: var(--sur2); border-radius: 12px; padding: 8px; cursor: pointer; border: 1.5px solid transparent; transition: all .15s; position: relative;
+    &:hover { border-color: var(--bd2); background: var(--sur3); }
+    &.empty { background: transparent; cursor: default; &:hover { border-color: transparent; } }
+    &.today { border-color: var(--cr); background: #1A0608; }
+    &.low { background: #0A1A0A; }
+    &.high { background: #1A0A0A; }
+    .day-num { font-size: 12px; font-weight: 700; color: var(--tx2); margin-bottom: 6px; }
+    &.today .day-num { color: var(--cr); font-weight: 800; }
+    .day-citas { display: flex; flex-direction: column; gap: 3px; }
+    .flujo { position: absolute; bottom: 6px; right: 6px; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 999px;
+      &.flujo-bajo { background: #0A1A0A; color: #4ADE80; } &.flujo-medio { background: #2C1A00; color: #FBB834; } &.flujo-alto { background: #2C0A12; color: #FB7185; } } }
+  .mec-dot { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal-side { display: flex; flex-direction: column; gap: 14px; }
+  .legend-list { display: flex; flex-direction: column; gap: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--tx2); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
+    &.lg-bajo { background: #0A1A0A; border: 1px solid #4ADE80; } &.lg-medio { background: #2C1A00; border: 1px solid #FBB834; } &.lg-alto { background: #2C0A12; border: 1px solid #FB7185; } }
+  .legend-sep { height: 1px; background: var(--bd); margin: 10px 0; }
+  .day-detail h4 { font-size: 13px; font-weight: 700; margin: 0 0 10px; }
+  .mec-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--bd2); font-size: 12px;
+    &:last-child { border-bottom: none; }
+    .mec-name { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+    .mec-cnt { font-family: var(--fm); font-weight: 700; color: var(--cr); } }
+  .mec-av-sm { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .day-total { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--bd); font-size: 12px; color: var(--tx2); strong { color: var(--tx); } }
+}
+/* sk-dark now uses @keyframes shimmer (unified skeleton animation) */
+
+@media (min-width: 860px) {
+  .admin-dark {
+    .g2 { grid-template-columns: 1fr 1fr; }
+    .g21 { grid-template-columns: 2fr 1fr; }
+    .kpi-grid { grid-template-columns: repeat(4, 1fr); }
+    .cal-wrap { grid-template-columns: 1fr 340px; }
+    .cal-day { min-height: 78px; }
+    .promo-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Diálogo de confirmación del portal cliente (Crimson Ops).
+   Reemplaza el alert blanco por defecto de Ionic, que en modo
+   oscuro dejaba el título/mensaje en blanco-sobre-blanco. Usa las
+   variables semánticas de :root → legible en claro y oscuro.
+   ═══════════════════════════════════════════════════════════ */
+.portal-alert {
+  --backdrop-opacity: 0.55;
+
+  .alert-wrapper {
+    border-radius: 22px;
+    background: var(--ion-card-background);
+    border: 1px solid var(--hairline);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, .28);
+    max-width: 340px;
+    overflow: hidden;
+  }
+
+  .alert-head { padding: 22px 22px 6px; }
+  .alert-title {
+    font-family: var(--font-display, 'Outfit', sans-serif);
+    font-size: 18px; font-weight: 800; letter-spacing: -.02em;
+    color: var(--ion-text-color);
+  }
+  .alert-message {
+    padding: 4px 22px 20px;
+    font-size: 13.5px; line-height: 1.55; color: var(--n-500);
+  }
+
+  // Inputs (textarea de "rechazar", radios de "calificar").
+  .alert-input-group { padding: 0 22px 14px; }
+  .alert-input, textarea.alert-input {
+    border-radius: 12px; border: 1px solid var(--hairline);
+    background: var(--n-50); color: var(--ion-text-color);
+    padding: 10px 12px; font-size: 13.5px;
+    &::placeholder { color: var(--n-400); }
+  }
+  .alert-radio-label { color: var(--ion-text-color); font-size: 14px; }
+  [aria-checked="true"] .alert-radio-label { color: var(--text-accent); }  // AA
+
+  // Botonera: dos columnas iguales, separadas por el hairline.
+  .alert-button-group {
+    padding: 0; display: flex; border-top: 1px solid var(--hairline);
+  }
+  .alert-button {
+    flex: 1; margin: 0; height: 52px; border-radius: 0;
+    text-transform: none; letter-spacing: 0;
+    font-size: 14.5px; font-weight: 700;
+    .alert-button-inner { justify-content: center; }
+  }
+  // Botón "No" (cancelar): neutro.
+  .alert-button.alert-button-role-cancel { --ion-color-primary: var(--n-500); color: var(--n-500); }
+  // Separador entre botones.
+  .alert-button + .alert-button { border-left: 1px solid var(--hairline); }
+  // Botón destructivo "Sí, cancelar": rojo, dominante.
+  .alert-button.portal-alert-danger {
+    color: #fff; background: var(--ion-color-danger); font-weight: 800;
+    border-left: none;
+  }
+  .alert-button.portal-alert-danger:hover,
+  .alert-button.portal-alert-danger.ion-activated { background: var(--ion-color-danger-shade); }
+  // Botón afirmativo dominante "Aprobar"/"Guardar": primario relleno.
+  .alert-button.portal-alert-confirm {
+    color: #fff; background: var(--ion-color-primary); font-weight: 800;
+    border-left: none;
+  }
+  .alert-button.portal-alert-confirm:hover,
+  .alert-button.portal-alert-confirm.ion-activated { background: var(--ion-color-primary-shade); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Alerts del panel admin (tema oscuro → forzar fondo claro).
+   Se aplica con cssClass: 'alert-light' en AlertController.
+   ═══════════════════════════════════════════════════════════ */
+.alert-light {
+  .alert-wrapper {
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 16px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, .5);
+  }
+  .alert-title { color: #f5f5f5; font-weight: 800; }
+  .alert-message { color: #ccc; }
+  .alert-radio-label { color: #e5e5e5; }
+  [aria-checked="true"] .alert-radio-label { color: var(--cr, #E11D48); font-weight: 700; }
+  .alert-radio-icon { border-color: #555; }
+  [aria-checked="true"] .alert-radio-icon { border-color: var(--cr, #E11D48); }
+  [aria-checked="true"] .alert-radio-inner { background: var(--cr, #E11D48); }
+  .alert-button { color: var(--cr, #E11D48); }
+  .alert-button.alert-button-role-cancel { color: #999; }
+  .alert-button-group { border-top: 1px solid rgba(255, 255, 255, .1); }
+  .alert-button + .alert-button { border-left: 1px solid rgba(255, 255, 255, .1); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Action sheet (ActionSheetController) con el look Crimson Ops.
+   Aplica a TODA la app (sin cssClass): reemplaza el sheet plano y
+   de bajo contraste de Ionic por tarjetas flotantes legibles en
+   claro y oscuro, usando las variables semánticas de :root.
+   ═══════════════════════════════════════════════════════════ */
+ion-action-sheet {
+  --backdrop-opacity: 0.5;
+  --background: #1a1a1a;
+  --color: #e5e5e5;
+  --button-color: #e5e5e5;
+
+  .action-sheet-group {
+    background: #1a1a1a !important;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 20px;
+    margin: 0 8px 8px;
+    overflow: hidden;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, .4);
+  }
+  .action-sheet-group-cancel { margin-bottom: max(8px, var(--ion-safe-area-bottom, 8px)); }
+
+  .action-sheet-title {
+    color: #f5f5f5 !important;
+    font-family: var(--font-display, 'Outfit', sans-serif);
+    font-size: 15px; font-weight: 800; letter-spacing: -.01em;
+    padding-top: 18px; padding-bottom: 6px;
+  }
+  .action-sheet-sub-title {
+    color: #999 !important;
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+  }
+
+  .action-sheet-button {
+    color: #e5e5e5 !important;
+    font-size: 15px; font-weight: 600;
+    min-height: 56px;
+  }
+  .action-sheet-button + .action-sheet-button { border-top: 1px solid rgba(255, 255, 255, .08); }
+  .action-sheet-button.ion-activated,
+  .action-sheet-button:hover { background: rgba(255, 255, 255, .06) !important; }
+  .action-sheet-icon { color: var(--cr, #E11D48) !important; font-size: 21px; }
+
+  .action-sheet-button.action-sheet-destructive { color: var(--ion-color-danger) !important; }
+  .action-sheet-group-cancel .action-sheet-button { color: #bbb !important; font-weight: 800; }
+}
+
+// Loading (LoadingController) con el look del portal: caja temática y legible en
+// modo oscuro, en vez del recuadro blanco por defecto de Ionic.
+.portal-loading {
+  --backdrop-opacity: 0.5;
+  --background: var(--ion-card-background);
+  --spinner-color: var(--ion-color-primary);
+  color: var(--ion-text-color);
+
+  .loading-wrapper {
+    border-radius: 18px;
+    border: 1px solid var(--hairline);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, .3);
+    padding: 20px 24px;
+  }
+  .loading-content {
+    font-size: 14px; font-weight: 700; color: var(--ion-text-color);
+  }
+}
+
+// ————————————————————————————————
+// Utilidades varias
+// ————————————————————————————————
+.bienvenida {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ion-text-color);
+  margin: 18px 4px 12px;
+}
+
+.estado-badge {
+  font-size: 12px;
+  padding: 6px 14px;
+  margin-bottom: 8px;
+  display: inline-block;
+}
+
+.placa {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--n-600);
+  margin-top: 4px;
+  background: var(--n-100);
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  text-align: center;
+}
+
+.avance-fecha {
+  color: var(--text-accent);  // AA en claro (≈5.2:1) y legible en oscuro
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+ion-grid { padding: 0 8px; }
+ion-col { padding: 4px 8px; }
+
+// ————————————————————————————————
+// Responsive — mobile-first por defecto; en tablet/desktop aprovechar el ancho.
+// Las pantallas con grilla propia (dashboard, detalle, portal) usan div.card y
+// se ensanchan en su propio SCSS; acá centramos las páginas de ion-card/ion-list.
+// ————————————————————————————————
+@media (min-width: 768px) {
+  // Tarjetas sueltas (formularios, fichas): centrar a un ancho cómodo de lectura
+  ion-card {
+    max-width: 860px;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  // Listas planas (clientes, usuarios, motos, citas): centrar la columna
+  ion-content > ion-list,
+  ion-content > div > ion-list {
+    max-width: 920px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  // Toolbars/segmentos/searchbars: alinear el contenido al mismo eje central
+  ion-content.ion-padding { --padding-start: 24px; --padding-end: 24px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Accesibilidad + estado de conexión (global)
+   ═══════════════════════════════════════════════════════════ */
+
+/* Tamaño de texto: zoom global controlado desde Perfil (AccesibilidadService). */
+html { zoom: var(--app-zoom, 1); }
+
+/* Foco visible para navegación por teclado (no afecta el clic con mouse). */
+:focus-visible {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respeta la preferencia del sistema de reducir el movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Banner global "sin conexión". */
+.net-banner {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10000;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 14px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  background: #1f2937; color: #fff; font-size: 12.5px; font-weight: 700;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.25);
+  ion-icon { font-size: 16px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Modal del panel de administración — cáscara reutilizable.
+   Ionic monta el modal en la raíz del DOM, FUERA de .admin-dark, así que los
+   tokens (--sur, --bd, --tx) y las clases del panel (.cd-title, .fg, .btn) no
+   se heredan: hay que volver a poner class="admin-dark" en la raíz de adentro.
+   Sin eso el contenido sale sin ningún estilo.
+   ═══════════════════════════════════════════════════════════ */
+ion-modal.adm-modal {
+  // Alto según contenido: un modal a pantalla completa para un puñado de campos
+  // se ve desproporcionado en escritorio.
+  --width: 92%;
+  --max-width: 520px;
+  --height: auto;
+  --border-radius: 24px;
+  --background: #111111;
+  --box-shadow: 0 20px 60px rgba(0, 0, 0, .55);
+}
+
+.adm-modal-box {
+  background: var(--sur);
+  color: var(--tx);
+  display: flex;
+  flex-direction: column;
+  max-height: 88vh;
+
+  .amb-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 20px 20px 0;
+    .cd-title { margin: 0; }
+    .amb-x {
+      background: none; border: none; color: var(--tx3); cursor: pointer;
+      padding: 4px; line-height: 0; border-radius: 8px;
+      &:hover { color: var(--tx); background: var(--sur2); }
+      ion-icon { font-size: 20px; }
+    }
+  }
+
+  .amb-body { padding: 16px 20px 4px; overflow-y: auto; }
+
+  .amb-foot {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    flex-wrap: wrap; padding: 14px 20px 20px;
+    border-top: 1px solid var(--bd); margin-top: 8px;
+    .amb-tip { font-size: 11px; color: var(--tx3); flex: 1 1 140px; }
+    .amb-btns { display: flex; gap: 8px; margin-left: auto; }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Buscador del panel — filtro por texto sobre una lista.
+   Va a nivel raíz (no anidado en .admin-dark) para poder usarlo también dentro de
+   los modales, que Ionic monta fuera. Las variables se heredan igual, porque el
+   elemento siempre cuelga de un contenedor con la clase .admin-dark.
+   ═══════════════════════════════════════════════════════════ */
+.adm-buscador {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  .bs-lupa {
+    position: absolute; left: 10px; font-size: 15px;
+    color: var(--tx3); pointer-events: none;
+  }
+
+  input {
+    width: 100%;
+    padding: 8px 30px 8px 32px;
+    border: 1px solid var(--bd);
+    border-radius: 8px;
+    background: var(--sur2);
+    color: var(--tx);
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s;
+
+    &:focus { border-color: var(--cr); }
+    &::placeholder { color: var(--tx3); }
+  }
+
+  .bs-x {
+    position: absolute; right: 6px;
+    background: none; border: none; padding: 2px; line-height: 0;
+    color: var(--tx3); cursor: pointer;
+    &:hover { color: var(--tx); }
+    ion-icon { font-size: 15px; }
+  }
+}

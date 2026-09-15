@@ -1,0 +1,207 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>MS Motos</ion-title>
+    <ion-buttons slot="end">
+      <ion-button [routerLink]="['/admin']" title="Panel admin">
+        <ion-icon slot="icon-only" name="grid-outline"></ion-icon>
+      </ion-button>
+      <ion-button [routerLink]="['/garantias']" title="Garantías">
+        <ion-icon slot="icon-only" name="shield-checkmark-outline"></ion-icon>
+      </ion-button>
+      <ion-button [routerLink]="['/promociones']" title="Promociones" *ngIf="auth.tieneRol('admin')">
+        <ion-icon slot="icon-only" name="pricetags-outline"></ion-icon>
+      </ion-button>
+      <ion-button (click)="logout()">
+        <ion-icon slot="icon-only" name="log-out-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="cargar(); $event.target.complete()">
+    <ion-refresher-content pullingIcon="chevron-down" refreshingSpinner="crescent"></ion-refresher-content>
+  </ion-refresher>
+
+  <div *ngIf="!cargando && resumen" class="dash">
+
+    <!-- Saludo -->
+    <div class="greet">
+      <div class="greet-l">
+        <h1>Hola, {{ auth.getUsuario()?.nombre }}</h1>
+        <span class="role-chip">{{ auth.getUsuario()?.rol | titlecase }}</span>
+      </div>
+      <span class="greet-date mono">{{ fechaHoy }}</span>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="stat-row">
+      <div class="stat-card accent press" routerLink="/tabs/ordenes">
+        <div class="stat-number">{{ resumen.motos_activas }}</div>
+        <div class="stat-label">En taller</div>
+      </div>
+      <div class="stat-card accent">
+        <div class="stat-number">{{ resumen.motos_atrasadas }}</div>
+        <div class="stat-label">Atrasadas</div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+
+    <!-- Facturación -->
+    <section class="card fact-card">
+      <div class="card-head">
+        <span class="section-label">Facturación</span>
+        <span class="fact-ico mono">₡</span>
+      </div>
+      <div class="fact-main">
+        <div>
+          <div class="fact-total mono">₡{{ resumen.facturacion_hoy | number:'1.0-0' }}</div>
+          <p class="fact-sub">Total diario</p>
+        </div>
+      </div>
+      <div class="fact-grid">
+        <div class="fact-cell">
+          <span>Semanal</span>
+          <strong class="mono">₡{{ resumen.facturacion_semana | number:'1.0-0' }}</strong>
+        </div>
+        <div class="fact-cell">
+          <span>Mensual</span>
+          <strong class="mono">₡{{ resumen.facturacion_mes | number:'1.0-0' }}</strong>
+        </div>
+        <div class="fact-cell">
+          <span>Citas hoy</span>
+          <strong class="mono">₡{{ resumen.ingresos_citas_hoy | number:'1.0-0' }}</strong>
+        </div>
+        <div class="fact-cell">
+          <span>Citas mes</span>
+          <strong class="mono">₡{{ resumen.ingresos_citas_mes | number:'1.0-0' }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- Semáforo de entregas -->
+    <section class="card">
+      <span class="section-label">Semáforo de entregas</span>
+      <div class="seg-pills">
+        <button [class.active]="filtroSemaforo==='rojo'" (click)="filtroSemaforo='rojo'">
+          Atrasado <span class="cnt" [class.on]="filtroSemaforo==='rojo'">{{ countRojo }}</span>
+        </button>
+        <button [class.active]="filtroSemaforo==='amarillo'" (click)="filtroSemaforo='amarillo'">
+          Por vencer <span class="cnt" [class.on]="filtroSemaforo==='amarillo'">{{ countAmarillo }}</span>
+        </button>
+        <button [class.active]="filtroSemaforo==='verde'" (click)="filtroSemaforo='verde'">
+          A tiempo <span class="cnt" [class.on]="filtroSemaforo==='verde'">{{ countVerde }}</span>
+        </button>
+      </div>
+
+      <div class="bike-list">
+        <div class="bike-row" *ngFor="let a of atrasosFiltrados" (click)="abrirOrden(a.id)">
+          <div class="bike-l">
+            <div class="bike-ico"><ion-icon name="bicycle"></ion-icon></div>
+            <div class="bike-meta">
+              <span class="bike-id mono">{{ a.numero_orden }}</span>
+              <h4>{{ a.marca }} {{ a.modelo }}</h4>
+            </div>
+          </div>
+          <span class="tag" [ngClass]="semaforo(a.dias_restantes)">{{ semaforoTexto(a.dias_restantes) }}</span>
+        </div>
+        <div class="bike-empty" *ngIf="!atrasosFiltrados.length">
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+          Sin órdenes en este estado
+        </div>
+      </div>
+    </section>
+
+    <!-- KPIs -->
+    <section class="card kpi-card">
+      <span class="section-label">KPI</span>
+      <div class="kpi-grid">
+      <div class="kpi">
+        <span class="kpi-lbl">Ticket promedio</span>
+        <span class="kpi-num">₡{{ resumen.ticket_promedio | number:'1.0-0' }}</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-lbl">Reparación prom.</span>
+        <span class="kpi-num">{{ resumen.tiempo_promedio_horas || 0 }}h</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-lbl">Conversión</span>
+        <span class="kpi-num">{{ resumen.conversion_pct }}%</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-lbl">Satisfacción</span>
+        <span class="kpi-num">{{ resumen.satisfaccion_promedio ? (resumen.satisfaccion_promedio + '★') : '—' }}</span>
+      </div>
+      </div>
+    </section>
+
+    <!-- Tiempo por etapa -->
+    <section class="card" *ngIf="tiempos.length">
+      <span class="section-label">Tiempo por etapa</span>
+      <div class="etapa-list">
+        <div class="etapa-row" *ngFor="let t of tiempos">
+          <span class="etapa-name">{{ etapaLabel[t.etapa] || t.etapa }}</span>
+          <span class="etapa-horas mono">{{ t.horas_promedio || 0 }}h</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Órdenes por estado -->
+    <section class="card" *ngIf="resumen.ordenes_por_estado?.length">
+      <span class="section-label">Estado del taller</span>
+      <div class="estado-list">
+        <div class="estado-row" *ngFor="let item of resumen.ordenes_por_estado" routerLink="/tabs/ordenes">
+          <span class="estado-dot" [style.background]="'var(--ion-color-' + (item.estado | estadoColor) + ')'"></span>
+          <span class="estado-name">{{ item.estado | estadoLabel }}</span>
+          <ion-badge [color]="item.estado | estadoColor">{{ item.total }}</ion-badge>
+        </div>
+      </div>
+    </section>
+
+    <!-- Técnicos -->
+    <section class="card" *ngIf="tecnicos.length">
+      <span class="section-label">Técnicos</span>
+      <div class="tec-list">
+        <div class="tec-row" *ngFor="let t of tecnicos">
+          <div class="avatar-circle">{{ t.nombre.charAt(0) }}</div>
+          <div class="tec-meta">
+            <h4>{{ t.nombre }}</h4>
+            <p>{{ t.ordenes_completadas }} completadas · {{ t.horas_promedio || 0 }}h prom.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reportes / exportación -->
+    <section class="card reportes-card">
+      <span class="section-label">Reportes</span>
+      <div class="export-row">
+        <button class="btn-out" (click)="exportarOrdenes()" [disabled]="exportando">Órdenes</button>
+        <button class="btn-rose" (click)="exportarFacturacion()" [disabled]="exportando">Facturación</button>
+      </div>
+      <button class="btn-out wide" (click)="exportarProductividad()" [disabled]="exportando">Productividad</button>
+    </section>
+
+    </div><!-- /dash-grid -->
+
+    <div style="height: 90px"></div>
+  </div>
+
+  <div class="skeleton-wrap" *ngIf="cargando">
+    <div class="skeleton skeleton-line sk-50" style="height:30px;margin:16px 2px 18px"></div>
+    <div class="stat-row">
+      <div class="skeleton" style="height:122px"></div>
+      <div class="skeleton" style="height:122px"></div>
+    </div>
+    <div class="skeleton" style="height:158px;margin-bottom:16px"></div>
+    <div class="skeleton" style="height:214px;margin-bottom:16px"></div>
+    <div class="skeleton" style="height:140px"></div>
+  </div>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button color="primary" (click)="irNuevaOrden()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

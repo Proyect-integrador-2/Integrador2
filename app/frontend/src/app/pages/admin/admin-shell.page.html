@@ -1,0 +1,81 @@
+<ion-split-pane contentId="admin-content" when="lg">
+  <ion-menu contentId="admin-content" type="overlay" class="admin-sidebar">
+    <ion-content class="admin-dark sidebar-content">
+      <div class="sb-logo">
+        <img class="sb-brand" src="assets/logo/ms-logo-white.png" alt="MS Motos" />
+        <span>Panel Administrativo</span>
+      </div>
+
+      <ion-menu-toggle auto-hide="false">
+        <nav class="sb-nav">
+          <div class="sb-section">Principal</div>
+          <a class="nav-item" routerLink="/admin/resumen" routerLinkActive="on">
+            <ion-icon name="grid-outline"></ion-icon> Resumen ejecutivo
+          </a>
+          <a class="nav-item" routerLink="/admin/citas" routerLinkActive="on">
+            <ion-icon name="calendar-outline"></ion-icon> Gestión de citas
+          </a>
+          <a class="nav-item" routerLink="/admin/calendario" routerLinkActive="on">
+            <ion-icon name="calendar-number-outline"></ion-icon> Calendario
+          </a>
+
+          <div class="sb-section">Equipo</div>
+          <a class="nav-item" routerLink="/admin/empleados" routerLinkActive="on">
+            <ion-icon name="people-outline"></ion-icon> Gestión de empleados
+          </a>
+          <a class="nav-item" routerLink="/admin/tareas" routerLinkActive="on">
+            <ion-icon name="checkmark-done-outline"></ion-icon> Asignar tareas
+          </a>
+          <a class="nav-item" routerLink="/admin/mensajes" routerLinkActive="on">
+            <ion-icon name="chatbubbles-outline"></ion-icon> Mensajes
+            <span class="nav-badge" *ngIf="noLeidos > 0">{{ noLeidos }}</span>
+          </a>
+
+          <div class="sb-section">Análisis</div>
+          <a class="nav-item" routerLink="/admin/reportes" routerLinkActive="on">
+            <ion-icon name="bar-chart-outline"></ion-icon> Reportes
+          </a>
+          <a class="nav-item" routerLink="/admin/opiniones" routerLinkActive="on">
+            <ion-icon name="star-outline"></ion-icon> Opiniones
+          </a>
+          <a class="nav-item" routerLink="/admin/promos" routerLinkActive="on">
+            <ion-icon name="pricetags-outline"></ion-icon> Promociones
+          </a>
+
+          <div class="sb-section">Operación</div>
+          <a class="nav-item" routerLink="/tabs/ordenes">
+            <ion-icon name="document-text-outline"></ion-icon> Órdenes de trabajo
+          </a>
+          <a class="nav-item" routerLink="/tabs/clientes">
+            <ion-icon name="people-outline"></ion-icon> Clientes
+          </a>
+          <a class="nav-item" routerLink="/admin/servicios" routerLinkActive="on">
+            <ion-icon name="construct-outline"></ion-icon> Servicios
+          </a>
+          <!-- Ruta admin-only que hasta ahora solo se alcanzaba escribiendo la URL. -->
+          <a class="nav-item" routerLink="/garantias" routerLinkActive="on">
+            <ion-icon name="shield-checkmark-outline"></ion-icon> Garantías
+          </a>
+
+          <div class="sb-section">Sistema</div>
+          <a class="nav-item" routerLink="/admin/perfil" routerLinkActive="on">
+            <ion-icon name="person-circle-outline"></ion-icon> Mi perfil
+          </a>
+          <a class="nav-item" routerLink="/admin/config" routerLinkActive="on">
+            <ion-icon name="settings-outline"></ion-icon> Configuración
+          </a>
+        </nav>
+      </ion-menu-toggle>
+    </ion-content>
+
+    <ion-footer class="admin-dark">
+      <div class="sb-user">
+        <div class="sb-av">{{ iniciales }}</div>
+        <div class="sb-info"><strong>{{ nombre }}</strong><span>{{ rolLabel }}</span></div>
+        <button class="sb-logout" (click)="logout()" title="Cerrar sesión"><ion-icon name="log-out-outline"></ion-icon></button>
+      </div>
+    </ion-footer>
+  </ion-menu>
+
+  <ion-router-outlet id="admin-content"></ion-router-outlet>
+</ion-split-pane>

@@ -1,0 +1,121 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start"><ion-menu-button></ion-menu-button></ion-buttons>
+    <ion-title>Órdenes</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="cargar($event)">
+    <ion-refresher-content pullingIcon="chevron-down" refreshingSpinner="crescent"></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="rec">
+    <div class="segment">
+      <button class="seg-btn" [class.on]="vista==='activas'" (click)="vista='activas'; cambiarVista()">Activas</button>
+      <button class="seg-btn" [class.on]="vista==='completadas'" (click)="vista='completadas'; cambiarVista()">Completadas</button>
+    </div>
+
+    <!-- Filtros: búsqueda + chips de etapa -->
+    <div class="ord-search" *ngIf="!cargando && ordenes.length">
+      <ion-icon name="search-outline"></ion-icon>
+      <input [(ngModel)]="busqueda" placeholder="Buscar número, cliente o placa…" autocapitalize="off" autocomplete="off" />
+      <button *ngIf="busqueda" (click)="busqueda=''" aria-label="Limpiar"><ion-icon name="close-circle"></ion-icon></button>
+    </div>
+    <div class="ord-chips" *ngIf="!cargando && ordenes.length">
+      <button class="ord-chip" [class.on]="!estadoFiltro" (click)="estadoFiltro=''">Todas <span>{{ totalSinEtapa }}</span></button>
+      <button class="ord-chip" *ngFor="let c of chipsConteo" [class.on]="estadoFiltro===c.estado" (click)="setEstadoFiltro(c.estado)">
+        {{ c.label }} <span>{{ c.n }}</span>
+      </button>
+    </div>
+    <!-- Segunda fila: sucursal (si hay más de una) + prioridad + sin asignar -->
+    <div class="ord-chips" *ngIf="!cargando && ordenes.length && (sucursalesPresentes.length > 1 || prioridadesPresentes.length || haySinAsignar)">
+      <ng-container *ngIf="sucursalesPresentes.length > 1">
+        <button class="ord-chip suc" *ngFor="let s of sucursalesPresentes" [class.on]="sucursalFiltro===s.id" (click)="setSucursalFiltro(s.id)">
+          <ion-icon name="location-outline"></ion-icon> {{ s.nombre }} <span>{{ s.n }}</span>
+        </button>
+      </ng-container>
+      <button class="ord-chip pri" *ngFor="let p of prioridadesPresentes" [class.on]="prioridadFiltro===p.valor" (click)="setPrioridadFiltro(p.valor)">
+        <ion-icon name="flash-outline"></ion-icon> {{ p.label }} <span>{{ p.n }}</span>
+      </button>
+      <button class="ord-chip warn" *ngIf="haySinAsignar" [class.on]="sinAsignar" (click)="setSinAsignar()">
+        <ion-icon name="person-outline"></ion-icon> Sin asignar <span>{{ sinAsignarConteo }}</span>
+      </button>
+    </div>
+    <!-- Tercera fila: orden de la lista + limpiar filtros -->
+    <div class="ord-tools" *ngIf="!cargando && ordenes.length">
+      <div class="ord-sort">
+        <ion-icon name="swap-vertical-outline"></ion-icon>
+        <button [class.on]="orden==='recientes'" (click)="orden='recientes'">Recientes</button>
+        <button [class.on]="orden==='antiguas'" (click)="orden='antiguas'">Antiguas</button>
+        <button [class.on]="orden==='prioridad'" (click)="orden='prioridad'">Prioridad</button>
+      </div>
+      <button class="ord-clear" *ngIf="hayFiltros" (click)="limpiar()">
+        <ion-icon name="close-circle-outline"></ion-icon> Limpiar
+      </button>
+    </div>
+
+    <!-- Skeleton -->
+    <div *ngIf="cargando" style="display:flex;flex-direction:column;gap:14px">
+      <div class="skeleton" style="height:230px"></div>
+      <div class="skeleton" style="height:230px"></div>
+    </div>
+
+    <div class="orden-list" *ngIf="!cargando">
+      <div class="card orden-card" *ngFor="let o of ordenesVista">
+        <div class="oc-top tappable" (click)="abrirDetalle(o)">
+          <div class="oc-id">
+            <div class="oc-num mono">{{ o.numero_orden }}</div>
+            <div class="oc-title">{{ o.problema_reportado }}</div>
+          </div>
+          <span class="pill" [ngClass]="estadoPill[o.estado]">{{ estadoLabel[o.estado] || o.estado }}</span>
+          <ion-icon name="chevron-forward" class="oc-go"></ion-icon>
+        </div>
+
+        <div class="oc-meta">
+          <span><ion-icon name="person-outline"></ion-icon> {{ o.cliente_nombre }} {{ o.cliente_apellido }} · {{ o.marca }} {{ o.modelo }}</span>
+          <span *ngIf="o.tecnico_nombre"><ion-icon name="construct-outline"></ion-icon> Mecánico: {{ o.tecnico_nombre }}</span>
+          <span *ngIf="o.sucursal_nombre"><ion-icon name="location-outline"></ion-icon> {{ o.sucursal_nombre }}</span>
+        </div>
+
+        <!-- Barra de progreso -->
+        <div class="prog-wrap">
+          <div class="prog-track"><div class="prog-fill" [style.width.%]="progresoPct(o.estado)"></div></div>
+          <div class="prog-lbl">{{ progresoPct(o.estado) }}%</div>
+        </div>
+
+        <!-- Evidencias -->
+        <div class="ev-box">
+          <div class="ev-title"><ion-icon name="camera-outline"></ion-icon> Evidencias del mecánico ({{ o.total_fotos || 0 }})</div>
+          <div class="ev-grid">
+            <a class="ev-thumb" *ngFor="let f of fotos[o.id]" [href]="f.url" target="_blank">
+              <img [src]="f.url" alt="evidencia" />
+            </a>
+            <button class="ev-thumb add" (click)="subirFoto(o)" [disabled]="subiendo.has(o.id)">
+              <ion-icon [name]="subiendo.has(o.id) ? 'hourglass-outline' : 'add'"></ion-icon>
+            </button>
+          </div>
+          <textarea class="ev-nota" rows="2" [(ngModel)]="notas[o.id]"
+            placeholder="Nota para el cliente (opcional)… se incluye en el mensaje"></textarea>
+
+          <div class="ev-actions">
+            <button class="btn-upload" (click)="subirFoto(o)" [disabled]="subiendo.has(o.id)">
+              <ion-icon name="cloud-upload-outline"></ion-icon> {{ subiendo.has(o.id) ? 'Subiendo…' : 'Subir fotos' }}
+            </button>
+            <button class="btn-send" (click)="enviarAlCliente(o)">
+              <ion-icon name="logo-whatsapp"></ion-icon> Enviar a cliente
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="!ordenesVista.length">
+        <ion-icon [name]="ordenes.length ? 'filter-outline' : 'clipboard-outline'"></ion-icon>
+        <p *ngIf="!ordenes.length">No hay órdenes {{ vista === 'activas' ? 'activas' : 'completadas' }}.</p>
+        <p *ngIf="ordenes.length">Ninguna orden coincide con el filtro.</p>
+      </div>
+    </div>
+
+    <div style="height:80px"></div>
+  </div>
+</ion-content>

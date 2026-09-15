@@ -1,0 +1,189 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/portal/mis-citas" text=""></ion-back-button>
+    </ion-buttons>
+    <ion-title>Seguimiento</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="det" *ngIf="cargando">
+    <div class="skeleton" style="height:170px;margin-bottom:12px"></div>
+    <div class="skeleton" style="height:240px"></div>
+  </div>
+
+  <div class="det" *ngIf="!cargando && cita">
+
+    <!-- ═══ HERO: panel de control ═══ -->
+    <section class="cockpit">
+      <div class="ck-top">
+        <span class="ck-live" *ngIf="!cancelada && cita.estado !== 'entregado' && cita.estado !== 'agendado'"><i></i> EN VIVO</span>
+        <span class="ck-live pending" *ngIf="cita.estado === 'agendado'"><ion-icon name="calendar-outline"></ion-icon> Agendada</span>
+        <span class="ck-live done" *ngIf="cita.estado === 'entregado'"><ion-icon name="checkmark-done"></ion-icon> Entregado</span>
+        <span class="ck-live off" *ngIf="cancelada"><ion-icon name="close"></ion-icon> Cancelada</span>
+        <span class="ck-status">{{ estadoLabel[cita.estado] }}</span>
+      </div>
+
+      <div class="ck-main">
+        <div class="ck-moto" [class.has-photo]="cita.moto_foto">
+          <img *ngIf="cita.moto_foto; else motoSvg" [src]="cita.moto_foto" [alt]="cita.marca + ' ' + cita.modelo">
+          <ng-template #motoSvg>
+            <svg viewBox="0 0 64 40" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="13" cy="28" r="9"/><circle cx="51" cy="28" r="9"/>
+              <path d="M13 28l9-13h11l7 9"/><path d="M22 15l-4-5h-7"/><path d="M40 24l5-9h8"/>
+            </svg>
+          </ng-template>
+        </div>
+        <div class="ck-id">
+          <h1>{{ cita.marca }} {{ cita.modelo }}</h1>
+          <span class="ck-plate mono" *ngIf="cita.placa">{{ cita.placa | uppercase }}</span>
+        </div>
+      </div>
+
+      <div class="ck-tele">
+        <div class="tl"><span class="tk">Servicio</span><span class="tv">{{ cita.tipo_servicio || cita.motivo }}</span></div>
+        <div class="tl" *ngIf="cita.numero_orden"><span class="tk">Orden</span><span class="tv mono">{{ cita.numero_orden }}</span></div>
+        <div class="tl"><span class="tk">Fecha</span><span class="tv mono">{{ cita.fecha | date:'dd/MM/yy' }}<ng-container *ngIf="cita.hora"> · {{ cita.hora }}</ng-container></span></div>
+        <div class="tl" *ngIf="orden?.fecha_estimada_entrega"><span class="tk">Entrega est.</span><span class="tv mono">{{ orden.fecha_estimada_entrega | date:'dd/MM/yy' }}</span></div>
+        <div class="tl" *ngIf="cita.sucursal_nombre"><span class="tk">Sucursal</span><span class="tv">{{ cita.sucursal_nombre }}</span></div>
+      </div>
+    </section>
+
+    <!-- ═══ TIMELINE activa ═══ -->
+    <section class="card tl-card" *ngIf="!cancelada">
+      <div class="tl-header">
+        <span class="section-label">Seguimiento en tiempo real</span>
+        <span class="tl-pct mono" *ngIf="cita.estado !== 'entregado' && cita.estado !== 'cancelado'">{{ progPct }}%</span>
+      </div>
+      <div class="tl-progress-bar" *ngIf="cita.estado !== 'cancelado'">
+        <div class="tl-progress-fill" [style.width.%]="progPct"></div>
+        <div class="tl-moto" [style.left.%]="progPct">
+          <ion-icon name="bicycle"></ion-icon>
+        </div>
+      </div>
+      <div class="timeline">
+        <div class="step" *ngFor="let e of etapas; let last = last; let i = index" [ngClass]="e.estado" [class.is-last]="last">
+          <div class="spine">
+            <span class="node">
+              <ion-icon *ngIf="e.estado === 'pasado'" name="checkmark"></ion-icon>
+              <ion-icon *ngIf="e.estado !== 'pasado'" [name]="e.icon"></ion-icon>
+              <span class="node-ring" *ngIf="e.estado === 'activo'"></span>
+            </span>
+            <span class="seg" *ngIf="!last"></span>
+          </div>
+          <div class="body">
+            <span class="step-label">{{ e.label }}</span>
+            <span class="step-sub" *ngIf="e.estado === 'activo'">En curso</span>
+            <span class="step-sub done" *ngIf="e.estado === 'pasado'">Completado</span>
+
+            <!-- Transparencia operativa: tu mecánico, en la etapa de trabajo -->
+            <div class="tec" *ngIf="e.key === 'en_mantenimiento' && e.estado !== 'futuro' && cita.tecnico_nombre">
+              <span class="tec-av">{{ iniciales(cita.tecnico_nombre) }}</span>
+              <span class="tec-info"><small>TU MECÁNICO</small><strong>{{ cita.tecnico_nombre }}</strong></span>
+            </div>
+
+            <!-- Bitácora (avances del taller) bajo el nodo activo -->
+            <div class="log" *ngIf="e.estado === 'activo' && orden?.avances?.length">
+              <div class="log-row" *ngFor="let a of orden.avances">
+                <span class="log-dot"></span>
+                <div class="log-b">
+                  <p>{{ a.descripcion }}</p>
+                  <span class="log-meta mono">{{ a.usuario_nombre || 'Taller' }} · {{ a.created_at | date:'dd/MM HH:mm' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ═══ ZONA DE FRICCIÓN CERO: el presupuesto emerge y rompe la línea ═══ -->
+            <div class="budget" *ngIf="e.estado === 'activo' && esperandoAprobacion">
+              <div class="bud-head"><ion-icon name="document-text-outline"></ion-icon> PRESUPUESTO POR APROBAR</div>
+              <div class="bud-lines" *ngIf="orden">
+                <div class="bl" *ngFor="let r of orden.repuestos">
+                  <span>{{ r.nombre }}<ng-container *ngIf="r.cantidad > 1"> ×{{ r.cantidad }}</ng-container></span>
+                  <span class="mono">{{ (r.cantidad * r.costo_unitario) | currency:'CRC':'symbol-narrow':'1.0-0' }}</span>
+                </div>
+                <div class="bl"><span>Mano de obra</span><span class="mono">{{ (orden.costo_mano_obra || 0) | currency:'CRC':'symbol-narrow':'1.0-0' }}</span></div>
+                <div class="bl" *ngIf="orden.descuento > 0"><span>Descuento</span><span class="mono">− {{ orden.descuento | currency:'CRC':'symbol-narrow':'1.0-0' }}</span></div>
+              </div>
+              <div class="bud-total">
+                <span class="bt-k">Total a pagar</span>
+                <span class="bt-v mono">{{ total | currency:'CRC':'symbol-narrow':'1.0-0' }}</span>
+              </div>
+              <button class="bud-cta" (click)="aprobar()" [disabled]="procesando">
+                <ion-icon name="checkmark-circle"></ion-icon> APROBAR Y COMENZAR
+              </button>
+              <button class="bud-rej" (click)="rechazar()" [disabled]="procesando">Rechazar presupuesto</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cancelada: estado terminal -->
+    <section class="card cancel-card" *ngIf="cancelada">
+      <ion-icon name="close-circle-outline"></ion-icon>
+      <div><strong>Cita cancelada</strong><p>Esta cita fue cancelada. Si necesitás reprogramar, agendá una nueva.</p></div>
+    </section>
+
+    <!-- Diagnóstico del taller -->
+    <section class="card" *ngIf="orden?.diagnostico">
+      <span class="section-label">Diagnóstico</span>
+      <p class="diag">{{ orden.diagnostico }}</p>
+    </section>
+
+    <!-- Desglose del presupuesto (cuando ya no está pendiente de aprobar pero hay costos) -->
+    <section class="card" *ngIf="!esperandoAprobacion && orden && (orden.repuestos?.length || orden.costo_mano_obra || total)">
+      <span class="section-label">Presupuesto</span>
+      <div class="rows">
+        <div class="row" *ngFor="let r of orden.repuestos">
+          <span class="k">{{ r.nombre }}<ng-container *ngIf="r.cantidad > 1"> ×{{ r.cantidad }}</ng-container></span>
+          <span class="v mono">{{ (r.cantidad * r.costo_unitario) | currency:'CRC':'symbol-narrow':'1.0-0' }}</span>
+        </div>
+        <div class="row"><span class="k">Mano de obra</span><span class="v mono">{{ (orden.costo_mano_obra || 0) | currency:'CRC':'symbol-narrow':'1.0-0' }}</span></div>
+        <div class="row" *ngIf="orden.descuento > 0"><span class="k">Descuento</span><span class="v mono">− {{ orden.descuento | currency:'CRC':'symbol-narrow':'1.0-0' }}</span></div>
+        <div class="row total"><span class="k">Total</span><span class="v mono">{{ total | currency:'CRC':'symbol-narrow':'1.0-0' }}</span></div>
+      </div>
+    </section>
+
+    <!-- Total simple si no hay orden pero sí monto -->
+    <section class="card" *ngIf="!orden && cita.monto">
+      <div class="rows"><div class="row total"><span class="k">Total</span><span class="v mono">{{ total | currency:'CRC':'symbol-narrow':'1.0-0' }}</span></div></div>
+    </section>
+
+    <!-- Fotos del taller -->
+    <section class="card" *ngIf="orden?.fotos?.length">
+      <span class="section-label">Fotos</span>
+      <div class="fotos">
+        <img *ngFor="let f of orden.fotos" [src]="f.url" alt="Foto de la orden" />
+      </div>
+    </section>
+
+    <!-- Descargar comprobante -->
+    <button class="btn-descargar" *ngIf="puedeDescargar" (click)="descargarComprobante()">
+      <ion-icon name="download-outline"></ion-icon> Descargar comprobante
+    </button>
+
+    <!-- Editar / cancelar (solo mientras está agendada) -->
+    <button class="btn-editar" *ngIf="puedeCancelar" (click)="editar()">
+      <ion-icon name="create-outline"></ion-icon> Editar cita
+    </button>
+    <button class="btn-cancelar" *ngIf="puedeCancelar" (click)="cancelar()">
+      <ion-icon name="close-circle-outline"></ion-icon> Cancelar cita
+    </button>
+
+    <!-- Calificar -->
+    <button class="cta" *ngIf="cita.estado === 'entregado' && !cita.calificacion" (click)="calificar()">
+      <ion-icon name="star-outline"></ion-icon> Calificar el servicio
+    </button>
+    <div class="calif-hecha" *ngIf="cita.calificacion">
+      <span class="stars">{{ estrellas(cita.calificacion) }}</span> Gracias por tu calificación
+    </div>
+
+    <div style="height:40px"></div>
+  </div>
+
+  <div class="det empty" *ngIf="!cargando && !cita">
+    <ion-icon name="alert-circle-outline"></ion-icon>
+    <p>No se encontró la cita.</p>
+  </div>
+</ion-content>

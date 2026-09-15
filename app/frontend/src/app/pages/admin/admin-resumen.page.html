@@ -1,0 +1,239 @@
+<ion-header>
+  <ion-toolbar class="admin-topbar">
+    <ion-buttons slot="start"><ion-menu-button></ion-menu-button></ion-buttons>
+    <ion-title>Resumen Ejecutivo</ion-title>
+    <app-admin-actions slot="end"></app-admin-actions>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="admin-dark">
+  <ion-refresher slot="fixed" (ionRefresh)="cargar($event)"><ion-refresher-content></ion-refresher-content></ion-refresher>
+
+  <!-- Skeleton loader -->
+  <div class="admin-skeleton" *ngIf="cargando">
+    <div class="sk-kpi-grid">
+      <div class="skeleton sk-kpi"></div>
+      <div class="skeleton sk-kpi"></div>
+      <div class="skeleton sk-kpi"></div>
+      <div class="skeleton sk-kpi"></div>
+    </div>
+    <div class="sk-g2">
+      <div class="skeleton sk-card"></div>
+      <div class="skeleton sk-card"></div>
+    </div>
+    <div class="sk-g2">
+      <div class="skeleton sk-card"></div>
+      <div class="skeleton sk-card"></div>
+    </div>
+    <div class="skeleton sk-card"></div>
+  </div>
+
+  <div class="admin" *ngIf="!cargando">
+    <!-- KPIs principales -->
+    <div class="kpi-grid">
+      <div class="kpi cr"><div class="kpi-label">En taller</div><div class="kpi-val">{{ op?.motos_activas ?? 0 }}</div></div>
+      <div class="kpi am"><div class="kpi-label">Atrasadas</div><div class="kpi-val">{{ op?.motos_atrasadas ?? 0 }}</div></div>
+      <div class="kpi em"><div class="kpi-label">Facturación del mes</div><div class="kpi-val mono">{{ (op?.facturacion_mes_total || 0) | currency:'CRC':'symbol-narrow':'1.0-0' }}</div></div>
+      <div class="kpi in"><div class="kpi-label">Tasa de éxito</div><div class="kpi-val">{{ data?.tasa_exito ?? 0 }}%</div></div>
+    </div>
+
+    <!-- Facturación | KPI operativo -->
+    <div class="g2">
+      <div class="cd">
+        <span class="cd-title"><ion-icon name="wallet-outline"></ion-icon> Facturación</span>
+        <div class="fact-today">
+          <div class="kpi-val mono fact-val">{{ (op?.facturacion_hoy || 0) | currency:'CRC':'symbol-narrow':'1.0-0' }}</div>
+          <div class="fact-sub">Total de hoy</div>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-box">
+            <div class="stat-label">Semanal</div><strong class="mono stat-val">{{ (op?.facturacion_semana || 0) | currency:'CRC':'symbol-narrow':'1.0-0' }}</strong>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Mensual</div><strong class="mono stat-val">{{ (op?.facturacion_mes || 0) | currency:'CRC':'symbol-narrow':'1.0-0' }}</strong>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Citas hoy</div><strong class="mono stat-val">{{ (op?.ingresos_citas_hoy || 0) | currency:'CRC':'symbol-narrow':'1.0-0' }}</strong>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Citas mes</div><strong class="mono stat-val">{{ (op?.ingresos_citas_mes || 0) | currency:'CRC':'symbol-narrow':'1.0-0' }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="cd">
+        <span class="cd-title"><ion-icon name="trending-up-outline"></ion-icon> KPI</span>
+        <div class="kpi-detail-grid">
+          <div class="kpi-detail-box">
+            <div class="kpi-detail-label">Ticket promedio</div>
+            <div class="mono kpi-detail-val">{{ (op?.ticket_promedio || 0) | currency:'CRC':'symbol-narrow':'1.0-0' }}</div>
+          </div>
+          <div class="kpi-detail-box">
+            <div class="kpi-detail-label">Reparación prom.</div>
+            <div class="mono kpi-detail-val">{{ op?.tiempo_promedio_horas || 0 }}h</div>
+          </div>
+          <div class="kpi-detail-box">
+            <div class="kpi-detail-label">Conversión</div>
+            <div class="mono kpi-detail-val">{{ op?.conversion_pct ?? 0 }}%</div>
+          </div>
+          <div class="kpi-detail-box">
+            <div class="kpi-detail-label">Satisfacción</div>
+            <div class="mono kpi-detail-val">{{ op?.satisfaccion_promedio ? (op.satisfaccion_promedio + '★') : '—' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Estado del taller | Semáforo de entregas -->
+    <div class="g2">
+      <div class="cd">
+        <span class="cd-title"><ion-icon name="construct-outline"></ion-icon> Estado del taller</span>
+        <div *ngFor="let e of op?.ordenes_por_estado" class="estado-row">
+          <span class="estado-dot" [style.background]="estadoMap[e.estado]?.dot || '#A3A3A3'"></span>
+          <span class="estado-label">{{ estadoMap[e.estado]?.label || e.estado }}</span>
+          <span class="bg" [ngClass]="estadoMap[e.estado]?.bg || 'bg-n'">{{ e.total }}</span>
+        </div>
+        <div class="empty" *ngIf="!op?.ordenes_por_estado?.length"><ion-icon name="construct-outline"></ion-icon><p>Sin órdenes activas.</p></div>
+      </div>
+
+      <div class="cd">
+        <span class="cd-title"><ion-icon name="speedometer-outline"></ion-icon> Semáforo de entregas</span>
+        <div class="filter-bar">
+          <button class="filter-btn" [class.on]="filtroSemaforo==='rojo'" (click)="filtroSemaforo='rojo'">Atrasado · {{ countRojo }}</button>
+          <button class="filter-btn" [class.on]="filtroSemaforo==='amarillo'" (click)="filtroSemaforo='amarillo'">Por vencer · {{ countAmarillo }}</button>
+          <button class="filter-btn" [class.on]="filtroSemaforo==='verde'" (click)="filtroSemaforo='verde'">A tiempo · {{ countVerde }}</button>
+        </div>
+        <div *ngFor="let a of atrasosFiltrados" (click)="abrirOrden(a.id)" class="sem-row">
+          <div class="sem-detail">
+            <div class="mono sem-orden">{{ a.numero_orden }}</div>
+            <div class="sem-moto">{{ a.marca }} {{ a.modelo }}</div>
+          </div>
+          <span class="bg" [ngClass]="semBadge[semaforo(a.dias_restantes)]">{{ semaforoTexto(a.dias_restantes) }}</span>
+        </div>
+        <div class="empty" *ngIf="!atrasosFiltrados.length"><ion-icon name="checkmark-circle-outline"></ion-icon><p>Sin órdenes en este estado.</p></div>
+      </div>
+    </div>
+
+    <!-- Opiniones recientes (reseñas reales del cliente) -->
+    <div class="cd mb">
+      <div class="op-head">
+        <span class="cd-title"><ion-icon name="chatbox-ellipses-outline"></ion-icon> Opiniones recientes</span>
+        <div class="op-resumen" *ngIf="opResumen?.total">
+          <span class="op-prom mono">{{ opResumen?.promedio }}<ion-icon name="star"></ion-icon></span>
+          <span class="op-total">{{ opResumen?.total }} reseña{{ opResumen?.total === 1 ? '' : 's' }}</span>
+          <span class="bg bg-rd" *ngIf="opResumen?.bajas">{{ opResumen?.bajas }} baja{{ opResumen?.bajas === 1 ? '' : 's' }}</span>
+        </div>
+      </div>
+
+      <div class="op-row" *ngFor="let o of opinionesOrdenadas"
+           [class.op-baja]="esBaja(o.calificacion)"
+           [class.op-clickable]="o.orden_id" (click)="abrirOpinion(o)">
+        <div class="op-main">
+          <div class="op-stars">
+            <ion-icon *ngFor="let n of estrellas" [name]="n <= o.calificacion ? 'star' : 'star-outline'"
+                      [class.on]="n <= o.calificacion"></ion-icon>
+          </div>
+          <div class="op-cliente">{{ o.cliente_nombre }} {{ o.cliente_apellido }}</div>
+          <p class="op-comentario" *ngIf="o.comentario">"{{ o.comentario }}"</p>
+          <p class="op-comentario op-sincom" *ngIf="!o.comentario">Sin comentario</p>
+        </div>
+        <div class="op-meta">
+          <span class="op-moto" *ngIf="o.marca">{{ o.marca }} {{ o.modelo }}</span>
+          <span class="mono op-orden" *ngIf="o.numero_orden">{{ o.numero_orden }}</span>
+          <span class="op-fecha">{{ fechaCortaOp(o.fecha) }}<ng-container *ngIf="o.tecnico_nombre"> · {{ o.tecnico_nombre }}</ng-container></span>
+        </div>
+      </div>
+
+      <div class="empty" *ngIf="!opiniones.length">
+        <ion-icon name="chatbox-ellipses-outline"></ion-icon>
+        <p>Todavía no hay calificaciones de clientes.</p>
+      </div>
+    </div>
+
+    <!-- Top servicios | Estado de citas -->
+    <div class="g21">
+      <div class="cd">
+        <span class="cd-title"><ion-icon name="trophy-outline"></ion-icon> Top servicios del mes</span>
+        <div class="bar-item" *ngFor="let s of data?.top_servicios">
+          <div class="bar-head"><span>{{ s.servicio }}</span><strong>{{ s.total }} citas</strong></div>
+          <div class="bar-track"><div class="bar-fill" [style.width.%]="pct(s.total, maxServicio)"></div></div>
+        </div>
+        <div class="empty" *ngIf="!cargando && !data?.top_servicios?.length"><ion-icon name="construct-outline"></ion-icon><p>Sin citas este mes.</p></div>
+      </div>
+
+      <div class="cd">
+        <span class="cd-title"><ion-icon name="stats-chart-outline"></ion-icon> Estado de citas</span>
+        <ng-container *ngIf="data?.estado_citas as e">
+          <div class="bar-item"><div class="bar-head"><span>Agendadas</span><strong class="mono">{{ e.agendadas }} — {{ pct(e.agendadas, e.total) }}%</strong></div><div class="bar-track"><div class="bar-fill bar-fill-indigo" [style.width.%]="pct(e.agendadas, e.total)"></div></div></div>
+          <div class="bar-item"><div class="bar-head"><span>En proceso</span><strong class="mono">{{ e.en_proceso }} — {{ pct(e.en_proceso, e.total) }}%</strong></div><div class="bar-track"><div class="bar-fill bar-fill-amber" [style.width.%]="pct(e.en_proceso, e.total)"></div></div></div>
+          <div class="bar-item"><div class="bar-head"><span>Completadas</span><strong class="mono">{{ e.completadas }} — {{ pct(e.completadas, e.total) }}%</strong></div><div class="bar-track"><div class="bar-fill bar-fill-emerald" [style.width.%]="pct(e.completadas, e.total)"></div></div></div>
+          <div class="bar-item"><div class="bar-head"><span>Canceladas</span><strong class="mono">{{ e.canceladas }} — {{ pct(e.canceladas, e.total) }}%</strong></div><div class="bar-track"><div class="bar-fill bar-fill-danger" [style.width.%]="pct(e.canceladas, e.total)"></div></div></div>
+        </ng-container>
+      </div>
+    </div>
+
+    <!-- Tiempo por etapa | Técnicos -->
+    <div class="g2">
+      <div class="cd">
+        <span class="cd-title"><ion-icon name="timer-outline"></ion-icon> Tiempo por etapa</span>
+        <div class="bar-item" *ngFor="let t of tiempos">
+          <div class="bar-head"><span>{{ etapaLabel[t.etapa] || t.etapa }}</span><strong class="mono">{{ t.horas_promedio || 0 }}h</strong></div>
+          <div class="bar-track"><div class="bar-fill" [style.width.%]="pct(t.horas_promedio, maxTiempo)"></div></div>
+        </div>
+        <div class="empty" *ngIf="!tiempos.length"><ion-icon name="time-outline"></ion-icon><p>Sin datos de etapas.</p></div>
+      </div>
+
+      <div class="cd">
+        <span class="cd-title"><ion-icon name="people-outline"></ion-icon> Técnicos</span>
+        <div class="emp-row" *ngFor="let t of tecnicos">
+          <div class="emp-av in">{{ iniciales(t.nombre) }}</div>
+          <div class="emp-info"><strong>{{ t.nombre }}</strong><span>{{ t.ordenes_completadas || 0 }} completadas · {{ t.horas_promedio || 0 }}h prom.</span></div>
+        </div>
+        <div class="empty" *ngIf="!tecnicos.length"><ion-icon name="people-outline"></ion-icon><p>Sin técnicos activos.</p></div>
+      </div>
+    </div>
+
+    <!-- Ingresos por servicio -->
+    <div class="cd mb">
+      <span class="cd-title"><ion-icon name="cash-outline"></ion-icon> Desglose de ingresos por servicio (mes)</span>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>Servicio</th><th>Citas</th><th>Ingreso</th><th>% del total</th><th>Prom./cita</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let r of data?.ingresos_por_servicio">
+              <td class="tbl-bold">{{ r.servicio }}</td>
+              <td class="mono">{{ r.citas }}</td>
+              <td class="mono tbl-em">{{ (r.ingreso || 0) | currency:'CRC':'symbol-narrow':'1.0-0' }}</td>
+              <td><div>{{ pct(r.ingreso, totalIngreso) }}%</div><div class="pct-bar"><div class="pct-fill" [style.width.%]="pct(r.ingreso, totalIngreso)"></div></div></td>
+              <td class="mono">{{ (r.promedio || 0) | currency:'CRC':'symbol-narrow':'1.0-0' }}</td>
+            </tr>
+            <tr *ngIf="data?.ingresos_por_servicio?.length" class="tbl-total">
+              <td class="tbl-total-label">TOTAL</td><td></td>
+              <td class="mono tbl-total-val">{{ totalIngreso | currency:'CRC':'symbol-narrow':'1.0-0' }}</td>
+              <td><strong>100%</strong></td><td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="empty" *ngIf="!cargando && !data?.ingresos_por_servicio?.length"><ion-icon name="cash-outline"></ion-icon><p>Sin ingresos registrados este mes.</p></div>
+    </div>
+
+    <!-- Exportar -->
+    <div class="cd mb">
+      <span class="cd-title"><ion-icon name="document-text-outline"></ion-icon> Generar reporte PDF</span>
+      <div class="export-row">
+        <button class="btn btn-cr" (click)="exportarPDF()" [disabled]="cargando">
+          <ion-icon name="document-text-outline"></ion-icon> Resumen ejecutivo PDF
+        </button>
+      </div>
+    </div>
+    <div class="cd mb">
+      <span class="cd-title"><ion-icon name="download-outline"></ion-icon> Exportar a Excel (CSV)</span>
+      <div class="export-row">
+        <button class="btn btn-ou" (click)="exportarOrdenes()" [disabled]="exportando">Órdenes</button>
+        <button class="btn btn-cr" (click)="exportarFacturacion()" [disabled]="exportando">Facturación</button>
+        <button class="btn btn-ou" (click)="exportarProductividad()" [disabled]="exportando">Productividad</button>
+      </div>
+    </div>
+  </div>
+</ion-content>

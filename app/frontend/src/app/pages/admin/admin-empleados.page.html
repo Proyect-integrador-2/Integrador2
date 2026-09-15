@@ -1,0 +1,157 @@
+<ion-header>
+  <ion-toolbar class="admin-topbar">
+    <ion-buttons slot="start"><ion-menu-button></ion-menu-button></ion-buttons>
+    <ion-title>Gestión de Empleados</ion-title>
+    <app-admin-actions slot="end"></app-admin-actions>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="admin-dark">
+  <!-- La lista se lleva el ancho completo: con media pantalla las acciones de cada
+       fila se apretaban y envolvían. Crear es ocasional y vive en el modal. -->
+  <div class="admin">
+    <div class="cd">
+      <div class="emp-header">
+        <span class="cd-title"><ion-icon name="people-outline"></ion-icon> Empleados</span>
+        <button class="btn btn-cr btn-sm nuevo-cta" (click)="abrirModal()">
+          <ion-icon name="add"></ion-icon> Nuevo empleado
+        </button>
+      </div>
+
+      <div class="emp-tools">
+        <div class="adm-buscador">
+          <ion-icon name="search-outline" class="bs-lupa"></ion-icon>
+          <input type="text" [(ngModel)]="busqueda" placeholder="Buscar por nombre, correo, teléfono o rol…">
+          <button type="button" class="bs-x" *ngIf="busqueda" (click)="busqueda = ''" aria-label="Limpiar búsqueda">
+            <ion-icon name="close-circle"></ion-icon>
+          </button>
+        </div>
+      </div>
+
+      <div class="emp-progress" *ngIf="usuarios.length">
+        {{ activos }} de {{ usuarios.length }} con acceso al sistema
+      </div>
+
+      <div *ngIf="cargando" style="display:flex;flex-direction:column;gap:8px">
+        <div class="sk-dark" style="height:62px"></div>
+        <div class="sk-dark" style="height:62px"></div>
+      </div>
+
+      <div *ngIf="!cargando">
+        <div class="emp-row" *ngFor="let u of filtrados" [class.inactivo]="!u.activo">
+          <div class="emp-av" [ngClass]="u.activo ? avatarColor(u.rol) : 'off'">{{ iniciales(u.nombre) }}</div>
+          <div class="emp-info">
+            <strong>{{ u.nombre }}</strong>
+            <span>{{ rolLabel[u.rol] || u.rol }}<span *ngIf="u.telefono"> · {{ u.telefono }}</span></span>
+            <!-- Sucursal del empleado (el admin no se ata a un local) -->
+            <select *ngIf="u.rol !== 'admin' && sucursales.length" class="emp-suc"
+                    [ngModel]="u.sucursal_id ?? null" (ngModelChange)="cambiarSucursal(u, $event)">
+              <option [ngValue]="null">Ambas sucursales</option>
+              <option *ngFor="let s of sucursales" [ngValue]="s.id">{{ s.nombre }}</option>
+            </select>
+          </div>
+          <div class="emp-actions">
+            <span class="bg" [ngClass]="u.activo ? 'bg-em' : 'bg-rd'">{{ u.activo ? 'Activo' : 'Inactivo' }}</span>
+            <button class="btn btn-sm" (click)="abrirEdicion(u)">Editar</button>
+            <button class="btn btn-sm" [ngClass]="u.activo ? 'btn-rd' : 'btn-em'" (click)="toggle(u)">{{ u.activo ? 'Desactivar' : 'Activar' }}</button>
+            <button class="btn btn-sm btn-ou" (click)="eliminar(u)" [disabled]="eliminando === u.id"
+                    title="Eliminar definitivamente" aria-label="Eliminar empleado">
+              <ion-icon name="trash-outline"></ion-icon>
+            </button>
+          </div>
+        </div>
+
+        <div class="empty" *ngIf="!filtrados.length">
+          <ion-icon [name]="filtrando ? 'search-outline' : 'people-outline'"></ion-icon>
+          <p *ngIf="filtrando">Ningún empleado coincide con «{{ busqueda }}».</p>
+          <p *ngIf="!filtrando">Sin empleados.</p>
+          <button type="button" class="btn btn-sm empty-accion" *ngIf="filtrando" (click)="busqueda = ''">Limpiar búsqueda</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>
+
+<!-- Alta y edición. Ionic monta el modal fuera de .admin-dark: de ahí la clase repetida. -->
+<ion-modal class="adm-modal" [isOpen]="modalAbierto" (didDismiss)="cerrarModal()">
+  <ng-template>
+    <div class="admin-dark adm-modal-box">
+      <div class="amb-head">
+        <span class="cd-title">{{ editandoId ? 'Editar empleado' : 'Crear nuevo empleado' }}</span>
+        <button type="button" class="amb-x" (click)="cerrarModal()" aria-label="Cerrar">
+          <ion-icon name="close"></ion-icon>
+        </button>
+      </div>
+
+      <div class="amb-body">
+        <!-- Alta: con contraseña. -->
+        <ng-container *ngIf="!editandoId">
+          <div class="fg"><label>Nombre completo *</label><input [(ngModel)]="nuevo.nombre" placeholder="Ej: Carlos García"></div>
+          <div class="fg"><label>Correo electrónico *</label><input type="email" [(ngModel)]="nuevo.email" placeholder="carlos@taller.com"></div>
+          <div class="fg">
+            <label>Contraseña *</label>
+            <div class="pass-wrap">
+              <input [type]="verPass ? 'text' : 'password'" [(ngModel)]="nuevo.password" placeholder="Mín. 6 caracteres">
+              <button type="button" class="pass-eye" (click)="verPass = !verPass"
+                      [attr.aria-label]="verPass ? 'Ocultar contraseña' : 'Ver contraseña'">
+                <ion-icon [name]="verPass ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+              </button>
+            </div>
+          </div>
+          <div class="fg">
+            <label>Confirmar contraseña *</label>
+            <input [type]="verPass ? 'text' : 'password'" [(ngModel)]="nuevo.password2" placeholder="Repetí la contraseña">
+            <div class="hint hint-error" *ngIf="nuevo.password2 && !passCoincide">Las contraseñas no coinciden</div>
+          </div>
+          <div class="fg"><label>Teléfono (opcional)</label><input type="tel" [(ngModel)]="nuevo.telefono" placeholder="8888-8888"></div>
+          <div class="fg"><label>Rol *</label>
+            <select [(ngModel)]="nuevo.rol">
+              <option value="tecnico">Mecánico</option>
+              <option value="recepcion">Recepcionista</option>
+            </select>
+          </div>
+          <div class="fg" *ngIf="sucursales.length"><label>Sucursal</label>
+            <select [(ngModel)]="nuevo.sucursal_id">
+              <option [ngValue]="null">Ambas / sin asignar</option>
+              <option *ngFor="let s of sucursales" [ngValue]="s.id">{{ s.nombre }}</option>
+            </select>
+          </div>
+        </ng-container>
+
+        <!-- Edición: sin contraseña. Cambiarla es otra cosa y se hace desde el
+             perfil del propio empleado, no desde acá. -->
+        <ng-container *ngIf="editandoId">
+          <div class="fg"><label>Nombre completo *</label><input [(ngModel)]="editando.nombre" placeholder="Ej: Carlos García"></div>
+          <div class="fg"><label>Correo electrónico *</label><input type="email" [(ngModel)]="editando.email" placeholder="carlos@taller.com"></div>
+          <div class="fg"><label>Teléfono</label><input type="tel" [(ngModel)]="editando.telefono" placeholder="8888-8888"></div>
+          <div class="fg"><label>Rol *</label>
+            <select [(ngModel)]="editando.rol">
+              <option value="tecnico">Mecánico</option>
+              <option value="recepcion">Recepcionista</option>
+              <option value="admin">Administración</option>
+            </select>
+            <div class="hint">No podés quitarte a vos mismo el rol de administrador.</div>
+          </div>
+          <div class="fg" *ngIf="sucursales.length"><label>Sucursal</label>
+            <select [(ngModel)]="editando.sucursal_id">
+              <option [ngValue]="null">Ambas / sin asignar</option>
+              <option *ngFor="let s of sucursales" [ngValue]="s.id">{{ s.nombre }}</option>
+            </select>
+          </div>
+        </ng-container>
+      </div>
+
+      <div class="amb-foot">
+        <div class="amb-btns">
+          <button type="button" class="btn" (click)="cerrarModal()">Cancelar</button>
+          <button type="button" class="btn btn-cr" *ngIf="!editandoId" (click)="crear()" [disabled]="!valido || creando">
+            {{ creando ? 'Creando…' : 'Crear empleado' }}
+          </button>
+          <button type="button" class="btn btn-cr" *ngIf="editandoId" (click)="guardarEdicion()" [disabled]="!edicionValida || creando">
+            {{ creando ? 'Guardando…' : 'Guardar cambios' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>

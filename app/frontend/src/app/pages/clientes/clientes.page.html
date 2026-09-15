@@ -1,0 +1,55 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/admin" text=""></ion-back-button>
+    </ion-buttons>
+    <ion-title>Clientes</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="nuevoCliente()">
+        <ion-icon slot="icon-only" name="add-circle-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="admin-dark">
+  <ion-refresher slot="fixed" (ionRefresh)="cargar(); $event.target.complete()">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="cli-page">
+    <!-- Buscador -->
+    <div class="cli-search">
+      <ion-icon name="search-outline"></ion-icon>
+      <input type="text" [(ngModel)]="busqueda" (ngModelChange)="buscar({ detail: { value: busqueda } })"
+             placeholder="Buscar por nombre, teléfono o cédula">
+      <button *ngIf="busqueda" class="cli-clear" (click)="busqueda=''; buscar({ detail: { value: '' } })">
+        <ion-icon name="close-circle"></ion-icon>
+      </button>
+    </div>
+
+    <!-- Skeleton -->
+    <div *ngIf="cargando" class="cli-list">
+      <div class="sk-dark" style="height:72px" *ngFor="let i of [1,2,3,4]"></div>
+    </div>
+
+    <!-- Lista -->
+    <div class="cli-list" *ngIf="!cargando">
+      <div class="cli-card" *ngFor="let c of clientes" (click)="abrirDetalle(c.id!)">
+        <div class="cli-av">{{ iniciales(c) }}</div>
+        <div class="cli-info">
+          <strong>{{ c.nombre }} {{ c.apellido }}</strong>
+          <span *ngIf="c.telefono"><ion-icon name="call-outline"></ion-icon> {{ c.telefono }}</span>
+          <span *ngIf="c.cedula"><ion-icon name="card-outline"></ion-icon> {{ c.cedula }}</span>
+        </div>
+        <ion-icon name="chevron-forward" class="cli-chev"></ion-icon>
+      </div>
+
+      <div class="cli-empty" *ngIf="clientes.length === 0">
+        <ion-icon name="people-outline"></ion-icon>
+        <p>No se encontraron clientes</p>
+      </div>
+    </div>
+  </div>
+
+</ion-content>

@@ -1,0 +1,78 @@
+<ion-header>
+  <ion-toolbar class="admin-topbar">
+    <ion-buttons slot="start"><ion-menu-button></ion-menu-button></ion-buttons>
+    <ion-title>Mensajes</ion-title>
+    <app-admin-actions slot="end"></app-admin-actions>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="admin-dark">
+  <ion-refresher slot="fixed" (ionRefresh)="cargar($event)"><ion-refresher-content></ion-refresher-content></ion-refresher>
+
+  <div class="admin">
+    <div class="filter-bar" *ngIf="!chatAbierto && !verAvisos">
+      <button class="filter-btn" [class.on]="vista==='taller'" (click)="vista='taller'">Equipo</button>
+      <button class="filter-btn" [class.on]="vista==='mecanicos'" (click)="vista='mecanicos'">Avances mecánicos</button>
+      <button class="filter-btn" [class.on]="vista==='clientes'" (click)="vista='clientes'">Clientes</button>
+    </div>
+
+    <!-- Skeleton (el chat trae su propio skeleton) -->
+    <div *ngIf="cargando && vista !== 'taller'" style="display:flex;flex-direction:column;gap:12px">
+      <div class="sk-dark" style="height:80px"></div>
+      <div class="sk-dark" style="height:80px"></div>
+      <div class="sk-dark" style="height:80px"></div>
+    </div>
+
+    <!-- Avances de mecánicos -->
+    <div *ngIf="!cargando && vista === 'mecanicos'">
+      <div class="cd mb" *ngFor="let a of avances">
+        <div class="msg-head">
+          <strong>{{ a.tecnico_nombre }}</strong>
+          <span class="msg-time">{{ hace(a.created_at) }}</span>
+        </div>
+        <p class="msg-body">{{ a.descripcion }}</p>
+        <span class="msg-meta">{{ a.numero_orden }} · {{ a.marca }} {{ a.modelo }}</span>
+      </div>
+      <div class="empty" *ngIf="!avances.length"><ion-icon name="chatbubbles-outline"></ion-icon><p>Sin avances de mecánicos.</p></div>
+    </div>
+
+    <!-- Notificaciones a clientes -->
+    <div *ngIf="!cargando && vista === 'clientes'">
+      <div class="cd mb" *ngFor="let n of notificaciones">
+        <div class="msg-head">
+          <strong>{{ n.cliente_nombre }} {{ n.cliente_apellido }}</strong>
+          <span class="msg-time">{{ hace(n.created_at) }}</span>
+        </div>
+        <p class="msg-title">{{ n.titulo }}</p>
+        <p class="msg-body">{{ n.mensaje }}</p>
+      </div>
+
+      <!-- Enviar notificación -->
+      <div class="cd">
+        <span class="cd-title">Enviar notificación a cliente</span>
+        <div class="fg">
+          <label>Cliente</label>
+          <select [(ngModel)]="form.cliente_id">
+            <option [ngValue]="null">Seleccionar...</option>
+            <option *ngFor="let c of clientes" [ngValue]="c.id">{{ c.nombre }} {{ c.apellido }}</option>
+          </select>
+        </div>
+        <div class="fg"><label>Título</label><input [(ngModel)]="form.titulo" placeholder="Título del aviso"></div>
+        <div class="fg"><label>Mensaje</label><input [(ngModel)]="form.mensaje" placeholder="Detalle..."></div>
+        <button class="btn btn-cr btn-block" (click)="enviarNotificacion()" [disabled]="enviando || !form.cliente_id || !form.titulo.trim() || !form.mensaje.trim()">
+          <ion-icon name="send-outline"></ion-icon> Enviar notificación
+        </button>
+      </div>
+      <div class="empty" *ngIf="!notificaciones.length"><ion-icon name="mail-outline"></ion-icon><p>No se han enviado notificaciones.</p></div>
+    </div>
+
+    <!-- Chat interno 1:1 con el equipo (componentes compartidos) -->
+    <ng-container *ngIf="vista === 'taller'">
+      <app-chat-contactos *ngIf="!chatAbierto && !verAvisos"
+                          (abrir)="abrirChat($event)"
+                          (abrirAvisos)="verAvisos = true"></app-chat-contactos>
+      <app-chat-hilo *ngIf="chatAbierto" [contacto]="chatAbierto" (volver)="cerrarChat()"></app-chat-hilo>
+      <app-chat-hilo *ngIf="verAvisos" modo="avisos" (volver)="cerrarChat()"></app-chat-hilo>
+    </ng-container>
+  </div>
+</ion-content>

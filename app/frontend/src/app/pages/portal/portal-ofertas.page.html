@@ -1,0 +1,98 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Ofertas</ion-title>
+    <app-portal-actions slot="end"></app-portal-actions>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="cargar(); $event.target.complete()">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="ofertas">
+    <div class="intro">
+      <h2>Ofertas</h2>
+      <p>Promociones exclusivas del taller.</p>
+    </div>
+
+    <!-- Programa de fidelidad: progreso de cortesía -->
+    <section class="reward-hero" *ngIf="fidelidad" [class.ready]="fidelidad.cortesia_disponible">
+      <div class="rh-tag"><ion-icon name="gift"></ion-icon> Programa de fidelidad</div>
+
+      <h3 *ngIf="fidelidad.cortesia_disponible">¡Tu próximo servicio es de cortesía!</h3>
+      <h3 *ngIf="!fidelidad.cortesia_disponible">
+        Te falta{{ fidelidad.faltan === 1 ? '' : 'n' }} <strong>{{ fidelidad.faltan }}</strong> servicio{{ fidelidad.faltan === 1 ? '' : 's' }} para tu cortesía
+      </h3>
+      <p class="rh-sub">Cada {{ fidelidad.meta - 1 }} servicios completados, el siguiente va por nuestra cuenta.</p>
+
+      <div class="rh-blocks">
+        <span class="rb" *ngFor="let on of bloques; let i = index" [class.on]="on" [class.gift]="i === bloques.length - 1">
+          <ion-icon *ngIf="i === bloques.length - 1" name="gift"></ion-icon>
+        </span>
+      </div>
+      <div class="rh-foot">{{ fidelidad.visitas }} servicio{{ fidelidad.visitas === 1 ? '' : 's' }} completado{{ fidelidad.visitas === 1 ? '' : 's' }}</div>
+
+      <!-- Historial de cortesías canjeadas -->
+      <button class="rh-hist-tog" *ngIf="recompensas.length" (click)="toggleHistorial()">
+        <ion-icon [name]="histAbierto ? 'chevron-up' : 'chevron-down'"></ion-icon>
+        {{ recompensas.length }} cortesía{{ recompensas.length === 1 ? '' : 's' }} canjeada{{ recompensas.length === 1 ? '' : 's' }}
+      </button>
+      <div class="rh-hist" *ngIf="histAbierto">
+        <div class="rh-hist-row" *ngFor="let r of recompensas">
+          <ion-icon name="gift-outline"></ion-icon>
+          <span class="rhh-desc">{{ r.descripcion }}<ng-container *ngIf="r.numero_orden"> · {{ r.numero_orden }}</ng-container></span>
+          <span class="rhh-fecha mono">{{ r.fecha | date:'dd/MM/yyyy' }}</span>
+        </div>
+      </div>
+    </section>
+
+    <div *ngIf="cargando" style="display:flex;flex-direction:column;gap:12px">
+      <div class="skeleton" style="height:150px"></div>
+      <div class="skeleton" style="height:150px"></div>
+    </div>
+
+    <div class="of" *ngFor="let p of promos; let i = index">
+      <img *ngIf="imagenes[p.id]" [src]="imagenes[p.id]" alt="" class="of-img" loading="lazy" />
+      <div class="of-img-ph" *ngIf="!imagenes[p.id]" [ngClass]="'ph-' + (i % 4)" (click)="cargarImagen(p)">
+        <ion-icon [name]="p.tiene_imagen ? 'image-outline' : phIcono(i)"></ion-icon>
+      </div>
+      <div class="of-b">
+        <div class="of-h">
+          <strong>{{ p.titulo }}</strong>
+          <span class="bg" *ngIf="p.descuento">-{{ p.descuento }}%</span>
+        </div>
+        <p class="of-desc">{{ p.descripcion }}</p>
+        <button class="of-detail-btn" (click)="abrirDetalle(p)">
+          <ion-icon name="eye-outline"></ion-icon> Ver detalles
+        </button>
+      </div>
+    </div>
+
+    <!-- Visor de detalle -->
+    <div class="of-viewer" *ngIf="detalle" (click)="cerrarDetalle()">
+      <div class="ofv-content" (click)="$event.stopPropagation()">
+        <button class="ofv-close" (click)="cerrarDetalle()"><ion-icon name="close"></ion-icon></button>
+        <img *ngIf="imagenes[detalle.id]" [src]="imagenes[detalle.id]" alt="" class="ofv-img" />
+        <div class="ofv-loading" *ngIf="detalle.tiene_imagen && !imagenes[detalle.id]">
+          <ion-spinner name="crescent"></ion-spinner>
+        </div>
+        <div class="ofv-info">
+          <div class="ofv-head">
+            <h3>{{ detalle.titulo }}</h3>
+            <span class="bg" *ngIf="detalle.descuento">-{{ detalle.descuento }}%</span>
+          </div>
+          <p *ngIf="detalle.precio_final" class="ofv-price mono">{{ detalle.precio_final | currency:'CRC':'symbol-narrow':'1.0-0' }}</p>
+          <p class="ofv-desc">{{ detalle.descripcion }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="!cargando && promos.length === 0">
+      <ion-icon name="pricetags-outline"></ion-icon>
+      <p>No hay ofertas por ahora. ¡Volvé pronto!</p>
+    </div>
+
+    <div style="height:30px"></div>
+  </div>
+</ion-content>

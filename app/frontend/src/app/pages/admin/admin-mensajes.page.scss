@@ -1,0 +1,9 @@
+// Página de mensajes del admin. El chat interno 1:1 vive en los componentes
+// compartidos (shared/chat/); acá solo quedan los estilos de avances de
+// mecánicos y notificaciones a clientes.
+.msg-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+  strong { font-size: 14px; }
+  .msg-time { font-size: 11px; color: var(--tx3); margin-left: auto; } }
+.msg-body { font-size: 13px; color: var(--tx2); margin: 0; line-height: 1.5; }
+.msg-title { font-size: 13px; font-weight: 700; color: var(--tx); margin: 0 0 4px; }
+.msg-meta { font-size: 11px; color: var(--tx3); margin-top: 6px; display: block; }

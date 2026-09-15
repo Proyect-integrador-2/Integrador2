@@ -1,0 +1,68 @@
+<ion-content class="login-content">
+  <div class="login-container">
+    <div class="login-header">
+      <div class="logo-wrapper">
+        <img src="assets/logo/ms-iso-white.png" alt="MS Motos" />
+      </div>
+      <h1>Recuperar acceso</h1>
+      <p *ngIf="paso === 1">Te enviaremos un código a tu correo</p>
+      <p *ngIf="paso === 2">Escribí el código que te llegó y tu nueva contraseña</p>
+    </div>
+
+    <!-- Paso 1: pedir el código -->
+    <ion-card *ngIf="paso === 1">
+      <ion-card-content>
+        <ion-item lines="none">
+          <ion-label position="stacked">Correo</ion-label>
+          <ion-input type="email" [(ngModel)]="email" autocomplete="email" placeholder="tu@correo.com" (keyup.enter)="solicitar()"></ion-input>
+        </ion-item>
+
+        <ion-button expand="block" (click)="solicitar()" [disabled]="!emailOk">
+          Enviar código
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Paso 2: verificar código y nueva contraseña -->
+    <ion-card *ngIf="paso === 2">
+      <ion-card-content>
+        <ion-item lines="full">
+          <ion-label position="stacked">Código de 6 dígitos</ion-label>
+          <ion-input type="text" inputmode="numeric" maxlength="6" [(ngModel)]="codigo" placeholder="000000"></ion-input>
+        </ion-item>
+        <p class="ayuda-correo">El código puede tardar un par de minutos. Si no llega, revisá la carpeta de spam.</p>
+        <ion-item lines="full">
+          <ion-label position="stacked">Nueva contraseña</ion-label>
+          <ion-input [type]="verPass ? 'text' : 'password'" [(ngModel)]="password" placeholder="Mínimo 6 caracteres">
+            <ion-button fill="clear" slot="end" (click)="verPass = !verPass" aria-label="Mostrar contraseña">
+              <ion-icon slot="icon-only" [name]="verPass ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+            </ion-button>
+          </ion-input>
+        </ion-item>
+        <ion-item lines="none">
+          <ion-label position="stacked">Confirmar contraseña</ion-label>
+          <ion-input [type]="verConfirmar ? 'text' : 'password'" [(ngModel)]="confirmar" (keyup.enter)="confirmar_()">
+            <ion-button fill="clear" slot="end" (click)="verConfirmar = !verConfirmar" aria-label="Mostrar contraseña">
+              <ion-icon slot="icon-only" [name]="verConfirmar ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+            </ion-button>
+          </ion-input>
+        </ion-item>
+
+        <ion-button expand="block" (click)="confirmar_()" [disabled]="!validoPaso2">
+          Restablecer contraseña
+        </ion-button>
+
+        <a class="portal-link sub" [class.disabled]="cooldown > 0" (click)="reenviar()">
+          {{ cooldown > 0 ? 'Reenviar código en ' + cooldown + 's' : 'Reenviar código' }}
+        </a>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Anti-bot (fuera de los cards para persistir entre pasos): honeypot + captcha. -->
+    <input type="text" [(ngModel)]="website" name="website" tabindex="-1" autocomplete="off"
+           aria-hidden="true" class="hp-field">
+    <div #tsBox *ngIf="mostrarCaptcha" class="turnstile-box"></div>
+
+    <a class="portal-link" (click)="irLogin()">Volver a iniciar sesión</a>
+  </div>
+</ion-content>

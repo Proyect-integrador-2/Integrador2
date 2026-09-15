@@ -1,0 +1,910 @@
+@startuml DiagramaClases_MSMotos
+title Diagrama de Clases UML - MS Motos\nSistema de Gestión de Taller de Motocicletas
+skinparam classAttributeIconSize 0
+skinparam classFontSize 12
+skinparam packageFontSize 14
+skinparam linetype ortho
+skinparam shadowing false
+skinparam class {
+  BackgroundColor #1a1a2e
+  BorderColor #e94560
+  FontColor #eaeaea
+  ArrowColor #e94560
+  AttributeFontColor #cccccc
+  StereotypeFontColor #e94560
+}
+skinparam package {
+  BackgroundColor #16213e
+  BorderColor #0f3460
+  FontColor #eaeaea
+}
+skinparam note {
+  BackgroundColor #0f3460
+  BorderColor #e94560
+  FontColor #eaeaea
+}
+
+' ══════════════════════════════════════
+' ENUMERACIONES
+' ══════════════════════════════════════
+
+enum EstadoCita {
+  agendado
+  en_revision
+  en_mantenimiento
+  listo
+  entregado
+  cancelado
+}
+
+enum EstadoOrden {
+  recepcion
+  diagnostico
+  esperando_aprobacion
+  esperando_repuestos
+  en_reparacion
+  lista_entrega
+  entregada
+  cancelada
+}
+
+enum EstadoGarantia {
+  abierto
+  en_revision
+  aprobado
+  rechazado
+  resuelto
+}
+
+enum RolUsuario {
+  admin
+  recepcion
+  tecnico
+}
+
+' Jerarquía: recepcion < tecnico < admin (middleware/roles.js).
+' `requireRol` hereda hacia arriba; `soloRoles` exige pertenencia exacta, para los
+' casos en que un rol intermedio NO debe tener un permiso de uno inferior (el técnico
+' no gestiona la agenda, la recepción sí).
+
+enum EtapaOrden {
+  recepcion
+  diagnostico
+  esperando_aprobacion
+  esperando_repuestos
+  en_reparacion
+  lista_entrega
+}
+
+enum PrioridadTarea {
+  baja
+  normal
+  alta
+  urgente
+}
+
+' ══════════════════════════════════════
+' MODELOS (INTERFACES DE DATOS)
+' ══════════════════════════════════════
+'
+' Cubren las 22 tablas de dominio. Quedan FUERA a propósito cuatro tablas de
+' infraestructura, que no son entidades del negocio y solo agregarían ruido:
+'   · password_reset_codes, login_codes, email_verify_codes — códigos de un solo uso,
+'     con vencimiento; se crean y se borran dentro del propio flujo de acceso.
+'   · orden_contadores — contador por año para numerar las OT (OT-YYYY-XXXX).
+
+package "Modelos" #16213e {
+
+  class Cliente <<interface>> {
+    + id: number
+    + nombre: string
+    + apellido: string
+    + telefono: string
+    + email: string
+    + cedula: string
+    + foto: string
+    + cover: string
+    + visitas: number
+    + cortesia_disponible: number
+    + activo: number
+    + created_at: string
+  }
+
+  class Usuario <<interface>> {
+    + id: number
+    + nombre: string
+    + email: string
+    + telefono: string
+    + rol: RolUsuario
+    + sucursal_id: number
+    + foto: string
+    + activo: number
+    + created_at: string
+  }
+
+  class Moto <<interface>> {
+    + id: number
+    + cliente_id: number
+    + marca: string
+    + modelo: string
+    + anio: number
+    + placa: string
+    + color: string
+    + numero_motor: string
+    + numero_chasis: string
+    + kilometraje_actual: number
+    + foto_url: string
+  }
+
+  class Cita <<interface>> {
+    + id: number
+    + cliente_id: number
+    + moto_id: number
+    + tecnico_id: number
+    + usuario_id: number
+    + fecha: string
+    + hora: string
+    + tipo_servicio: string
+    + motivo: string
+    + estado: EstadoCita
+    + monto: number
+    + orden_id: number
+    + sucursal_id: number
+    + calificacion: number
+    + confirmada_cliente: number
+    + fecha_inicio: string
+    + fecha_fin: string
+    + fecha_listo: string
+  }
+
+  class Orden <<interface>> {
+    + id: number
+    + numero_orden: string
+    + moto_id: number
+    + cliente_id: number
+    + recepcionista_id: number
+    + tecnico_id: number
+    + estado: EstadoOrden
+    + problema_reportado: string
+    + diagnostico: string
+    + costo_mano_obra: number
+    + costo_repuestos: number
+    + descuento: number
+    + total: number
+    + aprobacion_cliente: string
+    + prioridad: string
+    + categoria: string
+    + sucursal_id: number
+    + metodo_pago: string
+    + garantia_dias: number
+    + fecha_ingreso: string
+    + fecha_estimada_entrega: string
+  }
+
+  class OrdenRepuesto <<interface>> {
+    + id: number
+    + orden_id: number
+    + nombre: string
+    + cantidad: number
+    + costo_unitario: number
+    + estado: string
+  }
+
+  class OrdenAvance <<interface>> {
+    + id: number
+    + orden_id: number
+    + usuario_id: number
+    + descripcion: string
+    + usuario_nombre: string
+    + created_at: string
+  }
+
+  class OrdenFoto <<interface>> {
+    + id: number
+    + orden_id: number
+    + url: string
+    + tipo: string
+    + descripcion: string
+    + created_at: string
+  }
+
+  class Garantia <<interface>> {
+    + id: number
+    + orden_id: number
+    + descripcion_problema: string
+    + cubre_repuestos: boolean
+    + cubre_mano_obra: boolean
+    + estado: EstadoGarantia
+    + resolucion: string
+    + creado_por: number
+  }
+
+  class GarantiaFoto <<interface>> {
+    + id: number
+    + garantia_id: number
+    + url: string
+    + descripcion: string
+  }
+
+  class Promo <<interface>> {
+    + id: number
+    + titulo: string
+    + descripcion: string
+    + descuento: number
+    + precio_final: number
+    + imagen: string
+    + activa: boolean
+  }
+
+  class OrdenTiempo <<interface>> {
+    + id: number
+    + orden_id: number
+    + etapa: EtapaOrden
+    + inicio: string
+    + fin: string
+  }
+
+  class OrdenChecklist <<interface>> {
+    + id: number
+    + orden_id: number
+    + prueba_realizada: boolean
+    + lavado: boolean
+    + calidad_revisada: boolean
+    + facturacion_lista: boolean
+    + cliente_notificado: boolean
+    + observaciones: string
+  }
+
+  class MensajeInterno <<interface>> {
+    + id: number
+    + remitente_id: number
+    + destino_id: number
+    + destino_rol: string
+    + tipo: string
+    + mensaje: string
+    + foto: string
+    + orden_id: number
+    + sucursal_id: number
+    + created_at: string
+  }
+
+  class MensajeLectura <<interface>> {
+    + mensaje_id: number
+    + usuario_id: number
+    + created_at: string
+  }
+
+  class Notificacion <<interface>> {
+    + id: number
+    + cliente_id: number
+    + cita_id: number
+    + titulo: string
+    + mensaje: string
+    + tipo: string
+    + leida: boolean
+    + created_at: string
+  }
+
+  class TareaMecanico <<interface>> {
+    + id: number
+    + tecnico_id: number
+    + titulo: string
+    + detalle: string
+    + prioridad: PrioridadTarea
+    + hecha: boolean
+    + asignado_por: number
+    + vence: string
+  }
+
+  class RecompensaCanjeada <<interface>> {
+    + id: number
+    + cliente_id: number
+    + orden_id: number
+    + aplicado_por: number
+    + descripcion: string
+    + created_at: string
+  }
+
+  class Sucursal <<interface>> {
+    + id: number
+    + nombre: string
+    + direccion: string
+    + telefono: string
+    + activa: boolean
+    + orden: number
+  }
+
+  class Servicio <<interface>> {
+    + id: number
+    + nombre: string
+    + activo: boolean
+    + orden: number
+  }
+
+  class Configuracion <<interface>> {
+    + id: number
+    + nombre_taller: string
+    + telefono: string
+    + email: string
+    + direccion: string
+    + logo: string
+    + max_citas_hora: number
+    + dias_anticipacion: number
+    + duracion_cita_min: number
+    + horarios: Horario[]
+    + notif_estado: boolean
+    + notif_recordatorio: boolean
+    + notif_cotizacion: boolean
+    + notif_email_entrega: boolean
+  }
+
+  class WebVital <<interface>> {
+    + id: number
+    + metrica: string
+    + valor: number
+    + calificacion: string
+    + ruta: string
+    + movil: boolean
+    + created_at: string
+  }
+
+}
+
+' Relaciones entre modelos
+Cliente "1" -- "*" Moto : posee >
+Cliente "1" -- "*" Cita : agenda >
+Cliente "1" -- "*" Orden : solicita >
+Moto "1" -- "*" Cita : se asocia >
+Moto "1" -- "*" Orden : se asocia >
+Cita "0..1" -- "0..1" Orden : vincula >
+Usuario "1" -- "*" Cita : atiende >
+Usuario "1" -- "*" Orden : trabaja >
+Orden "1" -- "*" OrdenRepuesto : contiene >
+Orden "1" -- "*" OrdenAvance : registra >
+Orden "1" -- "*" OrdenFoto : evidencia >
+Orden "1" -- "*" Garantia : genera >
+Garantia "1" -- "*" GarantiaFoto : adjunta >
+Orden "1" -- "*" OrdenTiempo : cronometra >
+Orden "1" -- "0..1" OrdenChecklist : cierra con >
+Cliente "1" -- "*" Notificacion : recibe >
+Cliente "1" -- "*" RecompensaCanjeada : canjea >
+Cita "0..1" -- "*" Notificacion : origina >
+Usuario "1" -- "*" TareaMecanico : ejecuta >
+Usuario "1" -- "*" MensajeInterno : envía >
+MensajeInterno "1" -- "*" MensajeLectura : marcada por >
+MensajeInterno "0..1" -- "0..1" Orden : refiere a >
+Sucursal "1" -- "*" Usuario : emplea >
+Sucursal "1" -- "*" Cita : recibe >
+Cita ..> EstadoCita : usa
+Orden ..> EstadoOrden : usa
+Garantia ..> EstadoGarantia : usa
+Usuario ..> RolUsuario : usa
+OrdenTiempo ..> EtapaOrden : usa
+TareaMecanico ..> PrioridadTarea : usa
+Cita ..> Servicio : elige de >
+Configuracion ..> Sucursal : rige horarios de >
+
+' ══════════════════════════════════════
+' SERVICIOS
+' ══════════════════════════════════════
+
+package "Servicios" #16213e {
+
+  class AuthService <<Service>> {
+    - usuarioSubject: BehaviorSubject<Usuario>
+    + usuario$: Observable<Usuario>
+    --
+    + login(email: string, password: string): Observable
+    + loginUnificado(email: string, password: string): Observable
+    + aplicarSesionStaff(token: string, usuario: Usuario): void
+    + logout(): void
+    + getToken(): string
+    + getUsuario(): Usuario
+    + isLoggedIn(): boolean
+    + isTokenExpired(): boolean
+    + tieneRol(...roles: string[]): boolean
+  }
+
+  class PortalService <<Service>> {
+    - clienteSubject: BehaviorSubject<ClientePortal>
+    + cliente$: Observable<ClientePortal>
+    + noLeidas$: Observable<number>
+    --
+    + login(email: string, password: string): Observable
+    + registro(data: object): Observable
+    + logout(): void
+    + isLoggedIn(): boolean
+    + isTokenExpired(): boolean
+    + getResumen(): Observable
+    + getCitas(): Observable
+    + getCita(id: number): Observable
+    + crearCita(data: object): Observable
+    + getMotos(): Observable
+    + crearMoto(data: object): Observable
+    + getPromos(): Observable
+    + getPromoImagen(id: number): Observable
+    + getMiPerfil(): Observable
+    + actualizarFotoPerfil(foto: string): Observable
+    + actualizarCover(cover: string): Observable
+    + eliminarCuenta(): Observable
+  }
+
+  class RecepcionService <<Service>> {
+    + getResumen(): Observable<ResumenRecepcion>
+    + getCitasHoy(): Observable
+    + getAlertas(): Observable
+    + getOrdenes(estado: string): Observable
+    + getListasEntrega(): Observable
+    + entregarOrden(id: number, data: object): Observable
+    + getMensajesInternos(): Observable
+    + getMensajesNoLeidos(): Observable
+    + responderInterno(id: number, msg: string, foto: string): Observable
+    + broadcastMecanicos(msg: string): Observable
+    + getTecnicos(): Observable
+    + crearOrden(data: object): Observable
+    + getClientes(q: string): Observable
+  }
+
+  class MecanicoService <<Service>> {
+    + getResumen(): Observable<ResumenMecanico>
+    + getCitas(params: object): Observable
+    + getAgenda(desde: string, hasta: string): Observable
+    + cambiarEstado(id: number, estado: string): Observable
+    + getTareas(): Observable
+    + enviarMensaje(msg: string, foto: string): Observable
+    + solicitarRepuesto(ordenId: number, nombre: string, cant: number): Observable
+    + getPerfil(): Observable
+    + cambiarPassword(data: object): Observable
+  }
+
+  class AdminService <<Service>> {
+    + getResumen(): Observable
+    + getReportes(filtros: object): Observable
+    + getCalendario(anio: number, mes: number): Observable
+    + getTareas(empleado: number): Observable
+    + crearTarea(data: object): Observable
+    + borrarTarea(id: number): Observable
+    + getConfig(): Observable
+    + updateConfig(data: object): Observable
+    + getSucursales(): Observable
+    + createSucursal(data: object): Observable
+    + updateFoto(foto: string): Observable
+  }
+
+  class OrdenesService <<Service>> {
+    + getAll(params: object): Observable
+    + getById(id: number): Observable
+    + create(orden: Orden): Observable
+    + update(id: number, data: object): Observable
+    + cambiarEstado(id: number, estado: EstadoOrden): Observable
+    + asignarTecnico(id: number, tecnico_id: number): Observable
+    + getRepuestos(id: number): Observable
+    + addRepuesto(id: number, data: OrdenRepuesto): Observable
+    + updateRepuesto(oId: number, rId: number, data: object): Observable
+    + getAvances(id: number): Observable
+    + addAvance(id: number, desc: string): Observable
+    + getTiempos(id: number): Observable
+  }
+
+  class ClientesService <<Service>> {
+    + getAll(q: string): Observable<Cliente[]>
+    + getById(id: number): Observable<Cliente>
+    + create(cliente: Cliente): Observable
+    + update(id: number, cliente: Cliente): Observable
+    + getMotos(id: number): Observable<Moto[]>
+    + getOrdenes(id: number): Observable<Orden[]>
+  }
+
+  class CitasService <<Service>> {
+    + getAll(params: object): Observable<Cita[]>
+    + getById(id: number): Observable<Cita>
+    + create(cita: Cita): Observable
+    + update(id: number, cita: Cita): Observable
+    + cambiarEstado(id: number, estado: string): Observable
+    + asignar(id: number, tecnico_id: number): Observable
+  }
+
+  class MotosService <<Service>> {
+    + getAll(params: object): Observable<Moto[]>
+    + getById(id: number): Observable<Moto>
+    + create(moto: Moto): Observable
+    + update(id: number, moto: Moto): Observable
+    + getHistorial(id: number): Observable
+  }
+
+  class GarantiasService <<Service>> {
+    + getAll(params: object): Observable<Garantia[]>
+    + getById(id: number): Observable<Garantia>
+    + create(data: object): Observable
+    + cambiarEstado(id: number, data: object): Observable
+  }
+
+  class ToastService <<Service>> {
+    + success(msg: string): Promise<void>
+    + error(msg: string): Promise<void>
+    + warn(msg: string): Promise<void>
+  }
+
+  class AccesibilidadService <<Service>> {
+    + nivel: number
+    + setNivel(i: number): void
+  }
+
+  class BiometriaService <<Service>> {
+    + disponible(): Promise<boolean>
+    + activar(email: string, pass: string): Promise<void>
+    + obtener(): Promise<object>
+    + desactivar(): Promise<void>
+  }
+
+  class MensajeriaService <<Service>> {
+    - avatares: Map<number, string>
+    --
+    + getContactos(): Observable<ChatContacto[]>
+    + getConversacion(usuarioId: number): Observable
+    + enviar(usuarioId: number, mensaje: string, foto: string): Observable
+    + getFotoMensaje(mensajeId: number): Observable
+    + avatar(usuarioId: number): string
+    + getNoLeidos(): Observable<number>
+    + getAvisos(): Observable
+    + enviarAviso(mensaje: string, foto: string): Observable
+  }
+
+  class PromosService <<Service>> {
+    + getAll(): Observable<Promo[]>
+    + getImagen(id: number): Observable<string>
+    + create(promo: Promo): Observable
+    + update(id: number, promo: Promo): Observable
+    + toggle(id: number): Observable
+    + delete(id: number): Observable
+  }
+
+  class UsuariosService <<Service>> {
+    + getAll(): Observable<Usuario[]>
+    + create(data: object): Observable
+    + update(id: number, data: Partial<Usuario>): Observable
+    + toggleActivo(id: number, activo: boolean): Observable
+    + setSucursal(id: number, sucursal_id: number): Observable
+    + eliminar(id: number): Observable
+  }
+
+  class DashboardService <<Service>> {
+    + getResumen(): Observable
+    + getTecnicos(): Observable
+    + getTiempos(): Observable
+    + getAtrasos(): Observable
+  }
+
+  class MarcaService <<Service>> {
+    + get(): Observable<Marca>
+    + invalidar(): void
+    + logoParaDocumento(m: Marca): string
+  }
+
+}
+
+' Dependencias de servicios con modelos
+AuthService --> Usuario
+PortalService --> Cliente
+ClientesService --> Cliente
+MotosService --> Moto
+CitasService --> Cita
+OrdenesService --> Orden
+OrdenesService --> OrdenRepuesto
+GarantiasService --> Garantia
+MensajeriaService --> MensajeInterno
+PromosService --> Promo
+UsuariosService --> Usuario
+AdminService --> Configuracion
+AdminService --> Sucursal
+AdminService --> TareaMecanico
+AdminService --> Servicio
+PortalService --> Notificacion
+
+' ══════════════════════════════════════
+' GUARDS (PROTECCIÓN DE RUTAS)
+' ══════════════════════════════════════
+
+package "Guards" #16213e {
+
+  class AuthGuard <<Guard>> {
+    + canActivate(): boolean
+  }
+
+  class RolGuard <<Guard>> {
+    + canActivate(): boolean
+  }
+
+  class PortalGuard <<Guard>> {
+    + canActivate(): boolean
+  }
+
+  class RolHomeGuard <<Guard>> {
+    + canActivate(): boolean
+  }
+
+}
+
+AuthGuard --> AuthService : verifica token
+RolGuard --> AuthService : verifica rol
+PortalGuard --> PortalService : verifica sesión
+RolHomeGuard --> AuthService : redirige por rol
+
+' ══════════════════════════════════════
+' INTERCEPTORS (MIDDLEWARE HTTP)
+' ══════════════════════════════════════
+
+package "Interceptors" #16213e {
+
+  class AuthInterceptor <<Interceptor>> {
+    + intercept(req: HttpRequest, next: HttpHandler): Observable
+  }
+
+  class ApiUrlInterceptor <<Interceptor>> {
+    + intercept(req: HttpRequest, next: HttpHandler): Observable
+  }
+
+  class ErrorInterceptor <<Interceptor>> {
+    + intercept(req: HttpRequest, next: HttpHandler): Observable
+  }
+
+}
+
+AuthInterceptor --> AuthService : obtiene token staff
+AuthInterceptor --> PortalService : obtiene token cliente
+ErrorInterceptor --> ToastService : muestra errores
+
+' ══════════════════════════════════════
+' MÓDULOS DE PÁGINAS
+' ══════════════════════════════════════
+
+package "Módulo Admin" #0f3460 {
+  class AdminShellPage <<Component>>
+  class AdminResumenPage <<Component>>
+  class AdminCitasPage <<Component>>
+  class AdminCalendarioPage <<Component>>
+  class AdminEmpleadosPage <<Component>>
+  class AdminTareasPage <<Component>>
+  class AdminMensajesPage <<Component>>
+  class AdminReportesPage <<Component>>
+  class AdminOpinionesPage <<Component>>
+  class AdminServiciosPage <<Component>>
+  class AdminPromosPage <<Component>>
+  class AdminConfigPage <<Component>>
+  class AdminPerfilPage <<Component>>
+}
+
+package "Módulo Recepción" #0f3460 {
+  class RecepcionTabsPage <<Component>>
+  class RecepcionPage <<Component>>
+  class RecepcionAgendaPage <<Component>>
+  class RecepcionAgendarPage <<Component>>
+  class RecepcionOrdenesPage <<Component>>
+  class RecepcionCotizPage <<Component>>
+  class RecepcionMensajesPage <<Component>>
+  class RecepcionClientesPage <<Component>>
+  class RecepcionPerfilPage <<Component>>
+}
+
+package "Módulo Mecánico" #0f3460 {
+  class MecanicoTabsPage <<Component>>
+  class MecanicoPage <<Component>>
+  class MecanicoAgendaPage <<Component>>
+  class MecanicoHistorialPage <<Component>>
+  class MecanicoTareasPage <<Component>>
+  class MecanicoContactoPage <<Component>>
+  class MecanicoPerfilPage <<Component>>
+}
+
+package "Módulo Portal Cliente" #0f3460 {
+  class PortalTabsPage <<Component>>
+  class PortalLoginPage <<Component>>
+  class PortalRegistroPage <<Component>>
+  class PortalRecuperarPage <<Component>>
+  class PortalInicioPage <<Component>>
+  class PortalCitasPage <<Component>>
+  class PortalCitaDetallePage <<Component>>
+  class PortalAgendarPage <<Component>>
+  class PortalMotosPage <<Component>>
+  class PortalMotoHistorialPage <<Component>>
+  class PortalOfertasPage <<Component>>
+  class PortalPerfilPage <<Component>>
+  class PortalNotificacionesPage <<Component>>
+  class PortalLegalPage <<Component>>
+}
+
+package "Páginas Compartidas" #0f3460 {
+  class TabsPage <<Component>>
+  class DashboardPage <<Component>>
+  class OrdenesPage <<Component>>
+  class NuevaOrdenPage <<Component>>
+  class DetalleOrdenPage <<Component>>
+  class FacturaPage <<Component>>
+  class CitasPage <<Component>>
+  class CitaFormPage <<Component>>
+  class ClientesPage <<Component>>
+  class ClienteFormPage <<Component>>
+  class ClienteDetallePage <<Component>>
+  class MotosPage <<Component>>
+  class MotoFormPage <<Component>>
+  class MotoHistorialPage <<Component>>
+  class PromosPage <<Component>>
+  class GarantiasPage <<Component>>
+}
+
+package "Componentes Compartidos" #0f3460 {
+  class ChatContactosComponent <<Component>> {
+    + abrir: EventEmitter<ChatContacto>
+    + abrirAvisos: EventEmitter<void>
+    --
+    + avatar(c: ChatContacto): string
+    + preview(c: ChatContacto): string
+  }
+
+  class ChatHiloComponent <<Component>> {
+    + contacto: ChatContacto
+    + modo: string
+    + volver: EventEmitter<void>
+    - fotos: Map<number, string>
+    --
+    + fotoDe(m: MensajeInterno): string
+    + enviar(texto: string): void
+  }
+
+  class DosFaComponent <<Component>> {
+    + activar(codigo: string): void
+    + desactivar(password: string): void
+  }
+
+  class EstadoLabelPipe <<Pipe>> {
+    + transform(estado: string): string
+  }
+
+  class EstadoColorPipe <<Pipe>> {
+    + transform(estado: string): string
+  }
+
+  class PrecargaPorRol <<Strategy>> {
+    + preload(ruta: Route, cargar: Function): Observable
+  }
+}
+
+' Dependencias módulos -> servicios
+AdminResumenPage ..> AdminService
+AdminEmpleadosPage ..> UsuariosService
+AdminServiciosPage ..> AdminService
+AdminOpinionesPage ..> AdminService
+AdminPromosPage ..> PromosService
+AdminMensajesPage ..> MensajeriaService
+RecepcionPage ..> RecepcionService
+RecepcionMensajesPage ..> MensajeriaService
+RecepcionCotizPage ..> RecepcionService
+MecanicoPage ..> MecanicoService
+MecanicoContactoPage ..> MensajeriaService
+PortalInicioPage ..> PortalService
+PortalCitasPage ..> PortalService
+PortalOfertasPage ..> PortalService
+DashboardPage ..> DashboardService
+DetalleOrdenPage ..> OrdenesService
+FacturaPage ..> MarcaService
+ClientesPage ..> ClientesService
+GarantiasPage ..> GarantiasService
+PromosPage ..> PromosService
+CitasPage ..> CitasService
+MotosPage ..> MotosService
+
+' Los tres paneles reusan el mismo chat: es un componente, no una página por rol.
+AdminMensajesPage ..> ChatContactosComponent
+RecepcionMensajesPage ..> ChatContactosComponent
+MecanicoContactoPage ..> ChatContactosComponent
+ChatContactosComponent ..> MensajeriaService
+ChatHiloComponent ..> MensajeriaService
+
+' ══════════════════════════════════════
+' UTILIDADES
+' ══════════════════════════════════════
+
+package "Utilidades" #16213e {
+
+  class ImageUtil <<Utility>> {
+    + comprimirImagen(file: File, max: number, calidad: number): Promise<string>
+  }
+
+  class CsvUtil <<Utility>> {
+    + descargarCSV(nombre: string, cols: object[], filas: any[]): void
+    + fechaCorta(iso: string): string
+  }
+
+  class PdfUtil <<Utility>> {
+    + generarPDF(titulo: string, contenido: string, logo: string): Promise<void>
+    + formatMoneda(n: number): string
+  }
+
+  class WhatsAppUtil <<Utility>> {
+    + abrirWhatsApp(tel: string, msg: string): boolean
+    + mensajeCita(cita: object): string
+    + normalizarTelefono(tel: string): string
+  }
+
+  class FechaCitaUtil <<Utility>> {
+    + ahoraTaller(): Date
+    + hoyCR(): string
+    + diasHastaCita(fecha: string): number
+    + badgeProximidad(fecha: string): BadgeProximidad
+  }
+
+  class WebVitalsUtil <<Utility>> {
+    + iniciarWebVitals(): void
+    - enviar(m: Metric): void
+  }
+
+  class SecureStoreUtil <<Utility>> {
+    + secureGet(key: string): Promise<string>
+    + secureSet(key: string, value: string): Promise<void>
+    + secureRemove(key: string): Promise<void>
+  }
+
+  class TurnstileUtil <<Utility>> {
+    + turnstileHabilitado(): boolean
+    + montarTurnstile(container: HTMLElement): Promise<string>
+  }
+
+}
+
+WebVitalsUtil --> WebVital : envía
+SecureStoreUtil <.. BiometriaService : guarda credenciales
+TurnstileUtil <.. PortalRegistroPage : protege el alta
+
+note right of Cliente
+  El cliente puede tener
+  foto de perfil y cover
+  (fondo de perfil).
+  Se registra desde el portal
+  o lo crea recepción.
+end note
+
+note right of Orden
+  Flujo: recepcion → diagnostico
+  → esperando_aprobacion
+  → esperando_repuestos
+  → en_reparacion → lista_entrega
+  → entregada
+end note
+
+note bottom of AuthService
+  Login unificado: busca primero
+  en usuarios (staff), luego en
+  clientes (portal). Un solo
+  endpoint para ambos.
+  Los dos tokens NO son
+  intercambiables: el de cliente
+  lleva tipo:'cliente' y sin rol.
+end note
+
+note right of MensajeInterno
+  Una sola tabla para los tres
+  usos, según `tipo`:
+  directo (1:1), sistema
+  (asignaciones automáticas) y
+  broadcast (aviso por rol).
+  La foto no viaja en el listado:
+  se pide por /mensaje/:id/foto
+  y el cliente la cachea por id.
+end note
+
+note right of Configuracion
+  Fila única (id = 1).
+  `horarios` es JSON:
+  [{dia:0..6, abre, cierra, activo}].
+  Define el cupo que ven por igual
+  el portal y el mostrador.
+end note
+
+note bottom of PrecargaPorRol
+  Reemplaza a PreloadAllModules,
+  que bajaba los 83 chunks a todo
+  el mundo. Precarga solo lo del
+  rol y 2 s después del arranque.
+end note
+
+@enduml
