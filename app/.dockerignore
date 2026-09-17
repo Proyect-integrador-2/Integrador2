@@ -1,0 +1,23 @@
+# Lo que no debe entrar al contexto de build (tamaño y secretos).
+**/node_modules
+**/.env
+**/.env.*
+!**/.env.example
+.git
+.github
+.claude
+.agents
+graphify-out
+
+backend/backups
+backend/test
+
+frontend/www
+frontend/.angular
+frontend/android
+frontend/resources
+
+docs
+pruebas-carga
+docker-compose*.yml
+*.md

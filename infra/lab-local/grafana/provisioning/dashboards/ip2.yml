@@ -1,0 +1,15 @@
+apiVersion: 1
+
+# Carga los tableros versionados en monitoreo/grafana/ (IP2-48). El directorio se
+# monta desde el repositorio, así que el JSON del repo es la única fuente de verdad.
+providers:
+  - name: Integrador II
+    orgId: 1
+    folder: Integrador II
+    type: file
+    disableDeletion: false
+    allowUiUpdates: true
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/dashboards-ip2
+      foldersFromFilesStructure: false

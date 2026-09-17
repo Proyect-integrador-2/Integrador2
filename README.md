@@ -24,6 +24,7 @@ experiencia de usuario con un RPA.
 | `app/` | Aplicación MS Motos (Integrador I) + `Dockerfile` y `docker-compose.yml` |
 | `red/` | Configuraciones de router y switch (VLAN, trunk, NAT/PAT, ACL, SNMP) y topología Packet Tracer |
 | `infra/` | Proxmox, definición y dimensionamiento de VMs, scripts de aprovisionamiento |
+| `infra/lab-local/` | Laboratorio en Docker (Zabbix, Grafana, n8n) para construir y probar antes de tener el equipo del laboratorio |
 | `monitoreo/zabbix/` | Plantillas exportadas, media types, scripts de agente |
 | `monitoreo/grafana/` | Dashboards (JSON) y provisioning |
 | `automatizacion/n8n/` | Flujos exportados (JSON) |
@@ -31,6 +32,7 @@ experiencia de usuario con un RPA.
 | `rpa/` | Usuario sintético con Robot Framework |
 | `pruebas/` | Scripts para provocar fallas controladas y matriz de resultados |
 | `scripts/` | Utilidades generales |
+| `docs/diseno/` | Diseños técnicos del E2 (virtualización, monitoreo, automatización, RPA) |
 | `docs/diagramas/` | Fuentes editables de diagramas (`.drawio`); la versión publicada va a Confluence |
 
 ## Convenciones

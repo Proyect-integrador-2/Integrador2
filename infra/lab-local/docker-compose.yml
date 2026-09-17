@@ -1,0 +1,157 @@
+# Laboratorio local de monitoreo y automatización — Integrador II
+#
+# Réplica en una PC de lo que irá en las VMs del servidor, para construir y probar
+# plantillas, triggers, dashboards y flujos antes de tener el equipo del laboratorio.
+#
+# Requiere la app corriendo (app/docker-compose.yml): este laboratorio se conecta a
+# su red "msmotos-backend" para monitorearla y recuperarla.
+#
+#   cp .env.example .env    # y completar
+#   ./generar-llave-ssh.ps1  # (una vez) llave de n8n para entrar a vm-app-sim
+#   docker compose up -d
+#
+# Zabbix  → http://localhost:8080   (Admin / zabbix, cambiar al entrar)
+# Grafana → http://localhost:3001
+# n8n     → http://localhost:5678
+
+name: lab-monitoreo
+
+services:
+  # ---------------- Zabbix (equivale a vm-zabbix) ----------------
+  zabbix-db:
+    image: postgres:16-alpine
+    container_name: lab-zabbix-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: ${ZBX_DB_PASSWORD:?Definí ZBX_DB_PASSWORD en .env}
+    volumes:
+      - zabbix-db-data:/var/lib/postgresql/data
+    networks: [monitoreo]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zabbix -d zabbix"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:alpine-7.0.30
+    container_name: lab-zabbix-server
+    restart: unless-stopped
+    depends_on:
+      zabbix-db:
+        condition: service_healthy
+    environment:
+      DB_SERVER_HOST: zabbix-db
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: ${ZBX_DB_PASSWORD}
+      # Intervalos cortos para que las pruebas de la demo detecten rápido.
+      ZBX_CACHESIZE: 64M
+      ZBX_STARTPINGERS: 2
+    networks: [monitoreo, msmotos]
+
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-pgsql:alpine-7.0.30
+    container_name: lab-zabbix-web
+    restart: unless-stopped
+    depends_on: [zabbix-server]
+    environment:
+      ZBX_SERVER_HOST: zabbix-server
+      DB_SERVER_HOST: zabbix-db
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: ${ZBX_DB_PASSWORD}
+      PHP_TZ: America/Costa_Rica
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks: [monitoreo]
+
+  # ---------------- Agente de la "VM de la app" ----------------
+  # En el laboratorio real va instalado en vm-app. Aquí lee el socket de Docker de la PC
+  # para ver msmotos-app y msmotos-db con la plantilla "Docker by Zabbix agent 2".
+  zabbix-agent:
+    image: zabbix/zabbix-agent2:alpine-7.0.30
+    container_name: lab-zabbix-agent
+    restart: unless-stopped
+    user: root
+    environment:
+      ZBX_HOSTNAME: vm-app
+      ZBX_SERVER_HOST: zabbix-server
+      ZBX_SERVER_ACTIVE: zabbix-server
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [monitoreo]
+
+  # ---------------- Grafana (equivale a vm-grafana) ----------------
+  grafana:
+    image: grafana/grafana-oss:12.4.3
+    container_name: lab-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Definí GRAFANA_ADMIN_PASSWORD en .env}
+      GF_INSTALL_PLUGINS: alexanderzobnin-zabbix-app
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      ZABBIX_API_USER: ${ZABBIX_API_USER:-grafana}
+      ZABBIX_API_PASSWORD: ${ZABBIX_API_PASSWORD:-}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../monitoreo/grafana:/etc/grafana/dashboards-ip2:ro
+    ports:
+      - "127.0.0.1:3001:3000"
+    networks: [monitoreo]
+
+  # ---------------- n8n (equivale a vm-n8n) ----------------
+  n8n:
+    image: n8nio/n8n:2.40.2
+    container_name: lab-n8n
+    restart: unless-stopped
+    environment:
+      GENERIC_TIMEZONE: America/Costa_Rica
+      TZ: America/Costa_Rica
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?Definí N8N_ENCRYPTION_KEY en .env}
+      # Solo local por http: sin esto n8n exige HTTPS para la cookie de sesión.
+      N8N_SECURE_COOKIE: "false"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      # Token que Zabbix envía en el webhook (control C5 del diseño).
+      WEBHOOK_TOKEN: ${N8N_WEBHOOK_TOKEN:?Definí N8N_WEBHOOK_TOKEN en .env}
+      # Token de API de Zabbix para reconocer eventos (lo crea configurar-zabbix.py).
+      ZABBIX_API_URL: http://zabbix-web:8080/api_jsonrpc.php
+      ZABBIX_N8N_TOKEN: ${ZABBIX_N8N_TOKEN:-}
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+    volumes:
+      - n8n-data:/home/node/.n8n
+    ports:
+      - "127.0.0.1:5678:5678"
+    networks: [monitoreo]
+
+  # ---------------- "VM de la app" para las acciones de n8n ----------------
+  # Simula el acceso SSH de n8n a vm-app con el usuario restringido n8n-ops:
+  # sudo solo permite iniciar msmotos-app (controles C1 y C4 del diseño).
+  vm-app-sim:
+    build: ./vm-app-sim
+    image: lab-vm-app-sim:latest
+    container_name: lab-vm-app-sim
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./secrets/n8n_ops_ed25519.pub:/etc/ssh/n8n-ops.pub:ro
+    networks: [monitoreo]
+
+networks:
+  monitoreo:
+    name: lab-monitoreo
+  msmotos:
+    name: msmotos-backend
+    external: true
+
+volumes:
+  zabbix-db-data:
+    name: lab-zabbix-db-data
+  grafana-data:
+    name: lab-grafana-data
+  n8n-data:
+    name: lab-n8n-data
