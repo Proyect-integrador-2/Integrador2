@@ -114,6 +114,8 @@ line vty 0 15
 access-list 20 remark SNMP solo desde Zabbix
 access-list 20 permit host 10.10.30.12
 snmp-server community CAMBIAR-SNMP-COMMUNITY RO 20
+! (Packet Tracer no acepta la ACL en la comunidad del 2960: usar "snmp-server community X RO")
+! (No soportados en Packet Tracer; sí en IOS real)
 snmp-server location Laboratorio UTN - Rack Integrador II
 snmp-server contact Equipo Integrador II
 !

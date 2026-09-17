@@ -87,6 +87,7 @@ ip access-list extended ACL-USUARIOS-IN
  deny ip 10.10.20.0 0.0.0.255 host 10.10.99.1
  remark Internet
  permit ip 10.10.20.0 0.0.0.255 any
+ exit
 !
 ! ---------------- NAT/PAT ----------------
 ip access-list standard ACL-NAT-INTERNAS
@@ -94,6 +95,7 @@ ip access-list standard ACL-NAT-INTERNAS
  permit 10.10.20.0 0.0.0.255
  permit 10.10.30.0 0.0.0.255
  permit 10.10.99.0 0.0.0.255
+ exit
 ip nat inside source list ACL-NAT-INTERNAS interface GigabitEthernet0/0 overload
 !
 ! Packet Tracer: ruta por defecto hacia el ISP simulado.
@@ -103,6 +105,7 @@ ip nat inside source list ACL-NAT-INTERNAS interface GigabitEthernet0/0 overload
 ! ---------------- Acceso administrativo: solo SSH desde VLAN 10 ----------------
 ip access-list standard ACL-SSH-ADMIN
  permit 10.10.10.0 0.0.0.255
+ exit
 crypto key generate rsa general-keys modulus 2048
 ip ssh version 2
 line console 0
@@ -118,7 +121,9 @@ line vty 0 4
 ! ---------------- SNMP: solo lectura y solo desde Zabbix ----------------
 ip access-list standard ACL-SNMP-ZABBIX
  permit host 10.10.30.12
+ exit
 snmp-server community CAMBIAR-SNMP-COMMUNITY RO ACL-SNMP-ZABBIX
+! (No soportados en Packet Tracer; sí en IOS real)
 snmp-server location Laboratorio UTN - Rack Integrador II
 snmp-server contact Equipo Integrador II
 ! Laboratorio real (si la imagen IOS lo soporta), preferir SNMPv3:

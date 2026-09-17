@@ -84,14 +84,26 @@ Controles adicionales en los equipos:
 
 ## 6. Validación (IP2-29 / prueba PR-10)
 
-| # | Prueba | Resultado esperado |
+Ensayo en **Packet Tracer 9.0** (17 sep 2026), con las configuraciones de esta carpeta cargadas línea por línea. Topología: ISP simulado, R1 (2911, IOS 15.1(4)M4), SW1 (2960-24TT), PC-ADMIN, PC-CLIENTE, SRV-APP (10.10.30.11) y SRV-ZABBIX (10.10.30.12).
+
+| # | Prueba | Esperado | Resultado en Packet Tracer |
+|---|---|---|---|
+| V1 | PC-CLIENTE recibe IP por DHCP | 10.10.20.100 o superior | ✅ 10.10.20.100, gateway .1, DNS 8.8.8.8 |
+| V2 | PC-CLIENTE → `http://10.10.30.11` | ✅ Responde | ⏳ Pendiente: se prueba con el navegador del PC (la consola de PT no tiene cliente HTTP). La regla existe en la ACL |
+| V3 | PC-CLIENTE → ping 10.10.30.12 (Zabbix) | ❌ Bloqueado | ✅ "Destination host unreachable" desde 10.10.20.1 |
+| V4 | PC-CLIENTE → ping 10.10.10.10 (Admin) | ❌ Bloqueado | ✅ Bloqueado |
+| V5 | PC-CLIENTE → 10.10.99.2 (gestión del switch) | ❌ Bloqueado | ✅ Bloqueado |
+| V6 | PC-ADMIN → PC-CLIENTE y servidores | ✅ Responde | ✅ 10.10.20.100 (4/4) y 10.10.30.12 |
+| V7 | PC-ADMIN → SSH a SW1 | ✅ Acceso | ✅ Banner y prompt `SW1#` con usuario local |
+| V8 | VLAN de usuarios → ping 8.8.8.8 (Internet) | ✅ Responde (NAT/PAT) | ✅ 3/4 (el primero se pierde por ARP) |
+| V9 | NAT en R1 | Traducciones activas | ✅ 3 traducciones dinámicas; 4 interfaces inside |
+
+Contadores de `ACL-USUARIOS-IN` tras las pruebas: 4 coincidencias en cada regla ejercitada (DHCP, `echo-reply` hacia Administración, denegación hacia VLAN 10/30/99 y salida a Internet).
+
+### Diferencias de Packet Tracer encontradas al cargar las configuraciones
+
+| Comando | Packet Tracer | IOS real |
 |---|---|---|
-| V1 | PC-CLIENTE recibe IP por DHCP | 10.10.20.100 o superior |
-| V2 | PC-CLIENTE → `http://10.10.30.11` | ✅ Responde |
-| V3 | PC-CLIENTE → ping 10.10.30.12 (Zabbix) | ❌ Destination unreachable (ACL) |
-| V4 | PC-CLIENTE → ping 10.10.10.10 (Admin) | ❌ Bloqueado |
-| V5 | PC-CLIENTE → SSH a 10.10.99.2 (switch) | ❌ Bloqueado |
-| V6 | PC-ADMIN → ping a todas las VLAN (incluido PC-CLIENTE) | ✅ Responde (la ACL deja pasar las respuestas) |
-| V7 | PC-ADMIN → SSH a R1 y SW1 | ✅ Acceso |
-| V8 | Cualquier VLAN → ping 8.8.8.8 (Internet) | ✅ Responde (NAT/PAT) |
-| V9 | `show ip nat translations` en R1 | Traducciones de las VLAN internas |
+| Comandos globales dentro del submodo de una ACL nombrada | ❌ Los rechaza | ✅ Los acepta. Se agregó `exit` tras cada ACL (válido en ambos) |
+| `snmp-server location` / `contact` | ❌ No existen | ✅ |
+| `snmp-server community X RO <acl>` en el 2960 | ❌ Solo acepta `snmp-server community X RO` | ✅ Con ACL (recomendado) |
