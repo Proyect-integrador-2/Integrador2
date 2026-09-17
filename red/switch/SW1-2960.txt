@@ -1,0 +1,121 @@
+! =====================================================================
+! SW1 - Cisco 2960-24TT - Integrador II (IP2-27)
+! VLAN + trunks + seguridad de puertos + SSH + SNMP
+! Reemplazar TODO lo marcado CAMBIAR- antes de usar en equipo real.
+! Pegar en: enable -> configure terminal
+! =====================================================================
+hostname SW1
+no ip domain-lookup
+ip domain-name integrador2.local
+service password-encryption
+enable secret CAMBIAR-ENABLE-SECRET
+username admin privilege 15 secret CAMBIAR-ADMIN-SECRET
+banner motd ^Acceso restringido - Integrador II - Solo personal autorizado^
+!
+! ---------------- VLAN ----------------
+vlan 10
+ name ADMINISTRACION
+vlan 20
+ name USUARIOS
+vlan 30
+ name SERVIDORES
+vlan 99
+ name GESTION
+vlan 999
+ name NATIVA-SIN-USO
+!
+! ---------------- Trunk hacia R1 ----------------
+interface GigabitEthernet0/1
+ description Trunk hacia R1 Gi0/1
+ switchport mode trunk
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 10,20,30,99,999
+ switchport nonegotiate
+ no shutdown
+!
+! ---------------- Trunk hacia el servidor Proxmox ----------------
+interface GigabitEthernet0/2
+ description Trunk hacia Servidor Proxmox (bridge con VLAN)
+ switchport mode trunk
+ switchport trunk native vlan 999
+ switchport trunk allowed vlan 30,99,999
+ switchport nonegotiate
+ no shutdown
+!
+! ---------------- Acceso: Administracion ----------------
+interface range FastEthernet0/1 - 4
+ description Acceso VLAN 10 - Administracion
+ switchport mode access
+ switchport access vlan 10
+ switchport nonegotiate
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+ no shutdown
+!
+! ---------------- Acceso: Usuarios (con port-security) ----------------
+interface range FastEthernet0/5 - 12
+ description Acceso VLAN 20 - Usuarios
+ switchport mode access
+ switchport access vlan 20
+ switchport nonegotiate
+ switchport port-security
+ switchport port-security maximum 2
+ switchport port-security violation restrict
+ switchport port-security mac-address sticky
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+ no shutdown
+!
+! ---------------- Acceso: Servidores ----------------
+! Laboratorio real: el servidor usa el trunk Gi0/2.
+! Packet Tracer: cada VM se representa con un Server-PT en estos puertos.
+interface range FastEthernet0/13 - 20
+ description Acceso VLAN 30 - Servidores
+ switchport mode access
+ switchport access vlan 30
+ switchport nonegotiate
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+ no shutdown
+!
+! ---------------- Puertos sin uso ----------------
+interface range FastEthernet0/21 - 24
+ description Sin uso
+ switchport mode access
+ switchport access vlan 999
+ shutdown
+!
+! ---------------- Gestion ----------------
+interface Vlan1
+ no ip address
+ shutdown
+interface Vlan99
+ description Gestion del switch
+ ip address 10.10.99.2 255.255.255.0
+ no shutdown
+ip default-gateway 10.10.99.1
+!
+! ---------------- Acceso administrativo: solo SSH desde VLAN 10 ----------------
+access-list 10 remark SSH solo desde Administracion
+access-list 10 permit 10.10.10.0 0.0.0.255
+crypto key generate rsa general-keys modulus 2048
+ip ssh version 2
+line console 0
+ login local
+ exec-timeout 10 0
+ logging synchronous
+line vty 0 15
+ login local
+ transport input ssh
+ access-class 10 in
+ exec-timeout 10 0
+!
+! ---------------- SNMP: solo lectura y solo desde Zabbix ----------------
+access-list 20 remark SNMP solo desde Zabbix
+access-list 20 permit host 10.10.30.12
+snmp-server community CAMBIAR-SNMP-COMMUNITY RO 20
+snmp-server location Laboratorio UTN - Rack Integrador II
+snmp-server contact Equipo Integrador II
+!
+end
+write memory

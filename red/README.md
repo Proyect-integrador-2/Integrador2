@@ -1,0 +1,97 @@
+# Diseño de red — Integrador II
+
+Tareas: IP2-24 (topología, VLAN y direccionamiento), IP2-25 (ACL, NAT/PAT, SNMP), IP2-26 (ensayo en Packet Tracer), IP2-27/28 (configuración), IP2-29 (validación).
+
+> **Versión de diseño.** Los modelos usados (router **Cisco 2911**, switch **Cisco 2960-24TT**) son los más comunes en los laboratorios; se confirman con el inventario (IP2-14). Si cambian, se ajustan los nombres de interfaz, no la lógica.
+
+## 1. VLAN y direccionamiento
+
+| VLAN | Nombre | Red | Gateway (R1) | Uso |
+|---|---|---|---|---|
+| 10 | ADMINISTRACION | 10.10.10.0/24 | 10.10.10.1 | PC-ADMIN (IP fija) |
+| 20 | USUARIOS | 10.10.20.0/24 | 10.10.20.1 | PC-CLIENTE (DHCP .100–.200) |
+| 30 | SERVIDORES | 10.10.30.0/24 | 10.10.30.1 | Hipervisor y VMs (IP fija) |
+| 99 | GESTION | 10.10.99.0/24 | 10.10.99.1 | IP de gestión del switch |
+| 999 | NATIVA-SIN-USO | — | — | VLAN nativa de los trunks y puertos sin uso |
+| WAN | — | DHCP de la universidad (PT: 172.16.0.0/30) | — | Salida a Internet por NAT/PAT |
+
+**Por qué VLAN 99 y 999:** la gestión del switch no comparte red con usuarios, y la VLAN nativa no es la 1. Así se evita el salto de VLAN (VLAN hopping) por etiquetado doble.
+
+### Direcciones fijas
+
+| Equipo | VLAN | IP | Observación |
+|---|---|---|---|
+| R1 (subinterfaces) | 10/20/30/99 | .1 de cada red | Gateway de cada VLAN |
+| SW1 (SVI VLAN 99) | 99 | 10.10.99.2 | Gestión SSH y SNMP |
+| PC-ADMIN | 10 | 10.10.10.10 | |
+| Hipervisor (Proxmox) | 30 | 10.10.30.10 | Panel web :8006 |
+| VM App (Nginx + Docker) | 30 | 10.10.30.11 | Único servidor visible para usuarios (80/443) |
+| VM Monitoreo (Zabbix) | 30 | 10.10.30.12 | Recolector SNMP autorizado |
+| VM Visualización (Grafana) | 30 | 10.10.30.13 | |
+| VM Automatización (n8n) | 30 | 10.10.30.14 | |
+| VM RPA | 30 | 10.10.30.15 | |
+
+## 2. Puertos del switch (SW1)
+
+| Puerto | Modo | VLAN | Conecta a |
+|---|---|---|---|
+| Gi0/1 | Trunk | 10, 20, 30, 99 (nativa 999) | R1 Gi0/1 |
+| Gi0/2 | Trunk | 30, 99 (nativa 999) | Servidor Proxmox (bridge con VLAN) |
+| Fa0/1 – Fa0/4 | Acceso | 10 | PCs de administración |
+| Fa0/5 – Fa0/12 | Acceso | 20 | PCs de usuarios |
+| Fa0/13 – Fa0/20 | Acceso | 30 | Servidores (solo en Packet Tracer: cada VM es un Server-PT) |
+| Fa0/21 – Fa0/24 | Apagados | 999 | Sin uso |
+
+Puertos de acceso: `spanning-tree portfast` + `bpduguard`. Puertos de usuarios: `port-security` (máx. 2 MAC, modo restrict).
+
+## 3. Política de acceso entre VLAN
+
+Implementada con la ACL extendida `ACL-USUARIOS-IN` en la subinterfaz de la VLAN 20 (entrada).
+
+| Origen → Destino | Administración (10) | Usuarios (20) | Servidores (30) | Gestión (99) | Internet |
+|---|---|---|---|---|---|
+| **Administración (10)** | ✅ | ✅ | ✅ todo | ✅ | ✅ |
+| **Usuarios (20)** | ❌ | ✅ | ⚠️ **solo App 10.10.30.11 TCP 80/443** | ❌ | ✅ |
+| **Servidores (30)** | ✅ | ✅ respuestas | ✅ | ✅ (SNMP desde Zabbix) | ✅ |
+
+Controles adicionales en los equipos:
+
+| Control | Dónde | Detalle |
+|---|---|---|
+| SSH solo desde Administración | R1 y SW1 (`access-class` en VTY) | Telnet deshabilitado |
+| SNMP solo desde Zabbix | R1 y SW1 | Comunidad de solo lectura restringida a 10.10.30.12 |
+| NAT/PAT | R1 Gi0/0 | Todas las VLAN internas salen con la IP de la WAN |
+| DHCP | R1 | Solo VLAN 20 (usuarios) |
+
+## 4. Archivos
+
+| Archivo | Contenido |
+|---|---|
+| [`router/R1-2911.txt`](router/R1-2911.txt) | Configuración completa del router |
+| [`switch/SW1-2960.txt`](switch/SW1-2960.txt) | Configuración completa del switch |
+| [`packet-tracer/ISP-simulado-2911.txt`](packet-tracer/ISP-simulado-2911.txt) | Router que simula la red de la universidad en Packet Tracer |
+| `packet-tracer/integrador2-red.pkt` | Topología de ensayo (se guarda desde Packet Tracer) |
+
+**Antes de aplicar en equipo real:** reemplazar todo lo marcado `CAMBIAR-` por contraseñas propias. Esas contraseñas **no se suben a Git**: se guardan fuera del repositorio.
+
+## 5. Diferencias entre Packet Tracer y el laboratorio real
+
+| Tema | Packet Tracer | Laboratorio |
+|---|---|---|
+| WAN | Router "ISP" con 172.16.0.0/30 y un loopback que simula Internet | `ip address dhcp` hacia la red de la universidad |
+| Servidor | Un Server-PT por VM en puertos de acceso VLAN 30 | Un solo servidor físico en trunk (Gi0/2) con Proxmox |
+| SNMP | Comunidad v2c | Preferir SNMPv3 si la imagen IOS lo soporta (`show version` con `k9`) |
+
+## 6. Validación (IP2-29 / prueba PR-10)
+
+| # | Prueba | Resultado esperado |
+|---|---|---|
+| V1 | PC-CLIENTE recibe IP por DHCP | 10.10.20.100 o superior |
+| V2 | PC-CLIENTE → `http://10.10.30.11` | ✅ Responde |
+| V3 | PC-CLIENTE → ping 10.10.30.12 (Zabbix) | ❌ Destination unreachable (ACL) |
+| V4 | PC-CLIENTE → ping 10.10.10.10 (Admin) | ❌ Bloqueado |
+| V5 | PC-CLIENTE → SSH a 10.10.99.2 (switch) | ❌ Bloqueado |
+| V6 | PC-ADMIN → ping a todas las VLAN (incluido PC-CLIENTE) | ✅ Responde (la ACL deja pasar las respuestas) |
+| V7 | PC-ADMIN → SSH a R1 y SW1 | ✅ Acceso |
+| V8 | Cualquier VLAN → ping 8.8.8.8 (Internet) | ✅ Responde (NAT/PAT) |
+| V9 | `show ip nat translations` en R1 | Traducciones de las VLAN internas |

@@ -1,0 +1,22 @@
+! =====================================================================
+! ISP - Cisco 2911 - SOLO PARA PACKET TRACER
+! Simula la red de la universidad / Internet para probar NAT/PAT.
+! En el laboratorio real este equipo NO existe.
+! =====================================================================
+hostname ISP
+no ip domain-lookup
+!
+interface GigabitEthernet0/0
+ description Hacia R1 Gi0/0 (WAN del proyecto)
+ ip address 172.16.0.1 255.255.255.252
+ no shutdown
+!
+! "Internet" simulado: responde ping como si fuera un DNS público.
+interface Loopback0
+ description Internet simulado
+ ip address 8.8.8.8 255.255.255.255
+!
+! El ISP no conoce las redes 10.10.x.x: si NAT funciona, igual responde,
+! porque ve el tráfico con origen 172.16.0.2 (la IP WAN de R1).
+end
+write memory
