@@ -46,7 +46,8 @@ Se definen en `app/.env` (copia de [`.env.example`](../.env.example)). Nunca se 
 | `WEB_CONCURRENCY` | No (2) | Procesos de Node; ajustar a las vCPU de la VM |
 | `DB_POOL_TOTAL` | No (20) | Conexiones totales a MySQL repartidas entre procesos |
 | `DISABLE_CRON` | No (0) | `1` desactiva recordatorios y no-show programados |
-| `RESEND_API_KEY` | No | Sin ella, los correos se escriben en el log |
+| `RESEND_API_KEY` | No | Sin ella **no se envía ningún correo**: el código de verificación queda en el log (ver *Registro de usuarios sin correo*) |
+| `MAIL_FROM` | No | Remitente. Con el de prueba de Resend (`onboarding@resend.dev`) solo se entrega al correo dueño de la cuenta |
 | `SEED_*_PASSWORD` | Solo para `seed` | Contraseñas de admin, recepción y usuario del RPA |
 
 ## Primer despliegue
@@ -83,6 +84,25 @@ curl http://<IP-de-la-VM>/api/health
 | Actualizar a una versión nueva | `git pull && docker compose up -d --build` |
 | Apagar sin borrar datos | `docker compose down` |
 | Respaldo de la base | `docker exec msmotos-db sh -c 'mysqldump -u root -p"$MYSQL_ROOT_PASSWORD" proyecto_taller' > respaldo.sql` |
+| Leer un código de verificación | `docker logs msmotos-app --since 3m \| Select-String DEV` |
+
+### Registro de usuarios sin correo
+
+La app envía correos por la API de Resend y el mailer **degrada en silencio**: si `RESEND_API_KEY` está vacía
+escribe el código en el log y responde como si lo hubiera enviado, así que la pantalla dice *"revisá tu spam"*
+y nunca salió nada. En el despliegue on-premise lo dejamos así a propósito: la red del laboratorio puede no
+tener salida a Internet y la demo no debe depender de un servicio externo.
+
+Para crear una cuenta desde el portal, pedir el código en la pantalla de registro y leerlo del log:
+
+```powershell
+docker logs msmotos-app --since 3m | Select-String DEV
+# 📧 [DEV] Código de verificación para alguien@ejemplo.com: 908314
+```
+
+El código vive **10 minutos** y es de un solo uso. Las cuentas que necesita el proyecto (`admin`, recepción y
+el usuario del RPA) las crea el perfil `seed` sin pasar por el correo, así que esto solo aplica a cuentas nuevas
+del portal de clientes.
 
 ## Pruebas realizadas (17 sep 2026, Docker Desktop 29.8 en PC de desarrollo)
 
