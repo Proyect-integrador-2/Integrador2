@@ -48,7 +48,8 @@ Es **idempotente**: se puede correr las veces que sea. Crea, si faltan:
 - Host **msmotos-web** con escenario web a `/api/health` y al frontend, más los triggers **T04** (app caída) y **T05** (app lenta).
 - Trigger **T01** (contenedor `msmotos-app` detenido) con las etiquetas `remediation=restart-container` y `target=msmotos-app`.
 - Usuario **grafana** de solo lectura y usuario **n8n** con token de API (para reconocer eventos).
-- Media type **Webhook n8n** habilitado y la acción que le envía los problemas y las recuperaciones.
+- Media type **Webhook n8n** habilitado y la acción que le envía los problemas y las recuperaciones, **restringida al grupo Integrador II** (para que un host ajeno no dispare la automatización).
+- Deshabilita el host de ejemplo **Zabbix server** que trae la instalación: apunta a `127.0.0.1:10050`, donde no hay agente, y dejaba un problema permanente en el panel. En el servidor real, `vm-zabbix` se monitorea con su propio agente dentro del grupo Integrador II.
 
 ## Resultados de las pruebas (17 sep 2026)
 

@@ -231,6 +231,17 @@ return 'OK';
         print("Token de API para n8n creado y guardado en .env (ejecutar: docker compose up -d n8n)")
     else:
         print("Token de API para n8n ya existe en .env")
+
+    # --- Host por defecto "Zabbix server": se deshabilita ---
+    # Una instalación nueva trae este host apuntando a 127.0.0.1:10050, donde no hay agente.
+    # Deja un problema permanente ("Zabbix agent is not available") que ensucia el panel de
+    # problemas del dashboard ejecutivo. En el servidor real, vm-zabbix se monitorea con su
+    # propio agente y como host del grupo Integrador II, no con este host de ejemplo.
+    defecto = z.uno("host.get", {"host": ["Zabbix server"]}, ["hostid", "status"])
+    if defecto and defecto["status"] == "0":
+        z.call("host.update", {"hostid": defecto["hostid"], "status": 1})
+        print("Host de ejemplo 'Zabbix server' deshabilitado (no tiene agente)")
+
     print(f"Listo. Llamadas a la API: {z.n}")
 
 
