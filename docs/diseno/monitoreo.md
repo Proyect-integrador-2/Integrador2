@@ -51,6 +51,17 @@ Columna **Tag `remediation`**: la etiqueta que Zabbix envía a n8n para decidir 
 
 Cada panel responde una pregunta concreta y usa colores de umbral (verde, amarillo, rojo), no solo gráficas (PDF §8.3).
 
+**Ya construidos y probados** (IP2-48). El JSON vive en [monitoreo/grafana/](../../monitoreo/grafana/) y Grafana los carga por provisioning en la carpeta *Integrador II*:
+
+| Tablero | Archivo / uid | Estado en el laboratorio (17 sep 2026) |
+|---|---|---|
+| General (ejecutivo) | `ip2-general.json` | 6 paneles, todos con datos |
+| Técnico (infraestructura) | `ip2-tecnico.json` | 11 paneles, todos con datos |
+| Red | `ip2-red.json` | 2 paneles con datos; 5 esperan los hosts SNMP `r1` y `sw1` (IP2-44) |
+| Experiencia del usuario | `ip2-experiencia.json` | 4 paneles con datos; 4 esperan el host `msmotos-rpa` (IP2-56) |
+
+Los paneles que todavía no tienen datos ya traen escritas las consultas con los nombres definitivos (`r1`, `sw1`, `proxmox`, `msmotos-rpa`), así que se llenan solos cuando esos hosts existan.
+
 ### 3.1 General / ejecutivo — "¿El servicio está bien?"
 
 | Panel | Tipo | Pregunta |

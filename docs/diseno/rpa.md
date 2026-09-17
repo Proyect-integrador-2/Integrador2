@@ -32,13 +32,15 @@ Se usa una cuenta propia, `rpa@taller.local` con rol recepción, sembrada por `s
 
 Host `msmotos-rpa`, ítems tipo *trapper*, enviados con `zabbix_sender` al terminar cada ejecución:
 
-| Ítem (key) | Tipo | Ejemplo |
-|---|---|---|
-| `rpa.status` | Entero (1 = OK, 0 = fallo) | `1` |
-| `rpa.duration.total` | Flotante (s) | `6.84` |
-| `rpa.step[abrir]` … `rpa.step[logout]` | Flotante (s) | `1.92` |
-| `rpa.failed_step` | Texto | `consulta` (vacío si todo OK) |
-| `rpa.error` | Texto | `Element "text=Cliente Sintético RPA" not found` |
+| Ítem (key) | Nombre en Zabbix | Tipo | Ejemplo |
+|---|---|---|---|
+| `rpa.status` | `RPA: resultado de la última ejecución` | Entero (1 = OK, 0 = fallo) | `1` |
+| `rpa.duration.total` | `RPA: duración total` | Flotante (s) | `6.84` |
+| `rpa.step[abrir]` … `rpa.step[logout]` | `RPA: duración del paso abrir` … `logout` | Flotante (s) | `1.92` |
+| `rpa.failed_step` | `RPA: paso fallido` | Texto | `consulta` (vacío si todo OK) |
+| `rpa.error` | `RPA: último error` | Texto | `Element "text=Cliente Sintético RPA" not found` |
+
+**Los nombres importan:** los paneles de Grafana ya creados ([monitoreo/grafana/](../../monitoreo/grafana/)) filtran los ítems por **nombre**, no por clave, así que al crear los ítems trapper hay que usar exactamente estos nombres para que el tablero *IP2 · Experiencia del usuario* se llene solo. El host debe llamarse `msmotos-rpa` y estar en el grupo **Integrador II**.
 
 Triggers asociados: T12 (falló), T13 (lento) y T14 (sin datos). Ver [monitoreo.md](monitoreo.md).
 
