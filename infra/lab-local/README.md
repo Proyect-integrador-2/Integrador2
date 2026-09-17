@@ -50,6 +50,8 @@ Es **idempotente**: se puede correr las veces que sea. Crea, si faltan:
 - Usuario **grafana** de solo lectura y usuario **n8n** con token de API (para reconocer eventos).
 - Media type **Webhook n8n** habilitado y la acción que le envía los problemas y las recuperaciones, **restringida al grupo Integrador II** (para que un host ajeno no dispare la automatización).
 - Deshabilita el host de ejemplo **Zabbix server** que trae la instalación: apunta a `127.0.0.1:10050`, donde no hay agente, y dejaba un problema permanente en el panel. En el servidor real, `vm-zabbix` se monitorea con su propio agente dentro del grupo Integrador II.
+- Deshabilita los ítems `docker.kernel_mem.enabled` y `docker.kernel_mem_tcp.enabled`: Docker quitó la contabilidad de memoria del kernel desde la 20.10 y con cgroup v2, así que quedan siempre en *not supported*.
+- Apunta el widget *Top hosts by CPU utilization* del **Global view** de Zabbix al host `vm-app`: venía fijado al host de ejemplo y mostraba "No data found".
 
 ## Resultados de las pruebas (17 sep 2026)
 
@@ -76,6 +78,7 @@ Cumple RNF-01 (detectar en menos de 2 minutos) y RNF-02 (recuperar en menos de 5
 | L4 | El descubrimiento de contenedores corre cada 15 minutos por defecto | El script fuerza el descubrimiento y espera a que aparezcan los ítems |
 | L5 | Los paneles salían vacíos con el filtro de host `msmotos-web`: el plugin de Zabbix filtra por el **nombre visible** del host (*MS Motos (aplicación)*) y exige forma de expresión regular | Todos los filtros de los tableros van como `/…/`; detalle en [monitoreo/grafana/README.md](../../monitoreo/grafana/README.md) |
 | L6 | La función `scale` fallaba con *failed to convert value to string* | Los parámetros de las funciones del plugin van como texto: `"params": ["0.5"]` |
+| L7 | El ítem `system.sw.packages.get` queda en *not supported* | **Esperado en el laboratorio:** el agente corre en un contenedor Alpine sin base de paquetes del sistema. En la VM real (Ubuntu con dpkg) funciona, así que el ítem se deja habilitado |
 
 ## Apagar
 

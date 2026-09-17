@@ -242,6 +242,39 @@ return 'OK';
         z.call("host.update", {"hostid": defecto["hostid"], "status": 1})
         print("Host de ejemplo 'Zabbix server' deshabilitado (no tiene agente)")
 
+    # --- Ítems de la plantilla de Docker que ninguna versión moderna puede reportar ---
+    # Docker quitó la contabilidad de memoria del kernel (KernelMemory / KernelMemoryTCP)
+    # a partir de la 20.10 y con cgroup v2, así que estos dos ítems quedan siempre en
+    # "not supported" y ensucian el estado del sistema. No es un problema del laboratorio:
+    # en el servidor real pasaría igual.
+    sin_soporte = ["docker.kernel_mem.enabled", "docker.kernel_mem_tcp.enabled"]
+    apagar = [i["itemid"] for i in z.call("item.get", {
+        "output": ["itemid"], "hostids": hid, "filter": {"key_": sin_soporte, "status": "0"}})]
+    if apagar:
+        z.call("item.update", [{"itemid": i, "status": 1} for i in apagar])
+        print(f"Ítems de memoria del kernel de Docker deshabilitados ({len(apagar)}): Docker ya no los expone")
+
+    # --- Dashboard "Global view" de Zabbix: apuntarlo al host del proyecto ---
+    # El widget "Top hosts by CPU utilization" viene fijado al host de ejemplo que acabamos
+    # de deshabilitar, así que se veía "No data found". Los tableros del proyecto están en
+    # Grafana, pero esta vista es la primera pantalla de Zabbix y conviene que muestre algo.
+    vista = z.uno("dashboard.get", {"name": ["Global view"]}, ["dashboardid"])
+    if vista:
+        completo = z.call("dashboard.get", {"dashboardids": vista["dashboardid"],
+                                            "selectPages": "extend"})[0]
+        cambio = False
+        for pagina in completo["pages"]:
+            for wid in pagina["widgets"]:
+                for campo in wid["fields"]:
+                    if (campo["name"].startswith("hostids.")
+                            and defecto and campo["value"] == defecto["hostid"]):
+                        campo["value"] = hid
+                        cambio = True
+        if cambio:
+            z.call("dashboard.update", {"dashboardid": completo["dashboardid"],
+                                        "pages": completo["pages"]})
+            print("Dashboard 'Global view' de Zabbix apuntado al host vm-app")
+
     print(f"Listo. Llamadas a la API: {z.n}")
 
 
