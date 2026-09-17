@@ -278,6 +278,9 @@ async function ensureSchema() {
     await crearIndiceSiFalta('mensajes_internos', 'idx_msg_par', '(remitente_id, destino_id, created_at)');
     await crearIndiceSiFalta('mensajes_internos', 'idx_msg_par_inv', '(destino_id, remitente_id, created_at)');
     // Los avisos (broadcast) se filtran por rol y se ordenan por fecha.
+    // La columna `tipo` se agrega más abajo, pero el índice la necesita ya: en una base
+    // nueva (creada desde schema.sql) el índice fallaba y abortaba el resto de la migración.
+    await addColumnIfMissing('mensajes_internos', 'tipo', "VARCHAR(20) NOT NULL DEFAULT 'directo'");
     await crearIndiceSiFalta('mensajes_internos', 'idx_msg_broadcast', '(tipo, destino_rol, created_at)');
 
     // Placa única a nivel de base (no solo en la app). Columna generada normalizada

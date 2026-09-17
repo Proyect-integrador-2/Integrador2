@@ -76,7 +76,14 @@ if (!cluster.isPrimary || WORKERS === 1) {
       // Node reporta signal=null y el código 128+n — 143 para SIGTERM, 130 para
       // SIGINT. Hay que contemplar las dos formas o la guarda no sirve de nada.
       const terminado = signal === 'SIGTERM' || signal === 'SIGINT' || code === 143 || code === 130;
-      if (cerrando || terminado) return;
+      if (cerrando || terminado) {
+        // Sin workers el primario no atiende nada, pero el pool de MySQL mantiene vivo el
+        // proceso: quedaba "running" sin responder y el orquestador (Docker) no lo reponía.
+        // Al salir el último worker, el primario termina: 0 si fue un apagado pedido,
+        // 1 si los workers murieron por una señal ajena (la política de reinicio lo levanta).
+        if (Object.keys(cluster.workers).length === 0) process.exit(cerrando ? 0 : 1);
+        return;
+      }
       const teniaJobs = worker.id === workerDeJobs;
       console.error(`⚠️  Worker ${worker.process.pid} murió (${signal || code}). Reponiendo${teniaJobs ? ' (con los jobs)' : ''}…`);
       levantar(teniaJobs);

@@ -1,0 +1,96 @@
+# MS Motos en contenedores — Integrador II (IP2-37).
+#
+# Uso:
+#   cp .env.example .env        # y completar las contraseñas
+#   docker compose up -d --build
+#   docker compose run --rm seed   # solo la primera vez: crea las cuentas
+#
+# Nginx NO va en un contenedor: corre en la VM como servicio del sistema (systemd)
+# y hace de proxy hacia 127.0.0.1:3000. Así la demo tiene un "servicio detenido"
+# (nginx) y un "contenedor detenido" (msmotos-app) distintos. Ver docker/nginx/.
+
+name: msmotos
+
+services:
+  db:
+    image: mysql:8.4
+    container_name: msmotos-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-proyecto_taller}
+      MYSQL_USER: ${DB_USER:-taller_app}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Definí DB_PASSWORD en .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Definí MYSQL_ROOT_PASSWORD en .env}
+      TZ: America/Costa_Rica
+    volumes:
+      - db-data:/var/lib/mysql
+      # Solo se ejecuta cuando el volumen está vacío (primer arranque). schema.sql
+      # empieza con DROP TABLE: por eso NUNCA se corre en arranques posteriores.
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  app:
+    build: .
+    image: msmotos-app:latest
+    container_name: msmotos-app
+    # unless-stopped: si el proceso se cae, Docker lo levanta; si alguien hace
+    # `docker stop`, NO. Ese caso lo detecta Zabbix y lo recupera n8n (prueba PR-02).
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-proyecto_taller}
+      DB_USER: ${DB_USER:-taller_app}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?Definí JWT_SECRET en .env}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+      DB_POOL_TOTAL: ${DB_POOL_TOTAL:-20}
+      DISABLE_CRON: ${DISABLE_CRON:-0}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      TZ: America/Costa_Rica
+    # Solo en loopback: el acceso desde la red entra por Nginx (puerto 80).
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    networks: [backend]
+
+  # Tarea de una sola vez para crear las cuentas iniciales (no arranca con `up`).
+  seed:
+    image: msmotos-app:latest
+    profiles: ["seed"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-proyecto_taller}
+      DB_USER: ${DB_USER:-taller_app}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@taller.com}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
+      SEED_RECEP_EMAIL: ${SEED_RECEP_EMAIL:-recepcion@taller.com}
+      SEED_RECEP_PASSWORD: ${SEED_RECEP_PASSWORD:-}
+      SEED_RPA_EMAIL: ${SEED_RPA_EMAIL:-rpa@taller.local}
+      SEED_RPA_PASSWORD: ${SEED_RPA_PASSWORD:-}
+    command: ["node", "backend/scripts/seed-usuarios.js"]
+    networks: [backend]
+
+networks:
+  backend:
+    name: msmotos-backend
+
+volumes:
+  db-data:
+    name: msmotos-db-data
