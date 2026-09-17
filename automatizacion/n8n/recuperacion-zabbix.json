@@ -1,0 +1,149 @@
+{
+  "id": "IP2recuperacion01",
+  "name": "IP2 · Recuperación y alertas desde Zabbix",
+  "active": false,
+  "settings": { "executionOrder": "v1", "saveDataSuccessExecution": "all", "saveDataErrorExecution": "all" },
+  "nodes": [
+    {
+      "id": "b1a1f0c2-0001-4a00-9000-000000000001",
+      "name": "Webhook Zabbix",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "webhookId": "5a0d2c1e-8b1f-4c2a-9d3e-integrador2zbx",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "zabbix",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "b1a1f0c2-0002-4a00-9000-000000000002",
+      "name": "Validar y decidir",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "jsCode": "// C5: solo se aceptan avisos con el token de Zabbix.\nconst entrada = $input.first().json;\nconst cab = entrada.headers || {};\nconst b = entrada.body || {};\nif (!cab['x-zabbix-token'] || cab['x-zabbix-token'] !== $env.WEBHOOK_TOKEN) {\n  return [{ json: { accion: 'rechazar', motivo: 'token inválido: aviso descartado', event_id: null } }];\n}\n\nlet tags = [];\ntry { tags = typeof b.tags === 'string' ? JSON.parse(b.tags) : (b.tags || []); } catch (e) { tags = []; }\nconst tag = (n) => (tags.find((t) => t.tag === n) || {}).value;\nconst remediation = tag('remediation') || 'none';\nconst target = tag('target') || '';\n\n// C1: lista cerrada. El comando sale de esta tabla, NUNCA del texto recibido.\nconst PERMITIDOS = {\n  'restart-container': { 'msmotos-app': 'sudo /usr/bin/docker start msmotos-app' },\n  'restart-service': { 'nginx': 'sudo /usr/bin/systemctl restart nginx' },\n};\n\nconst esProblema = String(b.event_value) === '1';\nlet accion = 'notificar';\nlet comando = null;\nlet motivo = '';\n\nif (esProblema && remediation !== 'none') {\n  comando = (PERMITIDOS[remediation] || {})[target] || null;\n  if (!comando) {\n    motivo = `acción rechazada: ${remediation}/${target} no está en la lista permitida`;\n  } else {\n    // C2 y C3: máximo 3 intentos por objetivo cada 10 minutos; luego se escala a una persona.\n    const estado = $getWorkflowStaticData('global');\n    const clave = `${remediation}:${target}`;\n    const ahora = Date.now();\n    const recientes = (estado[clave] || []).filter((t) => ahora - t < 10 * 60 * 1000);\n    if (recientes.length >= 3) {\n      accion = 'escalar';\n      comando = null;\n      motivo = 'recuperación automática agotada (3 intentos en 10 min): requiere intervención humana';\n    } else {\n      recientes.push(ahora);\n      estado[clave] = recientes;\n      accion = 'recuperar';\n      motivo = `intento ${recientes.length} de 3`;\n    }\n  }\n}\n\nreturn [{ json: {\n  accion, motivo, comando, remediation, target,\n  event_id: b.event_id, event_value: String(b.event_value), severity: b.severity,\n  host: b.host, trigger: b.trigger, time: b.time,\n} }];\n"
+      }
+    },
+    {
+      "id": "b1a1f0c2-0003-4a00-9000-000000000003",
+      "name": "¿Recuperar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [480, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "c0a80001-0000-4000-8000-000000000001",
+              "leftValue": "={{ $json.accion }}",
+              "rightValue": "recuperar",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b1a1f0c2-0004-4a00-9000-000000000004",
+      "name": "SSH a vm-app",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [720, 180],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "={{ $json.comando }}"
+      },
+      "credentials": {
+        "sshPrivateKey": { "id": "IP2sshN8nOps01", "name": "SSH vm-app (n8n-ops)" }
+      }
+    },
+    {
+      "id": "b1a1f0c2-0005-4a00-9000-000000000005",
+      "name": "Resultado de la recuperación",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 180],
+      "parameters": {
+        "jsCode": "const d = $('Validar y decidir').first().json;\nconst r = $input.first().json;\nconst ok = r.code === 0 && !r.error;\nconst detalle = ok ? 'comando ejecutado' : `falló: ${(r.stderr || r.error?.message || r.error || 'sin detalle')}`;\nreturn [{ json: {\n  ...d,\n  resultado: ok ? 'OK' : 'FALLO',\n  mensaje: `🔧 [${d.severity}] ${d.trigger} · ${d.host} · recuperación automática (${d.motivo}): ${detalle}`,\n} }];\n"
+      }
+    },
+    {
+      "id": "b1a1f0c2-0006-4a00-9000-000000000006",
+      "name": "Armar mensaje",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 420],
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst icono = d.accion === 'rechazar' ? '⛔ RECHAZADO'\n  : d.event_value === '0' ? '✅ RESUELTO'\n  : d.accion === 'escalar' ? '🚨 ESCALAR A HUMANO'\n  : '🔴 PROBLEMA';\nreturn [{ json: {\n  ...d,\n  mensaje: `${icono} [${d.severity || '-'}] ${d.trigger || ''} · ${d.host || ''} · ${d.time || ''}${d.motivo ? ' · ' + d.motivo : ''}`,\n} }];\n"
+      }
+    },
+    {
+      "id": "b1a1f0c2-0007-4a00-9000-000000000007",
+      "name": "¿Evento válido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [960, 420],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "c0a80002-0000-4000-8000-000000000002",
+              "leftValue": "={{ $json.accion }}",
+              "rightValue": "rechazar",
+              "operator": { "type": "string", "operation": "notEquals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b1a1f0c2-0008-4a00-9000-000000000008",
+      "name": "Registrar en Zabbix",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 300],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ZABBIX_API_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.ZABBIX_N8N_TOKEN }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ jsonrpc: '2.0', method: 'event.acknowledge', params: { eventids: [String($json.event_id)], action: 4, message: String($json.mensaje).slice(0, 2000) }, id: 1 }) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Zabbix": { "main": [[{ "node": "Validar y decidir", "type": "main", "index": 0 }]] },
+    "Validar y decidir": { "main": [[{ "node": "¿Recuperar?", "type": "main", "index": 0 }]] },
+    "¿Recuperar?": {
+      "main": [
+        [{ "node": "SSH a vm-app", "type": "main", "index": 0 }],
+        [{ "node": "Armar mensaje", "type": "main", "index": 0 }]
+      ]
+    },
+    "SSH a vm-app": { "main": [[{ "node": "Resultado de la recuperación", "type": "main", "index": 0 }]] },
+    "Resultado de la recuperación": { "main": [[{ "node": "Registrar en Zabbix", "type": "main", "index": 0 }]] },
+    "Armar mensaje": { "main": [[{ "node": "¿Evento válido?", "type": "main", "index": 0 }]] },
+    "¿Evento válido?": { "main": [[{ "node": "Registrar en Zabbix", "type": "main", "index": 0 }], []] }
+  },
+  "pinData": {},
+  "tags": []
+}
