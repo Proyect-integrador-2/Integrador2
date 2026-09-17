@@ -59,5 +59,6 @@ Triggers asociados: T12 (falló), T13 (lento) y T14 (sin datos). Ver [monitoreo.
 | Tema | Situación |
 |---|---|
 | Captcha (Cloudflare Turnstile) | Desactivado: no se configuran `TURNSTILE_SECRET` ni site key en el despliegue interno |
+| Correo de la app | Sin servicio de correo (`RESEND_API_KEY` vacía): el RPA entra con la cuenta que crea el perfil `seed`, nunca por el registro del portal |
 | Límite de intentos de login | 10/min y 60/hora por correo; 30 por IP cada 15 min. El RPA hace 3 cada 15 min: dentro del límite |
 | Verificación en dos pasos | La cuenta RPA no la activa |
