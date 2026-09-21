@@ -1,6 +1,6 @@
 # Cronograma detallado — tabla de tareas
 
-> Para pegar en Confluence: **01 Gestión → Cronograma detallado y plan de seguimiento**, sección 2.
+> Publicado en Confluence: **01 Gestión → Cronograma detallado y plan de seguimiento**, sección 2.
 > Generado desde Jira el 20 de septiembre de 2026. 61 tareas.
 
 | ID | Tarea | Responsable | Inicio | Fin | Recursos | Dependencia | Estado | Evidencia de finalización | Entregable |
@@ -8,7 +8,7 @@
 | IP2-11 | Configurar herramientas de gestión (GitHub, Jira, Confluence) | Stiff Alemán | 14/09 | 16/09 | Cuentas y accesos | — | En progreso | Capturas del repositorio, del tablero y del árbol de Confluence | E1 |
 | IP2-12 | Definir roles del equipo y matriz de responsables | Stiff Alemán | 14/09 | 16/09 | Equipo (todos) | — | En progreso | Matriz publicada y responsables asignados en Jira | E1 |
 | IP2-13 | Consultar al profesor y al laboratorio sobre equipo, accesos y alcance | Stiff Alemán | 14/09 | 17/09 | Profesor | — | Tareas por hacer | Respuestas registradas en la minuta de la semana 1 | E1 |
-| IP2-14 | Inventario técnico del equipo de la universidad | Stiff Alemán | 15/09 | 18/09 | Equipo del laboratorio | — | Tareas por hacer | Fotos del equipo y tabla de inventario | E1 |
+| IP2-14 | Inventario técnico del equipo de la universidad | Angel Gallardo | 15/09 | 18/09 | Equipo del laboratorio | — | Tareas por hacer | Fotos del equipo y tabla de inventario | E1 |
 | IP2-15 | Inventario de software, cuentas y accesos | Stiff Alemán | 15/09 | 18/09 | Cuentas y accesos | — | En progreso | Tabla de software, cuentas y accesos | E1 |
 | IP2-16 | Redactar situación actual, problema e impacto | Stiff Alemán | 15/09 | 18/09 | Equipo del proyecto | — | En revisión | Página Alcance y objetivos | E1 |
 | IP2-17 | Definir objetivos, alcance y criterios de aceptación | Stiff Alemán | 15/09 | 18/09 | Equipo del proyecto | — | En revisión | Página Alcance y objetivos | E1 |
@@ -16,7 +16,7 @@
 | IP2-19 | Elaborar la EDT con tareas y subtareas verificables | Stiff Alemán | 16/09 | 19/09 | Equipo del proyecto | — | En revisión | Página EDT y tareas creadas en Jira | E1 |
 | IP2-20 | Elaborar el registro de riesgos | Stiff Alemán | 16/09 | 19/09 | Equipo del proyecto | — | En revisión | Página Registro de riesgos | E1 |
 | IP2-21 | Construir el cronograma semanal en Jira | Stiff Alemán | 16/09 | 19/09 | Jira | — | Tareas por hacer | Cronograma en Jira y su exportación | E1 |
-| IP2-22 | Diagrama inicial de arquitectura | Stiff Alemán | 16/09 | 19/09 | draw.io | — | Completado | Fuente .drawio en GitHub e imagen en Confluence | E1 |
+| IP2-22 | Diagrama inicial de arquitectura | Alexander Jiménez | 16/09 | 19/09 | draw.io | — | Completado | Fuente .drawio en GitHub e imagen en Confluence | E1 |
 | IP2-23 | Consolidar y entregar el Entregable #1 | Stiff Alemán | 19/09 | 21/09 | Equipo del proyecto | — | En progreso | PDF del E1 entregado | E1 |
 | IP2-24 | Diseñar topología física/lógica, VLAN y direccionamiento | Alexander Jiménez | 22/09 | 28/09 | draw.io | IP2-14 | En progreso | Página Diseño de red y fuente .drawio | E2 |
 | IP2-25 | Definir política de acceso entre VLAN (ACL), NAT/PAT y SNMP | Alexander Jiménez | 22/09 | 28/09 | Equipo del proyecto | — | En progreso | Sección de seguridad del diseño de red | E2 |
@@ -84,3 +84,13 @@
 | Semana 9 | 16/11 – 22/11 | 2 | 62, 71 |
 | Semana 10 | 23/11 – 29/11 | 5 | 63, 64, 65, 66, 67 |
 | Semana 11 | 30/11 – 06/12 | 1 | 68 |
+
+## Carga por integrante
+
+| Integrante | Tareas |
+|---|---|
+| Stiff Alemán | 22 |
+| Jeffrey Herrera | 12 |
+| Angel Gallardo | 11 |
+| Alexander Jiménez | 9 |
+| Álvaro Álvarez | 7 |

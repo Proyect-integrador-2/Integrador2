@@ -27,7 +27,7 @@
 | 2 | Alexander Jiménez Ortiz | alexjimenezo2005@gmail.com | Redes | Infraestructura y Contenedores | Topología, VLAN, NAT/PAT, ACL y SNMP; manual técnico y diagramas |
 | 3 | Jeffrey Herrera Urbina | jeffreyjohel10@gmail.com | DevOps / Contenedores | Redes y Observabilidad | Imagen, Compose y despliegue; monitoreo con Zabbix |
 | 4 | Álvaro Álvarez Rosales | thealvaro875@gmail.com | Observabilidad (Grafana) + RPA | Monitoreo y Pruebas | Los 4 dashboards, usuario sintético y manual de operación |
-| 5 | Angel Gallardo Espinoza | gallardoespinozar@gmail.com | Infraestructura / Virtualización | Automatización y Gestión | Hipervisor, VMs, respaldos, pruebas y QA |
+| 5 | Angel Gallardo Espinoza | gallardoespinozar@gmail.com | Infraestructura / Virtualización | Automatización y Gestión | Inventario del equipo, hipervisor, VMs, respaldos, pruebas y QA |
 
 Cada integrante tiene un área principal y actúa como respaldo de otras dos, de modo que ninguna área dependa de una sola persona (riesgo R-08).
 
@@ -242,7 +242,7 @@ Ocho áreas repartidas entre cinco integrantes, cada una con un responsable y un
 
 **Reglas:** una sola persona asignada por tarea; nadie cierra una tarea sin la evidencia que pide su criterio de terminado; cada documento de entregable lo revisan al menos dos integrantes; el responsable de un área la presenta en la demostración final.
 
-**Carga de trabajo:** Stiff Alemán 24 tareas · Jeffrey Herrera 12 · Angel Gallardo 10 · Alexander Jiménez 8 · Álvaro Álvarez 7. La carga del líder incluye las 13 tareas de gestión del E1, ya hechas o en revisión.
+**Carga de trabajo:** Stiff Alemán 22 tareas · Jeffrey Herrera 12 · Angel Gallardo 11 · Alexander Jiménez 9 · Álvaro Álvarez 7. La carga del líder incluye las 11 tareas de gestión del E1, ya hechas o en revisión.
 
 ### 6.3 Dependencias (ruta crítica)
 

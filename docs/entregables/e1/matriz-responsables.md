@@ -1,6 +1,6 @@
 # Matriz de responsables
 
-> Para pegar en Confluence: **01 Gestión → Matriz de responsables** (reemplaza todo el contenido).
+> Ya publicado en Confluence: **01 Gestión → Matriz de responsables** (v1.1). Este archivo es el respaldo versionado.
 > Tarea IP2-12 · Equipo de cinco integrantes; cada uno tiene un área principal, una segunda área y actúa como respaldo de otras dos.
 
 ## 1. Integrantes
@@ -8,7 +8,7 @@
 | # | Integrante | Correo | Área principal | Segunda área | Respaldo de |
 |---|---|---|---|---|---|
 | 1 | Stiff Alemán | stiffaleman@gmail.com | Líder / Gestión del proyecto | Automatización (n8n) | Monitoreo · RPA |
-| 2 | Alexander Jiménez Ortiz | alexjimenezo2005@gmail.com | Redes | Manual técnico y diagramas finales | Infraestructura · Contenedores |
+| 2 | Alexander Jiménez Ortiz | alexjimenezo2005@gmail.com | Redes | Diagramas y manual técnico | Infraestructura · Contenedores |
 | 3 | Jeffrey Herrera Urbina | jeffreyjohel10@gmail.com | DevOps / Contenedores | Monitoreo (Zabbix) | Redes · Observabilidad |
 | 4 | Álvaro Álvarez Rosales | thealvaro875@gmail.com | Observabilidad (Grafana) + RPA | Manual de operación | Monitoreo · Pruebas |
 | 5 | Angel Gallardo Espinoza | gallardoespinozar@gmail.com | Infraestructura / Virtualización | Pruebas y QA | Automatización · Gestión |
@@ -19,7 +19,7 @@
 |---|---|---|---|---|
 | Líder / Gestión del proyecto | Stiff Alemán | Angel Gallardo | Cronograma al día, minutas semanales, consolidación de cada entregable, seguimiento de riesgos y bloqueos | IP2-1, IP2-10 |
 | Redes | Alexander Jiménez | Jeffrey Herrera | Topología, VLAN, direccionamiento, NAT/PAT, ACL y SNMP; que un usuario no pueda administrar la infraestructura | IP2-2 |
-| Infraestructura / Virtualización | Angel Gallardo | Alexander Jiménez | Hipervisor, VMs dimensionadas, redes virtuales y respaldos | IP2-3 |
+| Infraestructura / Virtualización | Angel Gallardo | Alexander Jiménez | Inventario del equipo, hipervisor, VMs dimensionadas, redes virtuales y respaldos | IP2-3 |
 | DevOps / Contenedores | Jeffrey Herrera | Alexander Jiménez | Imagen y Compose de MS Motos, persistencia, variables, puertos y despliegue en la VM | IP2-4 |
 | Monitoreo (Zabbix) | Jeffrey Herrera | Stiff Alemán | Hosts, plantillas, métricas, umbrales y triggers de infraestructura, red, contenedores y aplicación | IP2-5 |
 | Observabilidad (Grafana) + RPA | Álvaro Álvarez | Jeffrey Herrera | Los 4 dashboards y el usuario sintético que mide la experiencia real | IP2-6, IP2-8 |
@@ -28,14 +28,14 @@
 
 ## 3. Carga de trabajo
 
-Las 61 tareas del cronograma quedan repartidas así. La carga del líder incluye las 13 tareas de gestión del E1, que ya están hechas o en revisión.
+Las 61 tareas del cronograma quedan repartidas así. La carga del líder incluye las 11 tareas de gestión del E1, que ya están hechas o en revisión.
 
 | Integrante | Tareas | Áreas |
 |---|---|---|
-| Stiff Alemán | 24 | Gestión, automatización, consolidación de entregables y presentación |
+| Stiff Alemán | 22 | Gestión, automatización, consolidación de entregables y presentación |
 | Jeffrey Herrera | 12 | Contenedores, monitoreo y exportación final de configuraciones |
-| Angel Gallardo | 10 | Virtualización, VMs, respaldos y pruebas |
-| Alexander Jiménez | 8 | Red, manual técnico y diagramas finales |
+| Angel Gallardo | 11 | Inventario del equipo, virtualización, VMs, respaldos y pruebas |
+| Alexander Jiménez | 9 | Red, diagramas y manual técnico |
 | Álvaro Álvarez | 7 | Grafana, RPA y manual de operación |
 
 ## 4. Reglas de trabajo
