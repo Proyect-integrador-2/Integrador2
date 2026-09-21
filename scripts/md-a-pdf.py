@@ -52,7 +52,7 @@ blockquote { margin: 8pt 0; padding: 6pt 10pt; background: #fff7e0; border-left:
 .anexo table { font-size: 7.6pt; }
 .anexo th, .anexo td { padding: 2.5pt 3.5pt; }
 .anexo td:nth-child(1), .anexo td:nth-child(4), .anexo td:nth-child(5), .anexo td:nth-child(10) { white-space: nowrap; }
-td:first-child { white-space: nowrap; }
+table.ids td:first-child { white-space: nowrap; }
 @page :first { @bottom-center { content: none; } }
 .portada { height: 250mm; display: flex; flex-direction: column; justify-content: space-between;
            break-after: page; }
@@ -104,6 +104,11 @@ def main():
 
     texto = "\n\n".join(pathlib.Path(e).read_text(encoding="utf-8") for e in a.entradas)
     cuerpo = markdown.markdown(texto, extensions=["tables", "md_in_html", "sane_lists"])
+    # Solo las tablas cuya primera columna es un identificador (ID o #) la dejan en una línea;
+    # si se aplica a todas, una primera columna de texto largo desborda la página y Edge
+    # encoge el documento entero para que quepa.
+    cuerpo = re.sub(r"<table>(\s*<thead>\s*<tr>\s*<th[^>]*>\s*(?:ID|#)\s*</th>)",
+                    r'<table class="ids">\1', cuerpo)
     portada = portada_html(json.loads(pathlib.Path(a.portada).read_text(encoding="utf-8"))) if a.portada else ""
     doc = (f"<!doctype html><html lang='es'><head><meta charset='utf-8'><title>{html.escape(a.titulo)}</title>"
            f"<style>{CSS}</style></head><body>{portada}{cuerpo}</body></html>")

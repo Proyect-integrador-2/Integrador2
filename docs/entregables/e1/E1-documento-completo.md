@@ -75,19 +75,19 @@ La mejora que se necesita no es más capacidad: es **ver lo que pasa, avisar a t
 |---|---|---|
 | OE-1 | Implementar una red segmentada con router NAT/PAT, switch administrable y VLAN de Administración, Usuarios y Servidores | PC-CLIENTE alcanza la aplicación pero no la infraestructura |
 | OE-2 | Instalar un hipervisor en el servidor y crear VMs dimensionadas por servicio | VMs operativas con IP fija y acceso SSH documentado |
-| OE-3 | Desplegar MS Motos en contenedores con persistencia, redes, variables y puertos documentados | La aplicación responde y los datos sobreviven a un reinicio |
+| OE-3 | Desplegar MS Motos en dos ambientes: Linux (Ubuntu Server con Docker Compose) y Windows Server 2022 (instalación nativa como servicio), con persistencia, redes, variables y puertos documentados | La aplicación responde en los dos ambientes y los datos sobreviven a un reinicio |
 | OE-4 | Monitorear servidor, VMs, contenedores, servicios, aplicación, router, switch e interfaces | Todos los hosts con datos y triggers con umbrales documentados |
-| OE-5 | Construir cuatro dashboards: general, técnico, de red y de experiencia | Los cuatro con datos reales y colores de umbral |
+| OE-5 | Construir cinco dashboards: general, técnico, de red, de experiencia del cliente y de estado de los pipelines | Los cinco con datos reales y colores de umbral |
 | OE-6 | Automatizar la recuperación de un servicio y un contenedor detenidos, y alertar por Telegram y correo | Detección en menos de 2 min y recuperación en menos de 5 min, verificadas |
-| OE-7 | Medir la experiencia del usuario con un RPA que ejecute una operación real | Duración por paso, éxito/fallo y paso fallido registrados en Zabbix |
+| OE-7 | Medir la experiencia del cliente con un usuario sintético que recorre el portal de clientes de MS Motos: consulta de sus motos y agendamiento de una cita | Duración por paso, éxito o fallo y paso fallido de cada recorrido, registrados en Zabbix |
 | OE-8 | Gestionar el proyecto con Jira, Confluence y GitHub, con seguimiento semanal | Tareas con responsable, fecha y evidencia; minuta semanal publicada |
 
 ### 3.2 Alcance incluido
 
 - Configuración de router, switch, VLAN, trunk, NAT/PAT, ACL y SNMP en el equipo de la universidad
 - Hipervisor y máquinas virtuales en un servidor on-premise
-- Contenerización y despliegue de MS Motos
-- Zabbix, Grafana, n8n, notificaciones por Telegram y correo, y RPA
+- Despliegue de MS Motos en dos ambientes: Linux con Docker Compose y Windows Server 2022, ambos monitoreados
+- Zabbix, Grafana, n8n, notificaciones por Telegram y correo, y un RPA que simula la experiencia del cliente en el portal
 - Pruebas controladas de falla, capacidad, red, seguridad y segmentación
 - Documentación técnica, manual de operación y evidencias
 
@@ -110,6 +110,7 @@ La mejora que se necesita no es más capacidad: es **ver lo que pasa, avisar a t
 | S4 | El router y el switch soportan VLAN, trunk 802.1Q, NAT/PAT y SNMP | Se ajusta el diseño al equipo real tras el inventario (riesgo R-06) |
 | S5 | La red del laboratorio permite salida a Telegram, SMTP y a los repositorios de imágenes | Correo como respaldo e imágenes precargadas (riesgo R-04) |
 | S6 | El equipo mantiene disponibilidad semanal durante las once semanas | Se redistribuyen tareas usando los roles de respaldo (riesgo R-08) |
+| S7 | El servidor tiene capacidad para todas las VMs, incluida la de Windows Server 2022 (unos 4 GB de RAM y 60 GB de disco) | Se reduce la memoria de las VMs de menor carga o se alternan (riesgo R-06) |
 
 ### 3.5 Limitaciones
 
@@ -126,7 +127,7 @@ La mejora que se necesita no es más capacidad: es **ver lo que pasa, avisar a t
 
 | Tipo | Requerimiento |
 |---|---|
-| Tecnológicos | Servidor con virtualización, router con NAT/PAT, switch administrable con VLAN y 802.1Q, dos PC cliente, hipervisor, Docker, Zabbix, Grafana, n8n y Robot Framework |
+| Tecnológicos | Servidor con virtualización, router con NAT/PAT, switch administrable con VLAN y 802.1Q, dos PC cliente, hipervisor, Ubuntu Server y Windows Server 2022, Docker, Zabbix, Grafana, n8n y Robot Framework |
 | Humanos | Cinco estudiantes con un área principal y un rol de respaldo cada uno; disponibilidad semanal y una sesión de laboratorio por semana |
 | Económicos | Sin presupuesto: hardware prestado por la universidad y software libre o de uso interno gratuito. El único costo eventual sería una cuenta de correo para alertas, que se resuelve con una cuenta gratuita |
 | Temporales | Once semanas, del 21 de setiembre al 30 de noviembre de 2026, con cinco entregas intermedias y cierre semanal cada lunes |
@@ -149,13 +150,27 @@ La mejora que se necesita no es más capacidad: es **ver lo que pasa, avisar a t
 | RF-08 | Zabbix monitorea servidor, VMs, contenedores, servicios, aplicación, router, switch e interfaces | Monitoreo |
 | RF-09 | Recolección de CPU, memoria, disco, red, latencia, disponibilidad y tiempo de respuesta | Monitoreo |
 | RF-10 | Triggers con umbrales documentados, incluidas caída y saturación de interfaces | Monitoreo |
-| RF-11 | Dashboards general, técnico, de red y de experiencia | Observabilidad |
+| RF-11 | Dashboards general, técnico, de red, de experiencia del cliente y de estado de los pipelines | Observabilidad |
 | RF-12 | Un servicio detenido se reinicia solo y Zabbix valida la recuperación | Automatización |
 | RF-13 | Un contenedor detenido se levanta solo y la aplicación vuelve a responder | Automatización |
 | RF-14 | CPU, RAM, disco o red elevados generan alerta, sin asignar recursos automáticamente | Automatización |
 | RF-15 | Las alertas se notifican por Telegram y/o correo | Automatización |
-| RF-16 | Un usuario sintético ingresa y ejecuta una operación funcional | RPA |
-| RF-17 | El RPA registra duración, éxito/fallo y el paso donde falló | RPA |
+| RF-16 | Un cliente sintético recorre el portal de clientes como lo haría un cliente real: inicia sesión, consulta sus motos, el historial de servicios y el estado de sus órdenes, y cierra sesión (recorrido de consulta) | RPA |
+| RF-17 | El cliente sintético agenda una cita en el próximo espacio disponible, comprueba que aparece en *Mis citas* y la cancela al terminar, sin ocupar la agenda real del taller (recorrido de agendamiento) | RPA |
+| RF-18 | El RPA registra de cada recorrido la duración por paso y total, el éxito o fallo, y el paso y el error donde falló, y envía los resultados a Zabbix | RPA |
+| RF-19 | MS Motos se ejecuta en dos ambientes: Linux (Ubuntu Server con Docker Compose) y Windows Server 2022 (instalación nativa, con la aplicación como servicio de Windows) | Contenedores y despliegue |
+| RF-20 | Zabbix monitorea la aplicación en ambos ambientes: disponibilidad y tiempo de respuesta de cada instancia, el contenedor o servicio que la ejecuta y los recursos del sistema operativo | Monitoreo |
+
+#### Experiencia del cliente que mide el RPA
+
+El usuario sintético es un **cliente** de MS Motos, no un empleado: recorre el portal de clientes igual que alguien que quiere revisar su moto o sacar una cita. Usa una cuenta dedicada (*Cliente Sintético RPA*) con una moto de prueba, creadas por el script de carga inicial, y ejecuta los recorridos contra las **dos instancias** de la aplicación, la de Linux y la de Windows.
+
+| Recorrido | Frecuencia | Pasos | Qué responde | Alerta si |
+|---|---|---|---|---|
+| **Consulta del cliente** | Cada 5 minutos | 1. Abrir el portal · 2. Iniciar sesión · 3. Ver el resumen de inicio · 4. Consultar sus motos y el historial de servicios · 5. Consultar el estado de sus órdenes de trabajo · 6. Cerrar sesión | ¿El cliente puede entrar y ver su información, y qué tan rápido? | Falla cualquier paso o el recorrido tarda más de 10 s |
+| **Agendar una cita** | Cada 30 minutos | 1. Iniciar sesión · 2. Elegir sucursal y servicio · 3. Consultar disponibilidad y reservar el próximo espacio libre · 4. Comprobar que la cita aparece en *Mis citas* · 5. Cancelar la cita · 6. Cerrar sesión | ¿El cliente puede completar una reserva de punta a punta? | Falla cualquier paso o el recorrido tarda más de 20 s |
+
+La cita se cancela en el mismo recorrido para que el robot nunca ocupe un espacio real de la agenda del taller.
 
 ### 4.3 Requerimientos no funcionales
 
@@ -189,6 +204,7 @@ Se levanta con fotos en la primera visita al laboratorio (tarea IP2-14). Hasta e
 | Zabbix y PostgreSQL | Monitoreo y su base de datos | Probado: 7.0.30 LTS y 16 | Libre (AGPL) |
 | Grafana y plugin de Zabbix | Dashboards | Probado: 12.4.3 | Libre (AGPL) |
 | n8n | Automatización y alertas | Probado: 2.40.2 | Uso interno gratuito |
+| Windows Server 2022 | Segundo ambiente de la aplicación | Versión de evaluación de 180 días | Gratuita |
 | Robot Framework + Browser | RPA | Por instalar | Libre (Apache 2.0) |
 | draw.io y Cisco Packet Tracer | Diagramas y ensayo de red | Probado: Packet Tracer 9.0 | Libre / gratuito |
 
@@ -239,7 +255,7 @@ Ocho áreas repartidas entre cinco integrantes, cada una con un responsable y un
 
 **Reglas:** una sola persona asignada por tarea; nadie cierra una tarea sin la evidencia que pide su criterio de terminado; cada documento de entregable lo revisan al menos dos integrantes; el responsable de un área la presenta en la demostración final.
 
-**Carga de trabajo:** Stiff Alemán 22 tareas · Jeffrey Herrera 12 · Angel Gallardo 11 · Alexander Jiménez 9 · Álvaro Álvarez 7. La carga del líder incluye las 11 tareas de gestión del E1, ya hechas o en revisión.
+**Carga de trabajo** (con las 6 tareas nuevas): Stiff Alemán 22 tareas · Jeffrey Herrera 15 · Angel Gallardo 12 · Álvaro Álvarez 9 · Alexander Jiménez 9. La carga del líder incluye las 11 tareas de gestión del E1, ya hechas o en revisión.
 
 ### 6.3 Dependencias (ruta crítica)
 
@@ -292,6 +308,19 @@ El cronograma completo — 61 tareas con ID, responsable, inicio, fin, recursos,
 | 9 | 16/11 – 22/11 | 2 | **Entrega E4** (16/11) · hallazgos corregidos |
 | 10 | 23/11 – 29/11 | 5 | Manuales, exportaciones y ensayos de la demo |
 | 11 | 30/11 | 1 | **Entrega E5 y presentación final** (30/11) |
+
+### 7.1 Tareas agregadas por las observaciones del profesor (21 set 2026)
+
+Se suman al cronograma de Jira con el mismo formato que las 61 existentes:
+
+| Tarea nueva | Responsable | Inicio | Fin | Recursos | Dependencia | Evidencia de finalización | Entregable |
+|---|---|---|---|---|---|---|---|
+| Diseñar el despliegue de MS Motos en Windows Server 2022 | Jeffrey Herrera | 29/09 | 05/10 | Equipo del proyecto | — | Sección Windows en *Diseño de contenedores* | E2 |
+| Crear la VM Windows Server 2022 (evaluación) | Angel Gallardo | 08/10 | 12/10 | Equipo del laboratorio | IP2-32 | VM con IP fija y acceso remoto | E3 |
+| Desplegar MS Motos en Windows Server como servicio | Jeffrey Herrera | 20/10 | 26/10 | Equipo del laboratorio | VM Windows | La aplicación responde desde PC-CLIENTE | E3 |
+| Monitorear la instancia Windows (agente, servicio y escenario web) | Jeffrey Herrera | 22/10 | 02/11 | Zabbix | IP2-41 | Captura de Últimos datos del host Windows | E3 |
+| Crear el cliente sintético y sus datos de prueba en ambas instancias | Álvaro Álvarez | 13/10 | 19/10 | Equipo del proyecto | — | Cuenta de cliente que inicia sesión en el portal | E3 |
+| Construir el dashboard de estado de los pipelines | Álvaro Álvarez | 27/10 | 02/11 | Grafana | IP2-47 | Captura del dashboard y commit del JSON | E3 |
 
 ## 8. Plan de seguimiento
 
@@ -356,5 +385,6 @@ Aunque el E1 es el planteamiento, el equipo adelantó el trabajo que no depende 
 | 1.0 | 17 set 2026 | Versión inicial consolidada | |
 | 1.1 | 17 set 2026 | Reordenado según la guía del entregable: portada, supuestos y limitaciones, requerimientos por tipo de recurso, plan de seguimiento, criterios A-01 a A-05 y evidencias | |
 | 1.2 | 20 set 2026 | Integrantes, roles y reparto de las 61 tareas entre los cinco miembros del equipo | |
+| 1.3 | 21 set 2026 | Observaciones del profesor: la aplicación corre y se monitorea en Linux y en Windows Server 2022 (RF-19 y RF-20); el RPA mide la experiencia del cliente con dos recorridos definidos (RF-16 a RF-18); se agrega el dashboard de pipelines (RF-11) y seis tareas nuevas | |
 
 **Nota:** la guía pide equipos de 6 a 7 integrantes y este grupo es de 5; se consultará al profesor en la sesión de la semana 1 (tarea IP2-13).
