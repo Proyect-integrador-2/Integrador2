@@ -26,7 +26,7 @@ vlan 999
 !
 ! ---------------- Trunk hacia R1 ----------------
 interface GigabitEthernet0/1
- description Trunk hacia R1 Gi0/1
+ description Trunk hacia R1 Gi0/0/1
  switchport mode trunk
  switchport trunk native vlan 999
  switchport trunk allowed vlan 10,20,30,99,999

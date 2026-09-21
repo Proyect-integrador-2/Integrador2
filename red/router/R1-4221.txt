@@ -1,5 +1,7 @@
 ! =====================================================================
-! R1 - Cisco 2911 - Integrador II (IP2-28)
+! R1 - Cisco ISR 4221 (IOS XE) - Integrador II (IP2-28)
+! Interfaces: Gi0/0/0 = WAN (RJ45 o SFP), Gi0/0/1 = trunk hacia SW1.
+! El modulo NIM-2T (seriales S0/1/0 y S0/1/1) no se usa.
 ! Router-on-a-stick + NAT/PAT + DHCP + ACL + SSH + SNMP
 ! Reemplazar TODO lo marcado CAMBIAR- antes de usar en equipo real.
 ! Pegar en: enable -> configure terminal
@@ -15,7 +17,7 @@ banner motd ^Acceso restringido - Integrador II - Solo personal autorizado^
 ! ---------------- WAN (salida a Internet) ----------------
 ! Laboratorio real: la universidad entrega la IP por DHCP.
 ! Packet Tracer: se usa la IP fija 172.16.0.2/30 hacia el router ISP simulado.
-interface GigabitEthernet0/0
+interface GigabitEthernet0/0/0
  description WAN - Red de la universidad
  ip address dhcp
  ! (Packet Tracer) ip address 172.16.0.2 255.255.255.252
@@ -23,37 +25,37 @@ interface GigabitEthernet0/0
  no shutdown
 !
 ! ---------------- Trunk hacia SW1 ----------------
-interface GigabitEthernet0/1
+interface GigabitEthernet0/0/1
  description Trunk hacia SW1 Gi0/1
  no ip address
  no shutdown
 !
-interface GigabitEthernet0/1.10
+interface GigabitEthernet0/0/1.10
  description VLAN 10 - ADMINISTRACION
  encapsulation dot1Q 10
  ip address 10.10.10.1 255.255.255.0
  ip nat inside
 !
-interface GigabitEthernet0/1.20
+interface GigabitEthernet0/0/1.20
  description VLAN 20 - USUARIOS
  encapsulation dot1Q 20
  ip address 10.10.20.1 255.255.255.0
  ip nat inside
  ip access-group ACL-USUARIOS-IN in
 !
-interface GigabitEthernet0/1.30
+interface GigabitEthernet0/0/1.30
  description VLAN 30 - SERVIDORES
  encapsulation dot1Q 30
  ip address 10.10.30.1 255.255.255.0
  ip nat inside
 !
-interface GigabitEthernet0/1.99
+interface GigabitEthernet0/0/1.99
  description VLAN 99 - GESTION
  encapsulation dot1Q 99
  ip address 10.10.99.1 255.255.255.0
  ip nat inside
 !
-interface GigabitEthernet0/1.999
+interface GigabitEthernet0/0/1.999
  description VLAN 999 - NATIVA SIN USO
  encapsulation dot1Q 999 native
 !
@@ -96,10 +98,10 @@ ip access-list standard ACL-NAT-INTERNAS
  permit 10.10.30.0 0.0.0.255
  permit 10.10.99.0 0.0.0.255
  exit
-ip nat inside source list ACL-NAT-INTERNAS interface GigabitEthernet0/0 overload
+ip nat inside source list ACL-NAT-INTERNAS interface GigabitEthernet0/0/0 overload
 !
 ! Packet Tracer: ruta por defecto hacia el ISP simulado.
-! Laboratorio real: la ruta por defecto llega por DHCP en Gi0/0 (no hace falta).
+! Laboratorio real: la ruta por defecto llega por DHCP en Gi0/0/0 (no hace falta).
 ! ip route 0.0.0.0 0.0.0.0 172.16.0.1
 !
 ! ---------------- Acceso administrativo: solo SSH desde VLAN 10 ----------------

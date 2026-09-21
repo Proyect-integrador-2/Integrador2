@@ -2,7 +2,7 @@
 
 Tareas: IP2-24 (topología, VLAN y direccionamiento), IP2-25 (ACL, NAT/PAT, SNMP), IP2-26 (ensayo en Packet Tracer), IP2-27/28 (configuración), IP2-29 (validación).
 
-> **Versión de diseño.** Los modelos usados (router **Cisco 2911**, switch **Cisco 2960-24TT**) son los más comunes en los laboratorios; se confirman con el inventario (IP2-14). Si cambian, se ajustan los nombres de interfaz, no la lógica.
+> **Equipo real.** El router del laboratorio es un **Cisco ISR 4221** (IOS XE), confirmado con fotos el 21 set 2026 (IP2-14): dos puertos Gigabit (Gi0/0/0, que también acepta SFP, y Gi0/0/1), consola RJ45 y USB, y un módulo NIM-2T de dos seriales que no se usa. La configuración se escribió primero para un 2911; al pasar al 4221 solo cambiaron los nombres de interfaz (Gi0/0 → **Gi0/0/0** WAN, Gi0/1 → **Gi0/0/1** trunk), no la lógica. El switch (**2960-24TT**) sigue pendiente de confirmar.
 
 ## 1. VLAN y direccionamiento
 
@@ -35,7 +35,7 @@ Tareas: IP2-24 (topología, VLAN y direccionamiento), IP2-25 (ACL, NAT/PAT, SNMP
 
 | Puerto | Modo | VLAN | Conecta a |
 |---|---|---|---|
-| Gi0/1 | Trunk | 10, 20, 30, 99 (nativa 999) | R1 Gi0/1 |
+| Gi0/1 | Trunk | 10, 20, 30, 99 (nativa 999) | R1 Gi0/0/1 |
 | Gi0/2 | Trunk | 30, 99 (nativa 999) | Servidor Proxmox (bridge con VLAN) |
 | Fa0/1 – Fa0/4 | Acceso | 10 | PCs de administración |
 | Fa0/5 – Fa0/12 | Acceso | 20 | PCs de usuarios |
@@ -60,14 +60,14 @@ Controles adicionales en los equipos:
 |---|---|---|
 | SSH solo desde Administración | R1 y SW1 (`access-class` en VTY) | Telnet deshabilitado |
 | SNMP solo desde Zabbix | R1 y SW1 | Comunidad de solo lectura restringida a 10.10.30.12 |
-| NAT/PAT | R1 Gi0/0 | Todas las VLAN internas salen con la IP de la WAN |
+| NAT/PAT | R1 Gi0/0/0 | Todas las VLAN internas salen con la IP de la WAN |
 | DHCP | R1 | Solo VLAN 20 (usuarios) |
 
 ## 4. Archivos
 
 | Archivo | Contenido |
 |---|---|
-| [`router/R1-2911.txt`](router/R1-2911.txt) | Configuración completa del router |
+| [`router/R1-4221.txt`](router/R1-4221.txt) | Configuración completa del router (ISR 4221) |
 | [`switch/SW1-2960.txt`](switch/SW1-2960.txt) | Configuración completa del switch |
 | [`packet-tracer/ISP-simulado-2911.txt`](packet-tracer/ISP-simulado-2911.txt) | Router que simula la red de la universidad en Packet Tracer |
 | `packet-tracer/integrador2-red.pkt` | Topología de ensayo (se guarda desde Packet Tracer) |
@@ -81,6 +81,7 @@ Controles adicionales en los equipos:
 | WAN | Router "ISP" con 172.16.0.0/30 y un loopback que simula Internet | `ip address dhcp` hacia la red de la universidad |
 | Servidor | Un Server-PT por VM en puertos de acceso VLAN 30 | Un solo servidor físico en trunk (Gi0/2) con Proxmox |
 | SNMP | Comunidad v2c | Preferir SNMPv3 si la imagen IOS lo soporta (`show version` con `k9`) |
+| Router | 2911 (el ensayo del 17 set) o **ISR4321**, que en Packet Tracer usa los mismos nombres de interfaz que el 4221 | ISR 4221 con IOS XE: arranca en varios minutos, tenerlo en cuenta al hacer `reload` |
 
 ## 6. Validación (IP2-29 / prueba PR-10)
 
