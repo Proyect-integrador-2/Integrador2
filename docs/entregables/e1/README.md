@@ -2,8 +2,9 @@
 
 Respaldo versionado de lo que falta pegar en Confluence para cerrar el E1 del **21 de setiembre de 2026**. Se escribió aquí porque el conector de Atlassian dejó de responder (`403 · the app is not installed on this instance`) justo cuando se agregó un segundo conector de Atlassian.
 
-| Archivo | Dónde va en Confluence |
+| Archivo | Para qué |
 |---|---|
+| [E1-documento-completo.md](E1-documento-completo.md) | **El entregable entero, autosuficiente.** Si Confluence no vuelve a tiempo: pegar en Google Docs o Word y exportar a PDF |
 | [matriz-responsables.md](matriz-responsables.md) | 01 Gestión → **Matriz de responsables** (reemplaza todo) |
 | [cronograma-tabla.md](cronograma-tabla.md) | 01 Gestión → **Cronograma detallado y plan de seguimiento**, sección 2 (reemplaza la tabla) |
 | [portada-e-integrantes.md](portada-e-integrantes.md) | 02 Entregables → E1 → **E1 · Documento de entrega**, sección 1 |
