@@ -2,7 +2,9 @@
 
 Tareas: IP2-24 (topología, VLAN y direccionamiento), IP2-25 (ACL, NAT/PAT, SNMP), IP2-26 (ensayo en Packet Tracer), IP2-27/28 (configuración), IP2-29 (validación).
 
-> **Equipo real.** El router del laboratorio es un **Cisco ISR 4221** (IOS XE), confirmado con fotos el 21 set 2026 (IP2-14): dos puertos Gigabit (Gi0/0/0, que también acepta SFP, y Gi0/0/1), consola RJ45 y USB, y un módulo NIM-2T de dos seriales que no se usa. La configuración se escribió primero para un 2911; al pasar al 4221 solo cambiaron los nombres de interfaz (Gi0/0 → **Gi0/0/0** WAN, Gi0/1 → **Gi0/0/1** trunk), no la lógica. El switch (**2960-24TT**) sigue pendiente de confirmar.
+> **Equipo real.** El router del laboratorio es un **Cisco ISR 4221** (IOS XE), confirmado con fotos el 21 set 2026 (IP2-14): dos puertos Gigabit (Gi0/0/0, que también acepta SFP, y Gi0/0/1), consola RJ45 y USB, y un módulo NIM-2T de dos seriales que no se usa. La configuración se escribió primero para un 2911; al pasar al 4221 solo cambiaron los nombres de interfaz (Gi0/0 → **Gi0/0/0** WAN, Gi0/1 → **Gi0/0/1** trunk), no la lógica. El switch también se confirmó: **Cisco Catalyst WS-C2960-24TT-L** con IOS **12.2(50)SE5** (24 puertos Fa0/1–24 y dos uplinks Gi0/1–Gi0/2), el mismo modelo del diseño, así que su configuración no cambia. En el rack hay tres ISR 4221 y varios 2960 compartidos entre grupos: hay que acordar con el profesor cuál router y cuál switch son del grupo (riesgo R-01).
+>
+> **Antes de configurar, correr `show version` en ambos equipos:** el SSH (`crypto key` e `ip ssh version 2`) solo existe si la imagen incluye `k9` (por ejemplo `c2960-lanbasek9-mz`). Si el switch trae una imagen sin `k9`, se administra por consola y Telnet restringido a la VLAN 10 hasta actualizar la imagen.
 
 ## 1. VLAN y direccionamiento
 
