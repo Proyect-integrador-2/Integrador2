@@ -11,7 +11,7 @@ Tareas: IP2-40 (métricas, umbrales, triggers), IP2-46 (dashboards). Borrador pa
 | Contenedores | `vm-app` | Plugin Docker del agent 2 | Docker by Zabbix agent 2 | 30 s |
 | Servicios | `vm-app` | Agent 2 (systemd) + stub_status de Nginx | Nginx by Zabbix agent + ítems de systemd | 30 s |
 | Aplicación | `msmotos-web` | Escenarios web (HTTP) | Propia: `Template App MS Motos` | 60 s |
-| Experiencia de usuario | `msmotos-rpa` | Ítems *trapper* alimentados por el RPA | Propia: `Template RPA MS Motos` | Cada ejecución (5 min) |
+| Experiencia del cliente | `msmotos-rpa-linux`, `msmotos-rpa-windows` | Ítems *trapper* alimentados por el RPA, uno por recorrido (consulta y agendar) | Propia: `Template RPA MS Motos` | Cada ejecución (consulta cada 5 min, agendar cada 30 min) |
 | Router | `r1` | SNMP | Cisco IOS by SNMP | 60 s (interfaces 30 s) |
 | Switch | `sw1` | SNMP | Cisco IOS by SNMP | 60 s (interfaces 30 s) |
 | Conectividad | `r1`, `sw1`, `proxmox` | ICMP ping desde Zabbix | ICMP Ping | 30 s |
@@ -35,9 +35,9 @@ Columna **Tag `remediation`**: la etiqueta que Zabbix envía a n8n para decidir 
 | T09 | Interfaz caída | Estado operativo = down (interfaces con enlace esperado) | High | `none` | Alerta |
 | T10 | Enlace saturado | Uso > 70 % durante 5 min (Warning) · > 90 % (High) | Warning / High | `none` | Alerta |
 | T11 | Equipo sin respuesta | ICMP sin respuesta durante 2 min | Disaster | `none` | Alerta |
-| T12 | RPA falló | Resultado = fallo en la última ejecución | High | `none` | Alerta con el paso donde falló |
-| T13 | RPA lento | Duración total > 15 s | Warning | `none` | Alerta |
-| T14 | RPA sin datos | Sin resultados en 15 min | Warning | `none` | Alerta (el propio RPA dejó de correr) |
+| T12 | RPA falló | Resultado = fallo en la última ejecución de cualquiera de los dos recorridos | High | `none` | Alerta con el paso donde falló |
+| T13 | RPA lento | Consulta > 10 s o agendar > 20 s (umbrales de RF-16 y RF-17) | Warning | `none` | Alerta |
+| T14 | RPA sin datos | Sin resultados de consulta en 15 min o de agendar en 75 min | Warning | `none` | Alerta (el propio RPA dejó de correr) |
 
 ### Por qué solo dos fallas se recuperan solas
 
@@ -58,9 +58,9 @@ Cada panel responde una pregunta concreta y usa colores de umbral (verde, amaril
 | General (ejecutivo) | `ip2-general.json` | 6 paneles, todos con datos |
 | Técnico (infraestructura) | `ip2-tecnico.json` | 11 paneles, todos con datos |
 | Red | `ip2-red.json` | 2 paneles con datos; 5 esperan los hosts SNMP `r1` y `sw1` (IP2-44) |
-| Experiencia del usuario | `ip2-experiencia.json` | 4 paneles con datos; 4 esperan el host `msmotos-rpa` (IP2-56) |
+| Experiencia del usuario | `ip2-experiencia.json` | 4 paneles con datos; 4 esperan los hosts `msmotos-rpa-linux` y `msmotos-rpa-windows` (IP2-56) |
 
-Los paneles que todavía no tienen datos ya traen escritas las consultas con los nombres definitivos (`r1`, `sw1`, `proxmox`, `msmotos-rpa`), así que se llenan solos cuando esos hosts existan.
+Los paneles que todavía no tienen datos ya traen escritas las consultas con los nombres definitivos (`r1`, `sw1`, `proxmox`, `msmotos-rpa-linux`, `msmotos-rpa-windows`), así que se llenan solos cuando esos hosts existan.
 
 ### 3.1 General / ejecutivo — "¿El servicio está bien?"
 

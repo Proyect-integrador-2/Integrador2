@@ -2,7 +2,7 @@
 
 Tarea: IP2-49 (qué se automatiza, qué solo alerta y con qué controles). Borrador para el E2 (05 oct 2026).
 
-## 1. Herramienta: n8n (Jenkins opcional)
+## 1. Herramienta: n8n
 
 | Criterio | **n8n** | Jenkins |
 |---|---|---|
@@ -13,7 +13,7 @@ Tarea: IP2-49 (qué se automatiza, qué solo alerta y con qué controles). Borra
 | Evidencia exportable (PDF §8.5) | ✅ Flujo en JSON | ✅ Jenkinsfile |
 | Consumo | Bajo (~300 MB) | Alto (JVM, ~1 GB) |
 
-**Decisión:** n8n para la recuperación y las notificaciones. Jenkins queda como mejora opcional para desplegar la app (CI/CD), fuera del alcance mínimo.
+**Decisión:** n8n para la recuperación y las notificaciones. Jenkins se descartó: el profesor indicó el 21 set 2026 que CI/CD no forma parte de este proyecto.
 
 ## 2. Matriz falla → acción
 

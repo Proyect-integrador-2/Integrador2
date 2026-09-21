@@ -28,7 +28,6 @@ experiencia de usuario con un RPA.
 | `monitoreo/zabbix/` | Plantillas exportadas, media types, scripts de agente |
 | `monitoreo/grafana/` | Dashboards (JSON) y provisioning |
 | `automatizacion/n8n/` | Flujos exportados (JSON) |
-| `automatizacion/jenkins/` | `Jenkinsfile` y jobs (si se usa) |
 | `rpa/` | Usuario sintético con Robot Framework |
 | `pruebas/` | Scripts para provocar fallas controladas y matriz de resultados |
 | `scripts/` | Utilidades generales |
