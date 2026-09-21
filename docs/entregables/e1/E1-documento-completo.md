@@ -78,7 +78,7 @@ La mejora que se necesita no es más capacidad: es **ver lo que pasa, avisar a t
 | OE-3 | Desplegar MS Motos en dos ambientes: Linux (Ubuntu Server con Docker Compose) y Windows Server 2022 (instalación nativa como servicio), con persistencia, redes, variables y puertos documentados | La aplicación responde en los dos ambientes y los datos sobreviven a un reinicio |
 | OE-4 | Monitorear servidor, VMs, contenedores, servicios, aplicación, router, switch e interfaces | Todos los hosts con datos y triggers con umbrales documentados |
 | OE-5 | Construir cinco dashboards: general, técnico, de red, de experiencia del cliente y de estado de las automatizaciones | Los cinco con datos reales y colores de umbral |
-| OE-6 | Automatizar la recuperación de un servicio y un contenedor detenidos, y la de la red con autorización previa de un administrador, y alertar por Telegram y correo | Detección en menos de 2 min y recuperación en menos de 5 min, verificadas |
+| OE-6 | Automatizar la recuperación de un servicio y un contenedor detenidos, y la de la red (reinicio automático de la interfaz o del dispositivo), y alertar por Telegram y correo | Detección en menos de 2 min y recuperación en menos de 5 min, verificadas |
 | OE-7 | Medir la experiencia del cliente con un usuario sintético que recorre el portal de clientes de MS Motos: consulta de sus motos y agendamiento de una cita | Duración por paso, éxito o fallo y paso fallido de cada recorrido, registrados en Zabbix |
 | OE-8 | Gestionar el proyecto con Jira, Confluence y GitHub, con seguimiento semanal | Tareas con responsable, fecha y evidencia; minuta semanal publicada |
 | OE-9 | Centralizar la identidad y el acceso del personal de TI con Active Directory | Cada herramienta valida contra el dominio y una cuenta sin el grupo correcto es rechazada |
@@ -166,7 +166,7 @@ La mejora que se necesita no es más capacidad: es **ver lo que pasa, avisar a t
 | RF-20 | Zabbix monitorea la aplicación en ambos ambientes: disponibilidad y tiempo de respuesta de cada instancia, el contenedor o servicio que la ejecuta y los recursos del sistema operativo | Monitoreo |
 | RF-21 | Un controlador de dominio con Active Directory y DNS (Windows Server 2022) centraliza las cuentas del personal de TI, organizadas en grupos por rol | Seguridad |
 | RF-22 | El servidor Windows, Proxmox, Zabbix, Grafana y el acceso SSH a las VMs Linux validan a los usuarios contra Active Directory, y cada grupo recibe solo los permisos de su rol | Seguridad |
-| RF-23 | Ante un evento de red (interfaz caída o con errores, puerto bloqueado, router o switch saturado), n8n propone reiniciar la interfaz o el dispositivo y lo ejecuta solo si un administrador lo autoriza desde Telegram; después Zabbix verifica que el equipo volvió a la normalidad | Automatización |
+| RF-23 | Ante un evento de red (interfaz caída o con errores, puerto bloqueado, router o switch saturado), n8n reinicia automáticamente la interfaz o el dispositivo, Zabbix verifica que el equipo volvió a la normalidad y se avisa por Telegram; si no se recupera, se escala a una persona | Automatización |
 
 #### Experiencia del cliente que mide el RPA
 
@@ -187,7 +187,7 @@ La cita se cancela en el mismo recorrido para que el robot nunca ocupe un espaci
 | 2 | **Técnico (infraestructura)** | ¿Dónde está el cuello de botella? | CPU, memoria y disco del servidor físico, de cada VM y de los contenedores y servicios |
 | 3 | **Red** | ¿La red está sana? | Estado, tráfico, errores y descartes por interfaz del router y el switch, y latencia |
 | 4 | **Experiencia del cliente** | ¿Qué vive el cliente? | Resultado y duración por paso de los dos recorridos del RPA, en las dos instancias |
-| 5 | **Automatización** | ¿Los procesos automáticos están funcionando? | Últimas ejecuciones, resultado, duración y fallos de los flujos de n8n (recuperaciones, reinicios de red autorizados y alertas) y de las ejecuciones del RPA |
+| 5 | **Automatización** | ¿Los procesos automáticos están funcionando? | Últimas ejecuciones, resultado, duración y fallos de los flujos de n8n (recuperaciones, reinicios de red y alertas) y de las ejecuciones del RPA |
 
 Se empieza con estos cinco. Si al construirlos alguno queda cargado, se divide; por ejemplo, el técnico en *Servidor y VMs* y *Contenedores y servicios*.
 
@@ -205,19 +205,19 @@ Un controlador de dominio con Windows Server 2022 centraliza la identidad del **
 
 **Grupos:** *GG-IP2-Administradores* (acceso total) y *GG-IP2-Operadores* (solo lectura en los tableros y el monitoreo). Cada herramienta da permisos según el grupo, no por usuario.
 
-#### Recuperación de la red con autorización
+#### Recuperación automática de la red
 
-Cuando Zabbix detecta un evento en el router o el switch, n8n propone la acción que devuelve el equipo a la normalidad, pero **no la ejecuta hasta que un administrador la autoriza** desde Telegram.
+Cuando Zabbix detecta un evento en el router o el switch, n8n ejecuta sola la acción que devuelve el equipo a la normalidad y avisa por Telegram. Nadie tiene que intervenir, salvo que la acción no funcione.
 
-| Evento que detecta Zabbix | Acción que se propone | Alcance |
+| Evento que detecta Zabbix | Acción automática | Alcance |
 |---|---|---|
 | Interfaz caída, intermitente o con errores y descartes sobre el umbral | Reiniciar la interfaz (*shutdown* / *no shutdown*) | Solo esa interfaz |
 | Puerto de acceso bloqueado por seguridad de puerto (*err-disabled*) | Reactivar el puerto | Solo ese puerto |
-| CPU o memoria del router o el switch saturadas de forma sostenida | Reiniciar el dispositivo (*reload*), después de respaldar su configuración | Todo el equipo |
+| CPU o memoria del router o el switch saturadas durante más de 10 minutos | Reiniciar el dispositivo (*reload*), después de respaldar su configuración | Todo el equipo |
 
-**Flujo:** Zabbix dispara el problema → n8n envía a Telegram el evento, el equipo afectado y la acción propuesta, con los botones *Autorizar* y *Rechazar* → solo pueden autorizar los miembros de *GG-IP2-Administradores* registrados en el flujo; si nadie responde en 10 minutos no se hace nada y se escala → con la autorización, n8n entra por SSH con una cuenta de privilegios limitados, que solo puede ejecutar esas acciones → Zabbix verifica que el equipo volvió a la normalidad → n8n informa el resultado y deja registrado en el problema de Zabbix quién autorizó, cuándo y qué se hizo.
+**Flujo:** Zabbix dispara el problema → n8n entra por SSH con una cuenta de privilegios limitados, que solo puede ejecutar esas acciones, y aplica la que corresponde → Zabbix verifica que el equipo volvió a la normalidad → n8n avisa por Telegram el evento, la acción y el resultado, y lo deja registrado en el problema de Zabbix.
 
-**Límites:** se intenta primero la acción menor (la interfaz) y solo después el reinicio del equipo, con un máximo de un reinicio por equipo cada hora. Si el equipo no responde por la red no se puede reiniciar a distancia; en ese caso se alerta y se atiende por consola.
+**Límites, para que la automatización no empeore la falla:** primero se intenta la acción menor (la interfaz) y solo después el reinicio del equipo; máximo 3 intentos por interfaz cada 10 minutos y un reinicio por equipo cada hora; las interfaces por las que pasa la gestión (la troncal y el enlace al servidor) no se reinician solas, porque cortarían el acceso de n8n. Si la acción no recupera el equipo, o si el equipo no responde por la red, se escala a una persona, que lo atiende por consola.
 
 ### 4.3 Requerimientos no funcionales
 
@@ -234,7 +234,7 @@ La última columna es lo ya verificado en el laboratorio de pruebas que el equip
 | RNF-07 | Reproducibilidad | Configuraciones, dashboards y flujos exportados y versionados | En el repositorio |
 | RNF-08 | Gestión | Cronograma semanal con responsable y evidencia por tarea | 61 tareas con fechas, recursos, dependencias y evidencia |
 | RNF-09 | Seguridad de las cuentas | Contraseñas de 12 caracteres o más con complejidad, y bloqueo tras 5 intentos fallidos, aplicados por política de grupo; los inicios de sesión fallidos se monitorean en Zabbix | Pendiente: se implementa en el E3 |
-| RNF-10 | Acciones de red autorizadas | Ningún reinicio de red sin la autorización de un administrador; la solicitud vence en 10 minutos; máximo un reinicio por equipo cada hora; queda registrado quién autorizó, cuándo y el resultado | Pendiente: se implementa en el E3 |
+| RNF-10 | Reinicios de red controlados | Acciones escalonadas (primero la interfaz, luego el equipo); máximo 3 intentos por interfaz cada 10 minutos y un reinicio por equipo cada hora; los enlaces de gestión nunca se reinician solos; cada acción queda registrada con su resultado | Pendiente: se implementa en el E3 |
 
 ## 5. Recursos e inventario
 
@@ -377,10 +377,10 @@ Dieciséis tareas nuevas, que se suman al cronograma de Jira con el mismo format
 | Integrar Proxmox, Zabbix, Grafana, el servidor Windows y el SSH de las VMs Linux con Active Directory | Alexander Jiménez | 27/10 | 02/11 | Controlador de dominio | IP2-41, IP2-47 | Inicio de sesión con una cuenta del dominio en cada herramienta | E3 |
 | Monitorear en Zabbix los eventos de seguridad del controlador de dominio | Alexander Jiménez | 27/10 | 02/11 | Zabbix | IP2-41 | Alerta por inicios de sesión fallidos | E3 |
 | Probar el acceso por grupos: una cuenta sin el grupo correcto es rechazada | Angel Gallardo | 05/11 | 12/11 | Equipo del proyecto | Integración con AD | Capturas del acceso permitido y del rechazado | E4 |
-| Diseñar la recuperación de la red con autorización: eventos, acciones permitidas y quién autoriza | Stiff Alemán | 29/09 | 05/10 | Equipo del proyecto | — | Sección *Recuperación de red* en el diseño de automatización | E2 |
+| Diseñar la recuperación automática de la red: eventos, acciones permitidas y límites | Stiff Alemán | 29/09 | 05/10 | Equipo del proyecto | — | Sección *Recuperación de red* en el diseño de automatización | E2 |
 | Crear en el router y el switch la cuenta de automatización por SSH, con privilegios limitados, y el respaldo de configuración | Alexander Jiménez | 13/10 | 19/10 | Equipo del laboratorio | IP2-27, IP2-28 | Salida que muestra los únicos comandos permitidos a la cuenta | E3 |
-| Construir el flujo n8n de reinicio de red con autorización por Telegram | Stiff Alemán | 27/10 | 02/11 | n8n | IP2-43, IP2-50, IP2-51 | Capturas de la solicitud en Telegram y de la ejecución en n8n | E3 |
-| Probar un evento de red: interfaz caída, autorización, reinicio y vuelta a la normalidad, y una solicitud rechazada | Angel Gallardo | 03/11 | 09/11 | Equipo del proyecto | Flujo de reinicio de red | Capturas y tiempos de Zabbix, Telegram y n8n | E4 |
+| Construir el flujo n8n de reinicio automático de la red | Stiff Alemán | 27/10 | 02/11 | n8n | IP2-43, IP2-50, IP2-51 | Capturas de la ejecución en n8n y del aviso en Telegram | E3 |
+| Probar un evento de red: interfaz caída, reinicio automático y vuelta a la normalidad, y el escalamiento cuando no se recupera | Angel Gallardo | 03/11 | 09/11 | Equipo del proyecto | Flujo de reinicio de red | Capturas y tiempos de Zabbix, Telegram y n8n | E4 |
 
 ## 8. Plan de seguimiento
 
@@ -447,6 +447,6 @@ Aunque el E1 es el planteamiento, el equipo adelantó el trabajo que no depende 
 | 1.2 | 20 set 2026 | Integrantes, roles y reparto de las 61 tareas entre los cinco miembros del equipo | |
 | 1.3 | 21 set 2026 | Observaciones del profesor: la aplicación corre y se monitorea en Linux y en Windows Server 2022 (RF-19 y RF-20); el RPA mide la experiencia del cliente con dos recorridos definidos (RF-16 a RF-18); se agrega el dashboard de pipelines (RF-11) y seis tareas nuevas | |
 | 1.4 | 21 set 2026 | Observaciones del profesor: lista de los cinco dashboards de Grafana, y Active Directory para la validación de usuarios y la seguridad (OE-9, RF-21, RF-22, RNF-09, riesgo R-14 y seis tareas más) | |
-| 1.5 | 21 set 2026 | Observaciones del profesor: CI/CD no forma parte del proyecto, así que el quinto dashboard es de automatización (n8n y RPA); los dashboards se dividen si quedan cargados; recuperación de la red con autorización (OE-6, RF-23, RNF-10, riesgo R-15 y cuatro tareas más) | |
+| 1.5 | 21 set 2026 | Observaciones del profesor: CI/CD no forma parte del proyecto, así que el quinto dashboard es de automatización (n8n y RPA); los dashboards se dividen si quedan cargados; recuperación automática de la red (OE-6, RF-23, RNF-10, riesgo R-15 y cuatro tareas más) | |
 
 **Nota:** la guía pide equipos de 6 a 7 integrantes y este grupo es de 5; se consultará al profesor en la sesión de la semana 1 (tarea IP2-13).
