@@ -81,6 +81,7 @@ La mejora que se necesita no es más capacidad: es **ver lo que pasa, avisar a t
 | OE-6 | Automatizar la recuperación de un servicio y un contenedor detenidos, y alertar por Telegram y correo | Detección en menos de 2 min y recuperación en menos de 5 min, verificadas |
 | OE-7 | Medir la experiencia del cliente con un usuario sintético que recorre el portal de clientes de MS Motos: consulta de sus motos y agendamiento de una cita | Duración por paso, éxito o fallo y paso fallido de cada recorrido, registrados en Zabbix |
 | OE-8 | Gestionar el proyecto con Jira, Confluence y GitHub, con seguimiento semanal | Tareas con responsable, fecha y evidencia; minuta semanal publicada |
+| OE-9 | Centralizar la identidad y el acceso del personal de TI con Active Directory | Cada herramienta valida contra el dominio y una cuenta sin el grupo correcto es rechazada |
 
 ### 3.2 Alcance incluido
 
@@ -88,6 +89,7 @@ La mejora que se necesita no es más capacidad: es **ver lo que pasa, avisar a t
 - Hipervisor y máquinas virtuales en un servidor on-premise
 - Despliegue de MS Motos en dos ambientes: Linux con Docker Compose y Windows Server 2022, ambos monitoreados
 - Zabbix, Grafana, n8n, notificaciones por Telegram y correo, y un RPA que simula la experiencia del cliente en el portal
+- Active Directory con DNS para validar al personal de TI en las herramientas de administración
 - Pruebas controladas de falla, capacidad, red, seguridad y segmentación
 - Documentación técnica, manual de operación y evidencias
 
@@ -99,6 +101,8 @@ La mejora que se necesita no es más capacidad: es **ver lo que pasa, avisar a t
 - Nuevas funcionalidades de MS Motos: solo se contenerizan las existentes
 - Datos reales de clientes: se usan datos de prueba
 - Envío de correo desde la propia aplicación
+- Cuentas de clientes de MS Motos en Active Directory: el dominio valida al personal de TI, no a los clientes
+- Validación de n8n contra Active Directory: en n8n esa función es de la edición de pago, así que conserva una cuenta local protegida
 
 ### 3.4 Supuestos
 
@@ -110,7 +114,7 @@ La mejora que se necesita no es más capacidad: es **ver lo que pasa, avisar a t
 | S4 | El router y el switch soportan VLAN, trunk 802.1Q, NAT/PAT y SNMP | Se ajusta el diseño al equipo real tras el inventario (riesgo R-06) |
 | S5 | La red del laboratorio permite salida a Telegram, SMTP y a los repositorios de imágenes | Correo como respaldo e imágenes precargadas (riesgo R-04) |
 | S6 | El equipo mantiene disponibilidad semanal durante las once semanas | Se redistribuyen tareas usando los roles de respaldo (riesgo R-08) |
-| S7 | El servidor tiene capacidad para todas las VMs, incluida la de Windows Server 2022 (unos 4 GB de RAM y 60 GB de disco) | Se reduce la memoria de las VMs de menor carga o se alternan (riesgo R-06) |
+| S7 | El servidor tiene capacidad para todas las VMs, incluidas las dos con Windows Server 2022, la de la aplicación y el controlador de dominio (unos 8 GB de RAM y 120 GB de disco entre ambas) | Se reduce la memoria de las VMs de menor carga o se alternan (riesgo R-06) |
 
 ### 3.5 Limitaciones
 
@@ -127,12 +131,12 @@ La mejora que se necesita no es más capacidad: es **ver lo que pasa, avisar a t
 
 | Tipo | Requerimiento |
 |---|---|
-| Tecnológicos | Servidor con virtualización, router con NAT/PAT, switch administrable con VLAN y 802.1Q, dos PC cliente, hipervisor, Ubuntu Server y Windows Server 2022, Docker, Zabbix, Grafana, n8n y Robot Framework |
+| Tecnológicos | Servidor con virtualización, router con NAT/PAT, switch administrable con VLAN y 802.1Q, dos PC cliente, hipervisor, Ubuntu Server y Windows Server 2022, Active Directory, Docker, Zabbix, Grafana, n8n y Robot Framework |
 | Humanos | Cinco estudiantes con un área principal y un rol de respaldo cada uno; disponibilidad semanal y una sesión de laboratorio por semana |
 | Económicos | Sin presupuesto: hardware prestado por la universidad y software libre o de uso interno gratuito. El único costo eventual sería una cuenta de correo para alertas, que se resuelve con una cuenta gratuita |
 | Temporales | Once semanas, del 21 de setiembre al 30 de noviembre de 2026, con cinco entregas intermedias y cierre semanal cada lunes |
 | De red | Un punto con salida a Internet, direccionamiento propio para tres VLAN, y salida permitida hacia Telegram, SMTP y los repositorios de imágenes y paquetes |
-| De seguridad | Segmentación efectiva entre usuarios e infraestructura, SSH con llave, SNMP restringido a la IP de Zabbix, credenciales fuera de Git y Confluence, y privilegios mínimos para las acciones automáticas |
+| De seguridad | Identidad centralizada en Active Directory con grupos por rol y política de contraseñas, segmentación efectiva entre usuarios e infraestructura, SSH con llave, SNMP restringido a la IP de Zabbix, credenciales fuera de Git y Confluence, y privilegios mínimos para las acciones automáticas |
 | De monitoreo | Recolección cada 30 a 60 segundos según el ítem, umbrales documentados por métrica, y trazabilidad de cada acción automática en el evento de Zabbix |
 | De acceso | Permiso para formatear el servidor e instalar el hipervisor, acceso por consola al router y al switch, cuentas de GitHub y Atlassian para todo el equipo, y acceso al laboratorio con horario conocido |
 
@@ -160,6 +164,8 @@ La mejora que se necesita no es más capacidad: es **ver lo que pasa, avisar a t
 | RF-18 | El RPA registra de cada recorrido la duración por paso y total, el éxito o fallo, y el paso y el error donde falló, y envía los resultados a Zabbix | RPA |
 | RF-19 | MS Motos se ejecuta en dos ambientes: Linux (Ubuntu Server con Docker Compose) y Windows Server 2022 (instalación nativa, con la aplicación como servicio de Windows) | Contenedores y despliegue |
 | RF-20 | Zabbix monitorea la aplicación en ambos ambientes: disponibilidad y tiempo de respuesta de cada instancia, el contenedor o servicio que la ejecuta y los recursos del sistema operativo | Monitoreo |
+| RF-21 | Un controlador de dominio con Active Directory y DNS (Windows Server 2022) centraliza las cuentas del personal de TI, organizadas en grupos por rol | Seguridad |
+| RF-22 | El servidor Windows, Proxmox, Zabbix, Grafana y el acceso SSH a las VMs Linux validan a los usuarios contra Active Directory, y cada grupo recibe solo los permisos de su rol | Seguridad |
 
 #### Experiencia del cliente que mide el RPA
 
@@ -171,6 +177,30 @@ El usuario sintético es un **cliente** de MS Motos, no un empleado: recorre el 
 | **Agendar una cita** | Cada 30 minutos | 1. Iniciar sesión · 2. Elegir sucursal y servicio · 3. Consultar disponibilidad y reservar el próximo espacio libre · 4. Comprobar que la cita aparece en *Mis citas* · 5. Cancelar la cita · 6. Cerrar sesión | ¿El cliente puede completar una reserva de punta a punta? | Falla cualquier paso o el recorrido tarda más de 20 s |
 
 La cita se cancela en el mismo recorrido para que el robot nunca ocupe un espacio real de la agenda del taller.
+
+#### Dashboards de Grafana
+
+| # | Dashboard | Pregunta que responde | Qué muestra |
+|---|---|---|---|
+| 1 | **General (ejecutivo)** | ¿El servicio está bien? | Disponibilidad de la aplicación en Linux y en Windows, semáforo por componente, problemas activos y recuperaciones automáticas |
+| 2 | **Técnico (infraestructura)** | ¿Dónde está el cuello de botella? | CPU, memoria y disco del servidor físico, de cada VM y de los contenedores y servicios |
+| 3 | **Red** | ¿La red está sana? | Estado, tráfico, errores y descartes por interfaz del router y el switch, y latencia |
+| 4 | **Experiencia del cliente** | ¿Qué vive el cliente? | Resultado y duración por paso de los dos recorridos del RPA, en las dos instancias |
+| 5 | **Pipelines y automatización** | ¿Los procesos automáticos están funcionando? | Última ejecución, resultado, duración y fallos de los pipelines de despliegue y de los flujos de n8n |
+
+#### Seguridad: Active Directory
+
+Un controlador de dominio con Windows Server 2022 centraliza la identidad del **personal de TI**: quién puede administrar qué. Los clientes de MS Motos no están en el dominio; siguen entrando al portal con su propia cuenta.
+
+| Sistema | Cómo valida contra Active Directory | Quién entra |
+|---|---|---|
+| Servidor Windows de la aplicación | Unido al dominio | Administradores de infraestructura |
+| Proxmox (hipervisor) | Dominio de autenticación de Active Directory | Administradores de infraestructura |
+| Zabbix | Directorio LDAP del dominio | Administradores (edición) y operadores (solo lectura) |
+| Grafana | Autenticación LDAP | Administradores (edición) y operadores (solo lectura) |
+| VMs Linux (SSH) | Unidas al dominio con SSSD | Administradores de infraestructura |
+
+**Grupos:** *GG-IP2-Administradores* (acceso total) y *GG-IP2-Operadores* (solo lectura en los tableros y el monitoreo). Cada herramienta da permisos según el grupo, no por usuario.
 
 ### 4.3 Requerimientos no funcionales
 
@@ -186,6 +216,7 @@ La última columna es lo ya verificado en el laboratorio de pruebas que el equip
 | RNF-06 | Seguridad | Sin credenciales en Git ni Confluence; SNMP restringido; privilegios mínimos | Verificado |
 | RNF-07 | Reproducibilidad | Configuraciones, dashboards y flujos exportados y versionados | En el repositorio |
 | RNF-08 | Gestión | Cronograma semanal con responsable y evidencia por tarea | 61 tareas con fechas, recursos, dependencias y evidencia |
+| RNF-09 | Seguridad de las cuentas | Contraseñas de 12 caracteres o más con complejidad, y bloqueo tras 5 intentos fallidos, aplicados por política de grupo; los inicios de sesión fallidos se monitorean en Zabbix | Pendiente: se implementa en el E3 |
 
 ## 5. Recursos e inventario
 
@@ -204,7 +235,8 @@ Se levanta con fotos en la primera visita al laboratorio (tarea IP2-14). Hasta e
 | Zabbix y PostgreSQL | Monitoreo y su base de datos | Probado: 7.0.30 LTS y 16 | Libre (AGPL) |
 | Grafana y plugin de Zabbix | Dashboards | Probado: 12.4.3 | Libre (AGPL) |
 | n8n | Automatización y alertas | Probado: 2.40.2 | Uso interno gratuito |
-| Windows Server 2022 | Segundo ambiente de la aplicación | Versión de evaluación de 180 días | Gratuita |
+| Windows Server 2022 | Segundo ambiente de la aplicación y controlador de dominio | Versión de evaluación de 180 días | Gratuita |
+| Active Directory Domain Services y DNS | Validación centralizada del personal de TI | Rol incluido en Windows Server 2022 | Incluido |
 | Robot Framework + Browser | RPA | Por instalar | Libre (Apache 2.0) |
 | draw.io y Cisco Packet Tracer | Diagramas y ensayo de red | Probado: Packet Tracer 9.0 | Libre / gratuito |
 
@@ -255,7 +287,7 @@ Ocho áreas repartidas entre cinco integrantes, cada una con un responsable y un
 
 **Reglas:** una sola persona asignada por tarea; nadie cierra una tarea sin la evidencia que pide su criterio de terminado; cada documento de entregable lo revisan al menos dos integrantes; el responsable de un área la presenta en la demostración final.
 
-**Carga de trabajo** (con las 6 tareas nuevas): Stiff Alemán 22 tareas · Jeffrey Herrera 15 · Angel Gallardo 12 · Álvaro Álvarez 9 · Alexander Jiménez 9. La carga del líder incluye las 11 tareas de gestión del E1, ya hechas o en revisión.
+**Carga de trabajo** (con las 12 tareas nuevas): Stiff Alemán 22 tareas · Jeffrey Herrera 15 · Angel Gallardo 14 · Alexander Jiménez 13 · Álvaro Álvarez 9. La carga del líder incluye las 11 tareas de gestión del E1, ya hechas o en revisión.
 
 ### 6.3 Dependencias (ruta crítica)
 
@@ -267,7 +299,7 @@ Ocho áreas repartidas entre cinco integrantes, cada una con un responsable y un
 
 ### 6.4 Riesgos
 
-Trece riesgos con probabilidad, impacto, exposición, acción preventiva y plan de contingencia. Los de mayor exposición:
+Catorce riesgos con probabilidad, impacto, exposición, acción preventiva y plan de contingencia. Los de mayor exposición:
 
 | ID | Riesgo | Exp. | Cómo se enfrenta |
 |---|---|---|---|
@@ -311,7 +343,7 @@ El cronograma completo — 61 tareas con ID, responsable, inicio, fin, recursos,
 
 ### 7.1 Tareas agregadas por las observaciones del profesor (21 set 2026)
 
-Se suman al cronograma de Jira con el mismo formato que las 61 existentes:
+Doce tareas nuevas, que se suman al cronograma de Jira con el mismo formato que las 61 existentes:
 
 | Tarea nueva | Responsable | Inicio | Fin | Recursos | Dependencia | Evidencia de finalización | Entregable |
 |---|---|---|---|---|---|---|---|
@@ -321,6 +353,12 @@ Se suman al cronograma de Jira con el mismo formato que las 61 existentes:
 | Monitorear la instancia Windows (agente, servicio y escenario web) | Jeffrey Herrera | 22/10 | 02/11 | Zabbix | IP2-41 | Captura de Últimos datos del host Windows | E3 |
 | Crear el cliente sintético y sus datos de prueba en ambas instancias | Álvaro Álvarez | 13/10 | 19/10 | Equipo del proyecto | — | Cuenta de cliente que inicia sesión en el portal | E3 |
 | Construir el dashboard de estado de los pipelines | Álvaro Álvarez | 27/10 | 02/11 | Grafana | IP2-47 | Captura del dashboard y commit del JSON | E3 |
+| Diseñar el dominio de Active Directory: nombre, grupos, políticas y sistemas integrados | Alexander Jiménez | 29/09 | 05/10 | Equipo del proyecto | — | Sección *Identidad y acceso* en el diseño | E2 |
+| Crear el controlador de dominio (Windows Server 2022 con AD DS y DNS) | Angel Gallardo | 09/10 | 14/10 | Equipo del laboratorio | IP2-32 | Dominio operativo y captura de *Usuarios y equipos de AD* | E3 |
+| Aplicar las políticas de contraseña y bloqueo de cuentas | Alexander Jiménez | 13/10 | 19/10 | Controlador de dominio | Controlador de dominio | Captura de la política de grupo aplicada | E3 |
+| Integrar Proxmox, Zabbix, Grafana, el servidor Windows y el SSH de las VMs Linux con Active Directory | Alexander Jiménez | 27/10 | 02/11 | Controlador de dominio | IP2-41, IP2-47 | Inicio de sesión con una cuenta del dominio en cada herramienta | E3 |
+| Monitorear en Zabbix los eventos de seguridad del controlador de dominio | Alexander Jiménez | 27/10 | 02/11 | Zabbix | IP2-41 | Alerta por inicios de sesión fallidos | E3 |
+| Probar el acceso por grupos: una cuenta sin el grupo correcto es rechazada | Angel Gallardo | 05/11 | 12/11 | Equipo del proyecto | Integración con AD | Capturas del acceso permitido y del rechazado | E4 |
 
 ## 8. Plan de seguimiento
 
@@ -386,5 +424,6 @@ Aunque el E1 es el planteamiento, el equipo adelantó el trabajo que no depende 
 | 1.1 | 17 set 2026 | Reordenado según la guía del entregable: portada, supuestos y limitaciones, requerimientos por tipo de recurso, plan de seguimiento, criterios A-01 a A-05 y evidencias | |
 | 1.2 | 20 set 2026 | Integrantes, roles y reparto de las 61 tareas entre los cinco miembros del equipo | |
 | 1.3 | 21 set 2026 | Observaciones del profesor: la aplicación corre y se monitorea en Linux y en Windows Server 2022 (RF-19 y RF-20); el RPA mide la experiencia del cliente con dos recorridos definidos (RF-16 a RF-18); se agrega el dashboard de pipelines (RF-11) y seis tareas nuevas | |
+| 1.4 | 21 set 2026 | Observaciones del profesor: lista de los cinco dashboards de Grafana, y Active Directory para la validación de usuarios y la seguridad (OE-9, RF-21, RF-22, RNF-09, riesgo R-14 y seis tareas más) | |
 
 **Nota:** la guía pide equipos de 6 a 7 integrantes y este grupo es de 5; se consultará al profesor en la sesión de la semana 1 (tarea IP2-13).

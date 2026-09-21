@@ -89,6 +89,7 @@ Exportado de Jira (proyecto IP2) el 20 de setiembre de 2026. Cada tarea tiene re
 | R-11 | El equipo no queda encendido 24/7 y Grafana muestra huecos | 2 | 2 | 4 | Consultar la política de encendido (IP2-13) | Documentar las ventanas de medición | Abierto |
 | R-12 | Una automatización provoca un problema mayor (reinicios en bucle) | 1 | 3 | 3 | Lista cerrada de acciones, máximo 3 intentos cada 10 min, escalamiento y privilegios mínimos, ya probados | Desactivar el flujo y recuperar manualmente | Mitigado |
 | R-13 | Las herramientas de gestión están creadas por una sola cuenta | 2 | 2 | 4 | Invitar a todo el equipo a GitHub, Jira y Confluence | Transferir la organización o el espacio a otro integrante | Abierto |
+| R-14 | El controlador de dominio cae y nadie puede entrar a las herramientas | 1 | 3 | 3 | Respaldo del controlador de dominio y monitoreo de su disponibilidad en Zabbix | Cuenta local de emergencia en cada herramienta, guardada fuera del repositorio | Abierto |
 
 ## Anexo C. Desglose de la EDT
 
@@ -96,11 +97,11 @@ Exportado de Jira (proyecto IP2) el 20 de setiembre de 2026. Cada tarea tiene re
 |---|---|
 | **1. Gestión del proyecto** (IP2-1) | 1.1 Herramientas de gestión · 1.2 Alcance, objetivos y requerimientos · 1.3 Inventario, roles y riesgos · 1.4 Cronograma y seguimiento semanal · 1.5 Consolidación de cada entregable |
 | **2. Red y conectividad** (IP2-2) | 2.1 Topología, VLAN y direccionamiento · 2.2 Ensayo en Packet Tracer · 2.3 Switch: VLAN, trunk y SNMP · 2.4 Router: subinterfaces, NAT/PAT, ACL y SNMP · 2.5 Validación de conectividad y segmentación |
-| **3. Virtualización y servidores** (IP2-3) | 3.1 Selección del hipervisor · 3.2 Instalación y redes virtuales · 3.3 Creación y dimensionamiento de VMs · 3.4 Respaldos |
+| **3. Virtualización y servidores** (IP2-3) | 3.1 Selección del hipervisor · 3.2 Instalación y redes virtuales · 3.3 Creación y dimensionamiento de VMs · 3.4 Respaldos · **3.5 Controlador de dominio (Active Directory y DNS)** |
 | **4. Contenedores y despliegue** (IP2-4) | 4.1 Dockerfile de MS Motos · 4.2 Docker Compose · 4.3 Persistencia, variables y puertos · 4.4 Despliegue en la VM Linux · **4.5 Despliegue en Windows Server 2022** |
 | **5. Monitoreo con Zabbix** (IP2-5) | 5.1 Instalación · 5.2 Agentes, contenedores y servicios · 5.3 SNMP de router, switch e interfaces · 5.4 Monitoreo HTTP de la aplicación · 5.5 Triggers y umbrales · **5.6 Monitoreo de la instancia Windows** |
 | **6. Observabilidad con Grafana** (IP2-6) | 6.1 Instalación e integración con Zabbix · 6.2 Dashboards general, técnico, red y experiencia · **6.3 Dashboard de estado de los pipelines** |
 | **7. Automatización y alertamiento** (IP2-7) | 7.1 Telegram y correo · 7.2 Integración Zabbix → n8n · 7.3 Recuperación de servicio · 7.4 Recuperación de contenedor · 7.5 Alertas de capacidad · 7.6 Controles de seguridad |
 | **8. RPA y monitoreo sintético** (IP2-8) | 8.1 Recorridos del cliente sintético (consulta y agendamiento) · **8.2 Cliente sintético y datos de prueba** · 8.3 Programación de ejecuciones · 8.4 Envío de resultados a Zabbix |
-| **9. Pruebas, seguridad y mejoras** (IP2-9) | 9.1 Matriz de pruebas · 9.2 Falla y recuperación · 9.3 Capacidad y red · 9.4 Seguridad y segmentación · 9.5 Corrección de hallazgos |
+| **9. Pruebas, seguridad y mejoras** (IP2-9) | 9.1 Matriz de pruebas · 9.2 Falla y recuperación · 9.3 Capacidad y red · 9.4 Seguridad y segmentación · 9.5 Corrección de hallazgos · **9.6 Integración con Active Directory y políticas de cuentas** |
 | **10. Documentación y demostración** (IP2-10) | 10.1 Exportaciones finales · 10.2 Manual técnico y de operación · 10.3 Ensayos de la demostración · 10.4 Presentación final |
