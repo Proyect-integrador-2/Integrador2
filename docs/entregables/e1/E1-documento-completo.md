@@ -1,9 +1,6 @@
 # Entregable #1 — Planteamiento y gestión del proyecto
 
-**UTN · ITI-625 Proyecto Integrador II — Infraestructura de TI**
-**Fecha de entrega:** lunes 21 de setiembre de 2026 · **Valor:** 15 %
-
-> Documento completo y autosuficiente. Sirve para entregar aunque Confluence no esté disponible: se pega en Google Docs o Word y se exporta a PDF. La versión viva está en Confluence (*02 Entregables → E1 → E1 · Documento de entrega*).
+**UTN · ITI-625 Proyecto Integrador II — Infraestructura de TI** · Entrega: lunes 21 de setiembre de 2026 · Valor: 15 %
 
 ---
 
@@ -215,7 +212,7 @@ Una computadora personal con Docker, que permitió montar el laboratorio complet
 
 ### 6.1 EDT
 
-Diez áreas de primer nivel, que en Jira existen como épicas, con 61 tareas y 31 dependencias registradas. Cada tarea tiene criterio de terminado, evidencia esperada, recursos y fechas.
+Diez áreas de primer nivel, que en Jira existen como épicas, con 61 tareas y 31 dependencias registradas. Cada tarea tiene criterio de terminado, evidencia esperada, recursos y fechas. El desglose en paquetes de trabajo está en el **Anexo C**.
 
 | # | Área | Tareas | # | Área | Tareas |
 |---|---|---|---|---|---|
@@ -266,7 +263,7 @@ Trece riesgos con probabilidad, impacto, exposición, acción preventiva y plan 
 | R-05 | No se asigna IP o punto WAN para el router | 6 | Consulta al profesor en la semana 1; doble NAT como contingencia |
 | R-08 | Un integrante abandona o no cumple | 6 | Rol de respaldo por área y seguimiento semanal con evidencia |
 
-Dos riesgos ya bajaron por trabajo hecho: **R-10** (problemas al contenerizar la aplicación) quedó **cerrado**, y **R-12** (una automatización causando un problema mayor) quedó mitigado con controles probados.
+Dos riesgos ya bajaron por trabajo hecho: **R-10** (problemas al contenerizar la aplicación) quedó **cerrado**, y **R-12** (una automatización causando un problema mayor) quedó mitigado con controles probados. El registro completo, con acción preventiva y plan de contingencia de cada riesgo, está en el **Anexo B**.
 
 ### 6.5 Herramientas de gestión
 
@@ -279,7 +276,7 @@ Dos riesgos ya bajaron por trabajo hecho: **R-10** (problemas al contenerizar la
 
 ## 7. Cronograma detallado
 
-El cronograma completo — 61 tareas con ID, responsable, inicio, fin, recursos, dependencia, estado y evidencia — está en [cronograma-tabla.md](cronograma-tabla.md), en la página *Cronograma detallado y plan de seguimiento* de Confluence y en la vista Cronograma de Jira. Resumen por semana:
+El cronograma completo — 61 tareas con ID, responsable, inicio, fin, recursos, dependencia, estado y evidencia — está en el **Anexo A**, en la página *Cronograma detallado y plan de seguimiento* de Confluence y en la vista Cronograma de Jira. Resumen por semana:
 
 | Semana | Periodo | Tareas | Hito o entrega |
 |---|---|---|---|
@@ -359,7 +356,5 @@ Aunque el E1 es el planteamiento, el equipo adelantó el trabajo que no depende 
 | 1.0 | 17 set 2026 | Versión inicial consolidada | |
 | 1.1 | 17 set 2026 | Reordenado según la guía del entregable: portada, supuestos y limitaciones, requerimientos por tipo de recurso, plan de seguimiento, criterios A-01 a A-05 y evidencias | |
 | 1.2 | 20 set 2026 | Integrantes, roles y reparto de las 61 tareas entre los cinco miembros del equipo | |
-
-**Pendiente antes de entregar:** captura de la vista Cronograma de Jira y revisión cruzada por dos integrantes.
 
 **Nota:** la guía pide equipos de 6 a 7 integrantes y este grupo es de 5; se consultará al profesor en la sesión de la semana 1 (tarea IP2-13).

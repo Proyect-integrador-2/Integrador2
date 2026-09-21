@@ -1,7 +1,8 @@
-# Cronograma detallado — tabla de tareas
+<div class="anexo" markdown="1">
 
-> Publicado en Confluence: **01 Gestión → Cronograma detallado y plan de seguimiento**, sección 2.
-> Generado desde Jira el 20 de septiembre de 2026. 61 tareas.
+## Anexo A. Cronograma detallado (61 tareas)
+
+Exportado de Jira (proyecto IP2) el 20 de setiembre de 2026. Cada tarea tiene responsable, fechas, recursos, dependencia, estado y la evidencia que prueba que terminó. Ordenado por fecha de finalización.
 
 | ID | Tarea | Responsable | Inicio | Fin | Recursos | Dependencia | Estado | Evidencia de finalización | Entregable |
 |---|---|---|---|---|---|---|---|---|---|
@@ -67,30 +68,39 @@
 | IP2-67 | Preparar la presentación y ensayar la demostración | Stiff Alemán | 20/11 | 29/11 | Equipo del laboratorio | — | Tareas por hacer | Presentación y registro de los ensayos | E5 |
 | IP2-68 | Entregar el producto final y realizar la presentación | Stiff Alemán | 30/11 | 30/11 | Equipo del proyecto | — | Tareas por hacer | E5 entregado y demostración realizada | E5 |
 
+</div>
 
-## Resumen semanal
+## Anexo B. Registro de riesgos
 
-| Semana | Periodo | Tareas que vencen | IDs |
-|---|---|---|---|
-| Semana 0 | 14/09 – 20/09 | 12 | 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 |
-| Semana 1 | 21/09 – 27/09 | 1 | 23 |
-| Semana 2 | 28/09 – 04/10 | 3 | 24, 25, 35 |
-| Semana 3 | 05/10 – 11/10 | 10 | 30, 31, 36, 40, 46, 49, 55, 69, 26, 32 |
-| Semana 4 | 12/10 – 18/10 | 3 | 33, 37, 34 |
-| Semana 5 | 19/10 – 25/10 | 4 | 27, 28, 29, 41 |
-| Semana 6 | 26/10 – 01/11 | 9 | 38, 39, 42, 43, 44, 47, 56, 50, 51 |
-| Semana 7 | 02/11 – 08/11 | 7 | 45, 48, 52, 53, 54, 57, 70 |
-| Semana 8 | 09/11 – 15/11 | 4 | 58, 59, 60, 61 |
-| Semana 9 | 16/11 – 22/11 | 2 | 62, 71 |
-| Semana 10 | 23/11 – 29/11 | 5 | 63, 64, 65, 66, 67 |
-| Semana 11 | 30/11 – 06/12 | 1 | 68 |
+**Escala:** Probabilidad e Impacto → Alta (3) · Media (2) · Baja (1). **Exposición** = Probabilidad × Impacto. Se revisa en cada minuta semanal.
 
-## Carga por integrante
+| ID | Riesgo | P | I | Exp. | Acción preventiva | Plan de contingencia | Estado |
+|---|---|---|---|---|---|---|---|
+| R-01 | Borran las configuraciones del router/switch entre clases | 3 | 3 | 9 | Configuraciones versionadas en GitHub y ensayadas en Packet Tracer; pedir equipo rotulado | Reaplicar la configuración desde GitHub (unos 5 min por equipo) | Mitigado |
+| R-02 | El servidor es compartido o lo formatean | 2 | 3 | 6 | Confirmar por escrito la exclusividad hasta el 30 nov (IP2-13) | Restaurar VMs desde respaldos | Abierto |
+| R-03 | Horario limitado de acceso al laboratorio | 3 | 2 | 6 | Laboratorio local montado: monitoreo, dashboards y automatización se construyen fuera del laboratorio | Solicitar horarios adicionales o acceso remoto | Mitigado |
+| R-04 | La red de la universidad bloquea Telegram, SMTP o Docker Hub | 2 | 3 | 6 | Probar los tres en la primera visita; dejar las imágenes ya descargadas | Correo como respaldo de Telegram; imágenes precargadas | Abierto |
+| R-05 | No se asigna IP o punto WAN para el router | 2 | 3 | 6 | Consultar al profesor en la semana 1 (IP2-13) | Doble NAT desde una red disponible | Abierto |
+| R-06 | Equipo antiguo sin NAT, SNMPv3 o con poca RAM | 2 | 2 | 4 | Inventario técnico en la primera visita (IP2-14) | SNMPv2c restringido por ACL; ajustar el tamaño de las VMs | Abierto |
+| R-07 | No se permite instalar el hipervisor | 1 | 3 | 3 | Confirmar el permiso antes del E2 | Hipervisor alterno autorizado | Abierto |
+| R-08 | Un integrante abandona o no cumple | 2 | 3 | 6 | Rol de respaldo por área; seguimiento semanal con criterio de terminado | Redistribuir tareas y reportar al profesor | Abierto |
+| R-09 | Todo el proyecto depende de un único servidor | 3 | 3 | 9 | Respaldos de VMs; configuraciones, dashboards y flujos exportados en GitHub | Reconstruir en otro equipo desde el repositorio | Abierto |
+| R-10 | MS Motos presenta problemas al contenerizarse | 1 | 3 | 3 | Contenerización probada el 17 set con 10 pruebas; se corrigieron dos errores de la aplicación | No requerido | **Cerrado** |
+| R-11 | El equipo no queda encendido 24/7 y Grafana muestra huecos | 2 | 2 | 4 | Consultar la política de encendido (IP2-13) | Documentar las ventanas de medición | Abierto |
+| R-12 | Una automatización provoca un problema mayor (reinicios en bucle) | 1 | 3 | 3 | Lista cerrada de acciones, máximo 3 intentos cada 10 min, escalamiento y privilegios mínimos, ya probados | Desactivar el flujo y recuperar manualmente | Mitigado |
+| R-13 | Las herramientas de gestión están creadas por una sola cuenta | 2 | 2 | 4 | Invitar a todo el equipo a GitHub, Jira y Confluence | Transferir la organización o el espacio a otro integrante | Abierto |
 
-| Integrante | Tareas |
+## Anexo C. Desglose de la EDT
+
+| Área (épica en Jira) | Paquetes de trabajo |
 |---|---|
-| Stiff Alemán | 22 |
-| Jeffrey Herrera | 12 |
-| Angel Gallardo | 11 |
-| Alexander Jiménez | 9 |
-| Álvaro Álvarez | 7 |
+| **1. Gestión del proyecto** (IP2-1) | 1.1 Herramientas de gestión · 1.2 Alcance, objetivos y requerimientos · 1.3 Inventario, roles y riesgos · 1.4 Cronograma y seguimiento semanal · 1.5 Consolidación de cada entregable |
+| **2. Red y conectividad** (IP2-2) | 2.1 Topología, VLAN y direccionamiento · 2.2 Ensayo en Packet Tracer · 2.3 Switch: VLAN, trunk y SNMP · 2.4 Router: subinterfaces, NAT/PAT, ACL y SNMP · 2.5 Validación de conectividad y segmentación |
+| **3. Virtualización y servidores** (IP2-3) | 3.1 Selección del hipervisor · 3.2 Instalación y redes virtuales · 3.3 Creación y dimensionamiento de VMs · 3.4 Respaldos |
+| **4. Contenedores y despliegue** (IP2-4) | 4.1 Dockerfile de MS Motos · 4.2 Docker Compose · 4.3 Persistencia, variables y puertos · 4.4 Despliegue en la VM de aplicación |
+| **5. Monitoreo con Zabbix** (IP2-5) | 5.1 Instalación · 5.2 Agentes, contenedores y servicios · 5.3 SNMP de router, switch e interfaces · 5.4 Monitoreo HTTP de la aplicación · 5.5 Triggers y umbrales |
+| **6. Observabilidad con Grafana** (IP2-6) | 6.1 Instalación e integración con Zabbix · 6.2 Dashboards general, técnico, red y experiencia |
+| **7. Automatización y alertamiento** (IP2-7) | 7.1 Telegram y correo · 7.2 Integración Zabbix → n8n · 7.3 Recuperación de servicio · 7.4 Recuperación de contenedor · 7.5 Alertas de capacidad · 7.6 Controles de seguridad |
+| **8. RPA y monitoreo sintético** (IP2-8) | 8.1 Script del usuario sintético · 8.2 Programación de ejecuciones · 8.3 Envío de resultados a Zabbix |
+| **9. Pruebas, seguridad y mejoras** (IP2-9) | 9.1 Matriz de pruebas · 9.2 Falla y recuperación · 9.3 Capacidad y red · 9.4 Seguridad y segmentación · 9.5 Corrección de hallazgos |
+| **10. Documentación y demostración** (IP2-10) | 10.1 Exportaciones finales · 10.2 Manual técnico y de operación · 10.3 Ensayos de la demostración · 10.4 Presentación final |

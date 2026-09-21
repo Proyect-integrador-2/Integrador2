@@ -1,0 +1,36 @@
+{
+  "institucion": "Universidad Técnica Nacional",
+  "curso": "ITI-625 Proyecto Integrador II — Infraestructura de TI",
+  "entregable": "Entregable #1 · Planteamiento y gestión del proyecto",
+  "titulo": "Plataforma on-premise de monitoreo y automatización de servicios de TI",
+  "subtitulo": "Servicios Digitales del Pacífico S.A. · Aplicación MS Motos",
+  "profesor": "Valor: 15 % del curso",
+  "fecha": "Lunes 21 de setiembre de 2026",
+  "integrantes": [
+    {
+      "nombre": "Stiff Alemán",
+      "rol": "Líder / Gestión del proyecto",
+      "correo": "stiffaleman@gmail.com"
+    },
+    {
+      "nombre": "Alexander Jiménez Ortiz",
+      "rol": "Redes",
+      "correo": "alexjimenezo2005@gmail.com"
+    },
+    {
+      "nombre": "Jeffrey Herrera Urbina",
+      "rol": "DevOps / Contenedores",
+      "correo": "jeffreyjohel10@gmail.com"
+    },
+    {
+      "nombre": "Álvaro Álvarez Rosales",
+      "rol": "Observabilidad (Grafana) + RPA",
+      "correo": "thealvaro875@gmail.com"
+    },
+    {
+      "nombre": "Angel Gallardo Espinoza",
+      "rol": "Infraestructura / Virtualización",
+      "correo": "gallardoespinozar@gmail.com"
+    }
+  ]
+}
