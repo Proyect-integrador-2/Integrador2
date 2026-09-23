@@ -1,15 +1,16 @@
 # Tableros de Grafana (IP2-48)
 
-Cuatro tableros sobre la fuente de datos **Zabbix** (`uid: zabbix`), uno por pregunta, según el diseño de [docs/diseno/monitoreo.md](../../docs/diseno/monitoreo.md) §3.
+Cinco tableros sobre la fuente de datos **Zabbix** (`uid: zabbix`), uno por pregunta, según el diseño de [docs/diseno/monitoreo.md](../../docs/diseno/monitoreo.md) §3.
 
 | Archivo | Tablero | Pregunta que responde |
 |---|---|---|
 | `ip2-general.json` | IP2 · General (ejecutivo) | ¿El servicio está bien? |
 | `ip2-tecnico.json` | IP2 · Técnico (infraestructura) | ¿Dónde está el cuello de botella? |
 | `ip2-red.json` | IP2 · Red | ¿La red está sana? |
-| `ip2-experiencia.json` | IP2 · Experiencia del usuario | ¿Qué vive el usuario? |
+| `ip2-experiencia.json` | IP2 · Experiencia del usuario | ¿Qué vive el cliente? |
+| `ip2-automatizacion.json` | IP2 · Automatización (n8n y RPA) | ¿Los procesos automáticos están funcionando? |
 
-Los cuatro están etiquetados con `ip2`, así que el enlace *Tableros del Integrador II* de la barra superior salta entre ellos.
+Los cinco están etiquetados con `ip2`, así que el enlace *Tableros del Integrador II* de la barra superior salta entre ellos.
 
 ## Cómo se cargan
 
@@ -28,7 +29,18 @@ Están marcados con `allowUiUpdates: true`: se pueden retocar desde la interfaz,
 | Grupo de hosts **Integrador II** en Zabbix | `infra/lab-local/configurar-zabbix.py` |
 | Hosts `vm-app` y `msmotos-web` | idem |
 | Hosts `r1`, `sw1`, `proxmox` (SNMP e ICMP) | IP2-44 — hasta entonces 5 paneles del tablero de Red quedan vacíos |
-| Host `msmotos-rpa` con los ítems trapper | IP2-56 / IP2-57 — hasta entonces 4 paneles del tablero de Experiencia quedan vacíos |
+| Hosts `msmotos-rpa-linux` y `msmotos-rpa-windows` con los ítems trapper | IP2-56 / IP2-57 — hasta entonces 4 paneles del tablero de Experiencia quedan vacíos |
+| Host `automatizacion` (nombre visible *Automatización (n8n)*) con los ítems trapper de n8n | IP2-50 / IP2-77 — hasta entonces 5 de los 7 paneles del tablero de Automatización quedan vacíos; el de ejecuciones del RPA y el de eventos sí traen datos |
+
+## Cómo se generó el tablero de automatización
+
+`ip2-automatizacion.json` lo construye [`scripts/construir-dashboard-automatizacion.py`](../../scripts/construir-dashboard-automatizacion.py), que copia los paneles ya probados de los otros tableros y solo les cambia filtros, títulos y umbrales. Así el formato del plugin (que es quisquilloso, ver abajo) no se escribe a mano. Para regenerarlo:
+
+```
+python scripts/construir-dashboard-automatizacion.py
+```
+
+Si el tablero se retoca desde la interfaz de Grafana, hay que reflejar el cambio en el script, no solo en el JSON.
 
 ## Detalles del plugin de Zabbix que costaron tiempo
 

@@ -142,7 +142,30 @@ Esperar 60 s y consultar el estado en Zabbix (API)
 | C10 | **Ensayo previo en Packet Tracer** | El flujo se prueba contra la topología simulada antes de tocar el equipo real (riesgo R-15) |
 | C11 | **Ventana de prueba** | Las pruebas de la IP2-87 se hacen en horario de laboratorio, nunca durante una demostración |
 
-## 6. Notificaciones
+## 6. Lo que n8n reporta a Zabbix (IP2-77)
+
+Al terminar cada ejecución, n8n envía sus resultados con `zabbix_sender`, igual que hace el RPA. Así el tablero de automatización se alimenta de la misma fuente que el resto y no necesita otro origen de datos.
+
+**Host en Zabbix:** `automatizacion`, nombre visible **Automatización (n8n)**, en el grupo *Integrador II*. Ítems de tipo *trapper*.
+
+| Ítem (key) | Nombre en Zabbix | Tipo | Ejemplo |
+|---|---|---|---|
+| `n8n.exec.status[<flujo>]` | `n8n: resultado · <flujo>` | Entero (1 = OK, 0 = fallo) | `1` |
+| `n8n.exec.duration[<flujo>]` | `n8n: duración · <flujo>` | Flotante (s) | `3.4` |
+| `n8n.exec.action[<flujo>]` | `n8n: última acción · <flujo>` | Texto | `docker start msmotos-app` |
+| `n8n.recovery.count[<tipo>]` | `n8n: recuperaciones · <tipo>` | Entero (contador) | `2` |
+| `n8n.recovery.seconds[<tipo>]` | `n8n: tiempo hasta la recuperación · <tipo>` | Flotante (s) | `142` |
+| `n8n.rejected` | `n8n: acciones rechazadas` | Entero | `0` |
+| `n8n.escalated` | `n8n: escalamientos a una persona` | Entero | `1` |
+
+**Valores de `<flujo>`:** `servicio`, `contenedor`, `capacidad`, `red-interfaz`, `red-puerto`, `red-equipo`.
+**Valores de `<tipo>`:** `contenedor`, `servicio`, `interfaz`, `puerto`, `equipo`.
+
+`n8n.recovery.seconds` mide desde que Zabbix creó el problema hasta que lo cerró: es el número que comprueba el RNF-02 (recuperación en menos de 5 minutos).
+
+**Los nombres importan:** el tablero [`monitoreo/grafana/ip2-automatizacion.json`](../../monitoreo/grafana/ip2-automatizacion.json) filtra por nombre (`/^n8n: /`) y por host (`/^Automatizaci/`), no por clave.
+
+## 7. Notificaciones
 
 | Canal | Uso | Configuración |
 |---|---|---|
