@@ -1,6 +1,6 @@
 # Diseño de virtualización
 
-Tareas: IP2-30 (comparar hipervisores), IP2-31 (dimensionar VMs). Borrador para el E2 (05 oct 2026).
+Tareas: IP2-30 (comparar hipervisores), IP2-31 (dimensionar VMs), IP2-73 (VM Windows) e IP2-79 (controlador de dominio). Borrador para el E2 (05 oct 2026).
 
 ## 1. Comparación de hipervisores
 
@@ -28,7 +28,7 @@ Tareas: IP2-30 (comparar hipervisores), IP2-31 (dimensionar VMs). Borrador para 
 
 ## 2. Distribución y dimensionamiento de VMs
 
-Sistema operativo de todas las VMs: **Ubuntu Server 24.04 LTS** (mínimo, sin entorno gráfico).
+Sistema operativo de las VMs de servicios: **Ubuntu Server 24.04 LTS** (mínimo, sin entorno gráfico). Las dos VMs agregadas por las observaciones del profesor usan **Windows Server 2022** en versión de evaluación.
 
 | VM | IP (VLAN 30) | Servicios | vCPU | RAM | Disco | Justificación |
 |---|---|---|---|---|---|---|
@@ -37,19 +37,26 @@ Sistema operativo de todas las VMs: **Ubuntu Server 24.04 LTS** (mínimo, sin en
 | `vm-grafana` | 10.10.30.13 | Grafana + plugin Zabbix | 1 | 2 GB | 20 GB | Carga liviana: solo consulta a Zabbix |
 | `vm-n8n` | 10.10.30.14 | n8n (Docker) | 2 | 2 GB | 20 GB | Flujos cortos y poco frecuentes |
 | `vm-rpa` | 10.10.30.15 | Robot Framework + Browser (Chromium sin interfaz) | 2 | 4 GB | 30 GB | El navegador es lo que más memoria consume |
-| **Total asignado** | | | **9 vCPU** | **16 GB** | **170 GB** | |
+| `vm-app-win` | 10.10.30.16 | **Windows Server 2022**: MS Motos como servicio + MySQL 8.4 (RF-19) | 2 | 4 GB | 60 GB | Mínimo razonable para Windows Server con base de datos |
+| `vm-dc` | 10.10.30.17 | **Windows Server 2022**: Active Directory y DNS (RF-21) | 2 | 4 GB | 60 GB | Controlador de dominio de un entorno pequeño |
+| **Total asignado** | | | **13 vCPU** | **24 GB** | **290 GB** | |
 | Reserva para Proxmox | | | — | 2 GB | 20 GB | Sistema del hipervisor |
-| **Necesario en el servidor** | | | **≥ 8 núcleos** (con sobreasignación ligera) | **≥ 20 GB** (recomendado 32 GB) | **≥ 250 GB SSD** | |
+| **Necesario en el servidor** | | | **≥ 8 núcleos** (con sobreasignación ligera) | **≥ 26 GB** (recomendado 32 GB) | **≥ 350 GB** | |
 
 ### Plan si el servidor tiene menos recursos
 
 Se decide cuando esté el inventario (IP2-14):
 
+**Dato crítico pendiente:** la RAM real del servidor (IP2-14). Con las dos VMs Windows el diseño pide 24 GB asignados, así que de ese dato depende si hay que fusionar servicios.
+
 | RAM del servidor | Ajuste |
 |---|---|
 | ≥ 32 GB | Distribución completa de la tabla |
-| 16–24 GB | Unir Grafana en `vm-zabbix` (4 → 5 GB) y bajar `vm-rpa` a 3 GB |
-| < 16 GB | Además, ejecutar n8n como contenedor en `vm-zabbix`. Justificarlo en el informe como decisión por capacidad |
+| 24–32 GB | Unir Grafana en `vm-zabbix` (4 → 5 GB) y bajar `vm-rpa` a 3 GB: total 21 GB |
+| 16–24 GB | Además, n8n como contenedor en `vm-zabbix` y `vm-app-win` a 3 GB: total ~17 GB |
+| < 16 GB | Juntar la aplicación de Windows y el controlador de dominio en **una sola VM Windows** (la app queda en un servidor miembro del propio dominio). Es la opción menos deseable: si esa VM cae, caen a la vez el segundo ambiente y la identidad. Se justifica en el informe como decisión por capacidad |
+
+**Orden para apagar si falta memoria durante una demostración:** primero `vm-rpa`, después `vm-n8n`. Nunca `vm-zabbix`, porque es la fuente de todos los tableros.
 
 ## 3. Redes virtuales
 
@@ -59,13 +66,15 @@ Se decide cuando esté el inventario (IP2-14):
 | Bridge de Proxmox | `vmbr0`, **VLAN aware** activado |
 | IP de gestión de Proxmox | 10.10.30.10/24 (VLAN 30), gateway 10.10.30.1 |
 | Tarjeta de red de cada VM | `vmbr0` con **VLAN tag 30** |
+| DNS de las VMs Windows y de las unidas al dominio | 10.10.30.17 (`vm-dc`), que reenvía a 8.8.8.8 |
 
 ## 4. Respaldos
 
 | Qué | Frecuencia | Destino | Retención |
 |---|---|---|---|
-| `vm-app`, `vm-zabbix` | Diario (madrugada) | Disco externo USB o almacenamiento alterno | 3 copias |
+| `vm-app`, `vm-zabbix`, `vm-dc` | Diario (madrugada) | Disco externo USB o almacenamiento alterno | 3 copias |
+| `vm-app-win` | Diario (madrugada) | Mismo destino | 2 copias |
 | `vm-grafana`, `vm-n8n`, `vm-rpa` | Semanal | Mismo destino | 2 copias |
 | Configuraciones (dashboards, flujos, plantillas) | En cada cambio | GitHub | Historial completo |
 
-Se prueba una restauración antes del E3 (IP2-34).
+Se prueba una restauración antes del E3 (IP2-34). El respaldo de `vm-dc` es parte de la mitigación del riesgo R-14: si el controlador de dominio se pierde, nadie entra a las herramientas con su cuenta del dominio.

@@ -31,7 +31,7 @@ experiencia de usuario con un RPA.
 | `rpa/` | Usuario sintético con Robot Framework |
 | `pruebas/` | Scripts para provocar fallas controladas y matriz de resultados |
 | `scripts/` | Utilidades generales |
-| `docs/diseno/` | Diseños técnicos del E2 (virtualización, monitoreo, automatización, RPA) |
+| `docs/diseno/` | Diseños técnicos del E2 (virtualización, monitoreo, automatización, RPA, Windows Server y Active Directory) |
 | `docs/diagramas/` | Fuentes editables de diagramas (`.drawio`); la versión publicada va a Confluence |
 
 ## Convenciones

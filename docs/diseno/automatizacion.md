@@ -1,6 +1,6 @@
 # Diseño de automatización y alertamiento
 
-Tarea: IP2-49 (qué se automatiza, qué solo alerta y con qué controles). Borrador para el E2 (05 oct 2026).
+Tareas: IP2-49 (qué se automatiza, qué solo alerta y con qué controles) e IP2-84 (recuperación automática de la red). Borrador para el E2 (05 oct 2026).
 
 ## 1. Herramienta: n8n
 
@@ -20,9 +20,13 @@ Tarea: IP2-49 (qué se automatiza, qué solo alerta y con qué controles). Borra
 | Falla | Trigger | Detecta | Acción | Notifica | Valida |
 |---|---|---|---|---|---|
 | Contenedor `msmotos-app` detenido | T01 | Zabbix (Docker, 30 s) | n8n → SSH → `docker start msmotos-app` | Telegram + correo: problema y recuperación | Zabbix cierra el problema; RPA vuelve a OK |
-| Servicio Nginx detenido | T03 | Zabbix (systemd, 30 s) | n8n → SSH → `sudo systemctl restart nginx` | Telegram + correo | Zabbix cierra el problema |
+| Servicio Nginx detenido (Linux) | T03 | Zabbix (systemd, 30 s) | n8n → SSH → `sudo systemctl restart nginx` | Telegram + correo | Zabbix cierra el problema |
+| Servicio `MSMotos` detenido (Windows) | T03-W | Zabbix (agente de Windows, 30 s) | n8n → WinRM → `Start-Service MSMotos` | Telegram + correo | Zabbix cierra el problema |
 | CPU, RAM, disco altos | T06–T08 | Zabbix (agente) | **Ninguna automática** | Telegram + correo con valor y umbral | Intervención humana |
-| Interfaz caída / enlace saturado | T09–T10 | Zabbix (SNMP) | **Ninguna automática** | Telegram + correo | Dashboard de red |
+| Interfaz de acceso caída o con errores | T09 | Zabbix (SNMP, 60 s) | n8n → SSH al equipo → reiniciar la interfaz (`shutdown` / `no shutdown`) | Telegram: evento, acción y resultado | Zabbix cierra el problema · ver §5 |
+| Puerto bloqueado por seguridad de puerto (*err-disabled*) | T09b | Zabbix (SNMP) | n8n → SSH → reactivar el puerto | Telegram | Zabbix cierra el problema · ver §5 |
+| CPU o memoria del router/switch saturadas más de 10 min | T11 | Zabbix (SNMP) | n8n → respaldar configuración → `reload` del equipo | Telegram | Zabbix cierra el problema · ver §5 |
+| Enlace saturado (tráfico alto sostenido) | T10 | Zabbix (SNMP) | **Ninguna automática** | Telegram + correo | Dashboard de red |
 | App no disponible / lenta | T04–T05 | Zabbix (escenario web) | **Ninguna automática** | Telegram + correo | Revisar T01/T03 |
 | RPA falla o se degrada | T12–T14 | RPA → Zabbix | **Ninguna automática** | Telegram + correo con el paso fallido | Intervención humana |
 
@@ -38,6 +42,9 @@ n8n · Webhook  ──► ¿token válido? ── no ──► descartar y regis
 Switch por tag "remediation"
    ├── restart-container ─┐
    ├── restart-service ───┤
+   ├── restart-interface ─┤   (red, ver §5)
+   ├── enable-port ───────┤   (red, ver §5)
+   ├── reload-device ─────┤   (red, ver §5)
    │                      ▼
    │           ¿objetivo en la lista permitida?  ── no ──► alerta "acción rechazada"
    │                      │ sí
@@ -68,7 +75,74 @@ Configuración de `sudoers` en `vm-app` (`/etc/sudoers.d/n8n-ops`):
 n8n-ops ALL=(root) NOPASSWD: /usr/bin/systemctl restart nginx
 ```
 
-## 5. Notificaciones
+## 5. Recuperación automática de la red (RF-23, RNF-10)
+
+El profesor pidió el 21 set 2026 que, ante un evento de red, **la automatización reinicie el dispositivo para que vuelva a la normalidad**. Aclaró que es automático, no con autorización previa.
+
+### 5.1 Qué se hace ante cada evento
+
+| Evento que detecta Zabbix | Acción automática | Alcance | Espera antes de actuar |
+|---|---|---|---|
+| Interfaz de acceso caída, intermitente o con errores y descartes sobre el umbral | Reiniciar la interfaz (`shutdown` / `no shutdown`) | Solo esa interfaz | 2 minutos: evita actuar si alguien solo desconectó un cable un momento |
+| Puerto en *err-disabled* por seguridad de puerto | Reactivar el puerto | Solo ese puerto | Inmediato |
+| CPU o memoria del router o el switch saturadas | Respaldar la configuración y `reload` del equipo | Todo el equipo | 10 minutos sostenidos |
+
+### 5.2 Qué nunca se toca
+
+| Regla | Por qué |
+|---|---|
+| **Los enlaces de gestión no se reinician solos:** el trunk R1 Gi0/0/1 ↔ SW1 Gi0/1 y el enlace al servidor (SW1 Gi0/2) | Al hacer `shutdown` n8n perdería la conexión con el equipo y no podría ejecutar el `no shutdown`. Esos enlaces solo generan alerta |
+| **La interfaz WAN (R1 Gi0/0/0) tampoco** | Es la salida a Internet; se atiende a mano |
+| **Nunca se borra ni se reescribe configuración** | Las únicas acciones permitidas son las tres de la tabla anterior |
+
+### 5.3 Límites (RNF-10)
+
+| Control | Valor |
+|---|---|
+| Orden de las acciones | Primero la acción menor (la interfaz); el `reload` del equipo solo si la saturación persiste |
+| Intentos por interfaz | Máximo 3 cada 10 minutos |
+| Reinicios por equipo | Máximo 1 por hora |
+| Si no se recupera | Alerta crítica y escalamiento a una persona; la automatización no vuelve a intentar |
+| Si el equipo no responde por la red | No hay acción posible: se alerta y se atiende por consola |
+
+### 5.4 Cuenta de automatización en el router y el switch (IP2-85)
+
+| Tema | Decisión |
+|---|---|
+| Usuario | `n8n-net`, local en cada equipo (el router y el switch no se unen al dominio) |
+| Acceso | SSH desde la IP de `vm-n8n` únicamente, por ACL |
+| Privilegios | Nivel de privilegio propio con **solo** estos comandos: entrar a una interfaz, `shutdown`, `no shutdown`, `copy running-config startup-config` y `reload` |
+| Contraseña | Aleatoria, guardada en las credenciales de n8n y en `red/secrets/`, fuera de Git |
+| Respaldo previo al `reload` | n8n ejecuta `copy running-config startup-config` antes de reiniciar, para no perder la configuración |
+
+### 5.5 Secuencia del flujo
+
+```
+Zabbix: interfaz Fa0/7 caída (tag remediation=restart-interface)
+   ▼
+n8n · ¿la interfaz está en la lista de gestión? ── sí ──► solo alerta
+   │ no
+   ▼
+¿menos de 3 intentos en 10 min? ── no ──► alerta crítica + escalar
+   │ sí
+   ▼
+SSH a SW1 con n8n-net → interface Fa0/7 → shutdown → esperar 5 s → no shutdown
+   ▼
+Esperar 60 s y consultar el estado en Zabbix (API)
+   ├── recuperada ──► Telegram: "Fa0/7 reiniciada, servicio restablecido" + acknowledge en Zabbix
+   └── sigue caída ──► Telegram crítico: "Fa0/7 no se recuperó, revisar el cable" + escalar
+```
+
+### 5.6 Controles que se suman a los de la sección 4
+
+| # | Control | Cómo se implementa |
+|---|---|---|
+| C8 | **Lista blanca de interfaces** | n8n solo actúa sobre puertos de acceso; los de gestión están excluidos por nombre |
+| C9 | **Respaldo antes del `reload`** | La configuración se guarda antes de reiniciar el equipo |
+| C10 | **Ensayo previo en Packet Tracer** | El flujo se prueba contra la topología simulada antes de tocar el equipo real (riesgo R-15) |
+| C11 | **Ventana de prueba** | Las pruebas de la IP2-87 se hacen en horario de laboratorio, nunca durante una demostración |
+
+## 6. Notificaciones
 
 | Canal | Uso | Configuración |
 |---|---|---|
