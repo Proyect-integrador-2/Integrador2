@@ -76,6 +76,7 @@ Controles adicionales en los equipos:
 | [`router/R1-4221.txt`](router/R1-4221.txt) | Configuración completa del router (ISR 4221) |
 | [`switch/SW1-2960.txt`](switch/SW1-2960.txt) | Configuración completa del switch |
 | [`packet-tracer/ISP-simulado-2911.txt`](packet-tracer/ISP-simulado-2911.txt) | Router que simula la red de la universidad en Packet Tracer |
+| [`packet-tracer/TOPOLOGIA.md`](packet-tracer/TOPOLOGIA.md) | Equipos, puertos, cables y orden para armar el ensayo |
 | `packet-tracer/integrador2-red.pkt` | Topología de ensayo (se guarda desde Packet Tracer, tarea IP2-26) |
 
 **Antes de aplicar en equipo real:** reemplazar todo lo marcado `CAMBIAR-` por contraseñas propias. Esas contraseñas **no se suben a Git**: se guardan fuera del repositorio.
