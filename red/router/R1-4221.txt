@@ -73,9 +73,12 @@ ip access-list extended ACL-USUARIOS-IN
  permit udp any any eq bootps
  remark Ping al gateway (diagnostico basico)
  permit icmp 10.10.20.0 0.0.0.255 host 10.10.20.1
- remark Unico servicio permitido: la aplicacion web
+ remark Unico servicio permitido: la aplicacion web, en sus dos ambientes
+ remark   10.10.30.11 = instancia Linux (contenedores) | 10.10.30.16 = instancia Windows Server (RF-19)
  permit tcp 10.10.20.0 0.0.0.255 host 10.10.30.11 eq www
  permit tcp 10.10.20.0 0.0.0.255 host 10.10.30.11 eq 443
+ permit tcp 10.10.20.0 0.0.0.255 host 10.10.30.16 eq www
+ permit tcp 10.10.20.0 0.0.0.255 host 10.10.30.16 eq 443
  remark Respuestas a conexiones iniciadas por Administracion (soporte remoto)
  permit tcp 10.10.20.0 0.0.0.255 10.10.10.0 0.0.0.255 established
  permit icmp 10.10.20.0 0.0.0.255 10.10.10.0 0.0.0.255 echo-reply

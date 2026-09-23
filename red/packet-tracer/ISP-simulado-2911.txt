@@ -7,7 +7,7 @@ hostname ISP
 no ip domain-lookup
 !
 interface GigabitEthernet0/0
- description Hacia R1 Gi0/0 (WAN del proyecto)
+ description Hacia R1 Gi0/0/0 (WAN del proyecto)
  ip address 172.16.0.1 255.255.255.252
  no shutdown
 !
