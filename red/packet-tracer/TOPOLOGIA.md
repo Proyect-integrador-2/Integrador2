@@ -60,7 +60,8 @@ En `SRV-APP` y `SRV-APP-WIN` hay que dejar **activo el servicio HTTP** (pestaña
 
 Las que ya encontramos al cargar las configuraciones están en [../README.md](../README.md) §6. Las principales:
 
-- Los comandos globales no se aceptan dentro del submodo de una ACL: por eso cada ACL termina con `exit`.
+- Los comandos globales no se aceptan dentro del submodo de una ACL ni del pool de DHCP: por eso tanto cada ACL como `ip dhcp pool` terminan con `exit` en `../router/R1-4221.txt`.
+- **Hay que esperar a que el router termine de arrancar antes de pegar la configuración.** Si se pega mientras arranca, las líneas `interface ...` se pierden y las direcciones IP caen sobre la interfaz equivocada (nos pasó: la WAN quedó con 10.10.99.1). Se reconoce porque `Gi0/0/0` aparece con una IP de VLAN en lugar de 172.16.0.2.
 - `snmp-server location` y `contact` no existen en PT, y el 2960 no acepta la ACL en la comunidad SNMP.
 - Las consultas SNMP reales no se simulan: el monitoreo se prueba en el laboratorio, no aquí.
 - PT no simula Active Directory ni servicios de Windows: `SRV-DC` y `SRV-APP-WIN` solo responden ping y HTTP.
@@ -68,3 +69,8 @@ Las que ya encontramos al cargar las configuraciones están en [../README.md](..
 ## 6. Armarla con asistencia
 
 Si se abre Packet Tracer con el puente del asistente activo (*Extensions → Builder Code Editor*), la topología se puede crear de una sola vez en lugar de arrastrar equipos. El puente es solo para armarla más rápido: **el resultado y las validaciones son los mismos**.
+
+Dos cosas que conviene saber si se vuelve a usar:
+
+- El enlace **entre los dos routers** (ISP ↔ R1) es el único que el puente no logra crear con el cable *cross*; hay que crearlo a mano en Packet Tracer o con el comando directo `addLink`. Los demás cables sí los crea sin problema.
+- El puente **responde con un retraso de una llamada**: la respuesta que devuelve suele ser la de la operación anterior. Por eso el estado se comprueba consultando la topología dos veces seguidas, no leyendo lo que contestó.

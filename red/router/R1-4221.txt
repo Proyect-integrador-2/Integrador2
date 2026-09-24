@@ -66,6 +66,7 @@ ip dhcp pool VLAN20-USUARIOS
  network 10.10.20.0 255.255.255.0
  default-router 10.10.20.1
  dns-server 8.8.8.8
+ exit
 !
 ! ---------------- ACL: usuarios no administran la infraestructura ----------------
 ip access-list extended ACL-USUARIOS-IN
