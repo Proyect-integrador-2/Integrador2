@@ -10,6 +10,7 @@ Uso:
 Requiere: pip install markdown
 """
 import argparse
+import base64
 import html
 import json
 import pathlib
@@ -49,6 +50,12 @@ tr { break-inside: avoid; }
 thead { display: table-header-group; }
 blockquote { margin: 8pt 0; padding: 6pt 10pt; background: #fff7e0; border-left: 3pt solid #e0a100; }
 .anexo { page: horizontal; }
+img { max-width: 100%; height: auto; }
+figure { margin: 6pt 0 10pt; break-inside: avoid; }
+figcaption { font-size: 9pt; color: #4a5566; text-align: center; margin-top: 4pt; }
+.figura-h { page: horizontal; margin: 0; }
+.figura-h h2 { margin-top: 0; }
+.figura-h img { display: block; margin: 0 auto; max-height: 150mm; }
 .anexo table { font-size: 7.6pt; }
 .anexo th, .anexo td { padding: 2.5pt 3.5pt; }
 .anexo td:nth-child(1), .anexo td:nth-child(4), .anexo td:nth-child(5), .anexo td:nth-child(10) { white-space: nowrap; }
@@ -109,6 +116,23 @@ def main():
     # encoge el documento entero para que quepa.
     cuerpo = re.sub(r"<table>(\s*<thead>\s*<tr>\s*<th[^>]*>\s*(?:ID|#)\s*</th>)",
                     r'<table class="ids">\1', cuerpo)
+    # El HTML se imprime desde una carpeta temporal: las imagenes con ruta relativa se
+    # resuelven contra la carpeta del primer Markdown y se incrustan en el propio PDF.
+    base = pathlib.Path(a.entradas[0]).resolve().parent
+
+    def incrustar(m):
+        ruta = m.group(2)
+        if re.match(r"(?i)(https?:|data:)", ruta):
+            return m.group(0)
+        archivo = (base / ruta).resolve()
+        if not archivo.exists():
+            sys.exit(f"Imagen no encontrada: {ruta} (buscada en {archivo})")
+        tipo = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+                ".svg": "image/svg+xml"}.get(archivo.suffix.lower(), "application/octet-stream")
+        datos = base64.b64encode(archivo.read_bytes()).decode("ascii")
+        return f'{m.group(1)}data:{tipo};base64,{datos}{m.group(3)}'
+
+    cuerpo = re.sub(r'(<img[^>]*?src=")([^"]+)(")', incrustar, cuerpo)
     portada = portada_html(json.loads(pathlib.Path(a.portada).read_text(encoding="utf-8"))) if a.portada else ""
     doc = (f"<!doctype html><html lang='es'><head><meta charset='utf-8'><title>{html.escape(a.titulo)}</title>"
            f"<style>{CSS}</style></head><body>{portada}{cuerpo}</body></html>")
