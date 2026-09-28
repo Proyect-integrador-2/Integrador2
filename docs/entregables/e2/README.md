@@ -4,7 +4,7 @@ Entrega del **lunes 5 de octubre de 2026** (15 % del curso). Responde la secció
 
 | Archivo | Para qué |
 |---|---|
-| **[E2-Analisis-y-diseno.pdf](E2-Analisis-y-diseno.pdf)** | **El PDF que se entrega**: portada, 13 secciones y los tres diagramas en páginas horizontales (23 páginas) |
+| **[E2-Analisis-y-diseno.pdf](E2-Analisis-y-diseno.pdf)** | **El PDF que se entrega**: portada, 15 secciones y los tres diagramas en páginas horizontales (26 páginas) |
 | [E2-documento-completo.md](E2-documento-completo.md) | Fuente del PDF. Consolida los diseños de `docs/diseno/` y `red/` |
 | [portada.json](portada.json) | Datos de la portada |
 
@@ -47,4 +47,4 @@ El comando vuelve enseguida y el PNG aparece unos segundos después.
 
 - **Revisión por dos integrantes**, como se hizo con el E1.
 - **Publicarlo en Confluence** (02 Entregables → *E2 · Análisis y diseño de la solución*) y subir los tres PNG a *03 Diseño*. El conector de Atlassian no sube imágenes: los PNG se arrastran a mano.
-- Si antes del 5 de octubre se repiten las validaciones de Packet Tracer o se conoce la RAM del servidor, actualizar las secciones 5.5, 10 y 11 y regenerar el PDF.
+- Si antes del 5 de octubre se repiten las validaciones de Packet Tracer o se conoce la RAM del servidor, actualizar las secciones 5.5, 10, 12 y 13 y regenerar el PDF.

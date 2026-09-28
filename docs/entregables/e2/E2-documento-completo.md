@@ -12,7 +12,7 @@ Incorpora las observaciones que el profesor hizo al E1 el 21 de setiembre de 202
 | ¿Qué métricas y umbrales serán monitoreados? | Sección 7 |
 | ¿Qué fallas se automatizarán y cuáles solo generarán alertas? | Sección 8 |
 
-La sección 12 resume las cinco respuestas en un párrafo cada una.
+La sección 14 resume las cinco respuestas en un párrafo cada una. Las secciones 9 y 10 cubren el **análisis costo/beneficio** y los **criterios de aceptación** que pide para este entregable la sección 11 de la guía.
 
 ## 1. Resumen de la solución
 
@@ -491,7 +491,82 @@ Evento Zabbix: #12345
 
 Si la red de la universidad bloquea Telegram o el correo, se detecta en la primera visita (riesgo R-04).
 
-## 9. Trazabilidad: de los requerimientos al diseño
+## 9. Análisis costo/beneficio
+
+### 9.1 Costo monetario
+
+| Componente | Costo en el proyecto | En una empresa real |
+|---|---|---|
+| Router, switch y servidor | $0: los presta la universidad | Compra o arrendamiento del equipo |
+| Proxmox VE | $0 (AGPL) | $0; la suscripción es opcional y solo da soporte |
+| Ubuntu Server, Docker, Zabbix, Grafana, Robot Framework | $0 (código abierto) | $0 |
+| n8n | $0 (licencia *Sustainable Use*, gratuita para uso interno) | $0 en instalación propia para uso interno |
+| Windows Server 2022 (aplicación y dominio) | $0: versión de evaluación de 180 días | **Única licencia de pago:** Windows Server Standard y licencias de acceso de clientes (CAL) para el dominio |
+| Telegram y correo | $0 | $0 |
+
+**El proyecto no tiene costo en licencias.** El costo real está en los recursos del servidor y en el trabajo del equipo. Si la plataforma se llevara a producción, el único componente con licencia sería Windows Server.
+
+### 9.2 Costo en recursos del servidor
+
+| Parte del diseño | vCPU | RAM | Disco | Peso sobre el total |
+|---|---|---|---|---|
+| Base pedida por la guía: aplicación Linux, Zabbix, Grafana, n8n, RPA | 9 | 16 GB | 170 GB | Dos tercios de la RAM |
+| Segundo ambiente (`vm-app-win`) | 2 | 4 GB | 60 GB | Un sexto |
+| Controlador de dominio (`vm-dc`) | 2 | 4 GB | 60 GB | Un sexto |
+| **Total** | **13** | **24 GB** | **290 GB** | |
+
+Las dos VMs que suman las observaciones del profesor cuestan un tercio de la RAM. Por eso son las primeras que se ajustan si el servidor no alcanza (sección 6.3).
+
+### 9.3 Costo y beneficio de cada decisión
+
+| Decisión | Costo | Beneficio | Balance |
+|---|---|---|---|
+| Proxmox en lugar de Hyper-V o ESXi | Curva de aprendizaje de un sistema basado en Linux | Sin licencias, respaldos y VLAN incluidos, plantilla oficial de Zabbix | ✅ Favorable |
+| Una VM por servicio | Más RAM (cada VM carga su propio sistema operativo) y más sistemas que mantener | El monitoreo y la automatización no caen con lo que vigilan | ✅ Favorable, con el plan de 6.3 si falta RAM |
+| Segundo ambiente en Windows Server | 2 vCPU, 4 GB y 60 GB; en producción, una licencia | Cumple RF-19 y muestra dos formas de desplegar la misma aplicación | ✅ Requisito del profesor |
+| Active Directory | 2 vCPU, 4 GB y 60 GB; el dominio se vuelve un punto único para entrar a las herramientas (R-14) | Una cuenta por persona, baja de accesos en un solo lugar y política de contraseñas común | ✅ Favorable, con cuentas de emergencia |
+| Recuperación automática | Diseñar y probar los flujos; riesgo de reinicios en bucle (R-12) | Recuperación en segundos, sin depender de que alguien esté mirando | ✅ Favorable, con los controles C1 a C3 |
+| Recuperación automática de la red | Una cuenta con privilegios en el router y el switch; riesgo de cortar la gestión | Cumple RF-23 y recupera una interfaz sin intervención | ✅ Favorable, con los controles C8 y C9 |
+| Monitoreo sintético | 2 vCPU y 4 GB | Detecta fallas que los chequeos técnicos no ven: el servidor responde, pero el cliente no logra agendar | ✅ Favorable |
+| Telegram y correo | Ninguno | Si un canal falla, el otro sigue avisando | ✅ Favorable |
+
+### 9.4 Beneficio medido
+
+La réplica local ya permite comparar la recuperación automática con la manual en un caso real, el contenedor detenido (sección 12):
+
+| Etapa | Sin automatización | Con el diseño |
+|---|---|---|
+| Detección | Depende de que un usuario lo note y lo reporte | **83 s y 114 s** en las dos corridas |
+| Recuperación | Una persona tiene que estar disponible, entrar a la VM y diagnosticar | **Menos de 3 s** tras la detección |
+| Confirmación | Manual | Zabbix cerró el evento a los **142 s y 173 s** |
+
+Los dos tiempos quedan dentro de lo que compromete el E1: detectar en 2 minutos o menos (RNF-01) y recuperar en 5 minutos o menos (RNF-02).
+
+## 10. Criterios de aceptación
+
+La solución se acepta cuando cumple los **criterios mínimos de la sección 10 de la guía** y los que sumó el profesor al E1. Cada criterio tiene una prueba del catálogo del E1 (PR-01 a PR-10) y un resultado medible. **PR-11 a PR-13 son nuevas**: cubren los requerimientos que se agregaron después del E1.
+
+| ID | Criterio | Prueba | Resultado esperado | Estado |
+|---|---|---|---|---|
+| CA-01 | MS Motos funciona dentro de contenedores | Despliegue de `vm-app` | `/api/health` responde 200 y los datos sobreviven a reiniciar los contenedores | ✅ Probado en la réplica local |
+| CA-02 | Servidor on-premise con las VMs necesarias | Inventario de Proxmox | Las 7 VMs encendidas, con IP fija y acceso administrativo | Pendiente del laboratorio |
+| CA-03 | Red con router, switch, Internet, NAT/PAT y al menos dos VLAN | PR-10 | V1 a V11 correctas; traducciones NAT activas | ⚠️ Ensayado en Packet Tracer |
+| CA-04 | Administradores y usuarios acceden según los permisos | PR-09 y PR-10 | Usuarios: solo las dos instancias en 80/443; Administración: todo; SSH solo desde la VLAN 10 | ⚠️ Ensayado en Packet Tracer |
+| CA-05 | Zabbix monitorea infraestructura, red, VMs, contenedores, servicios y aplicación | Revisión de hosts | Todos los hosts de la sección 7.1 con datos y sin ítems en error | Pendiente del laboratorio |
+| CA-06 | Grafana presenta los dashboards general, técnico, de red y de experiencia | Revisión de dashboards | Los cinco, incluido el de automatización, con datos reales y colores de umbral | ⚠️ Cuatro probados en la réplica local |
+| CA-07 | Recuperación automática de un servicio detenido | PR-01 | Detección en 2 min o menos y recuperación en 5 min o menos | Pendiente |
+| CA-08 | Recuperación automática de un contenedor detenido | PR-02 | Ídem, y la aplicación vuelve a responder | ✅ 83 y 114 s; cerrado a los 142 y 173 s |
+| CA-09 | La capacidad alta genera alerta, no ampliación de recursos | PR-03 a PR-05 | Alerta con valor y umbral; ninguna acción automática sobre CPU, RAM o disco | Pendiente |
+| CA-10 | Interfaz caída o con alto consumo visible en el dashboard de red | PR-06 y PR-07 | Alerta y el evento visible en el dashboard de red | Pendiente del laboratorio |
+| CA-11 | Notificación funcional por Telegram y correo | Todas las anteriores | Llega el mensaje con host, problema, severidad, hora y acción | Pendiente (riesgo R-04) |
+| CA-12 | El RPA ejecuta una operación real y registra el tiempo de respuesta | PR-08 | Los dos recorridos, en las dos instancias, con duración por paso en Zabbix | Pendiente |
+| CA-13 | MS Motos corre en Linux y en Windows Server, y ambos se monitorean | **PR-11** · servicio de Windows detenido | Ídem CA-07, con el servicio `MSMotos` | Pendiente |
+| CA-14 | Ante un evento de red, la automatización reinicia la interfaz o el equipo | **PR-12** · IP2-87 | Interfaz de acceso recuperada sola; un enlace de gestión **no** se toca y solo alerta | Pendiente del laboratorio |
+| CA-15 | El personal de TI entra con su cuenta del dominio, según su grupo | **PR-13** · IP2-83 | Un administrador edita, un operador solo ve, y una cuenta sin grupo es rechazada en cada herramienta | Pendiente |
+
+**Estado al 28 de setiembre:** 2 criterios probados, 3 ensayados o probados en parte, y 10 pendientes de construir en el E3 y probar en el E4.
+
+## 11. Trazabilidad: de los requerimientos al diseño
 
 | Requerimiento | Cómo lo resuelve el diseño | Sección |
 |---|---|---|
@@ -529,7 +604,7 @@ Si la red de la universidad bloquea Telegram o el correo, se detecta en la prime
 
 RNF-08 (gestión del proyecto) no es de diseño: se sigue en Jira y en las minutas semanales.
 
-## 10. Qué ya está validado y qué es todavía diseño
+## 12. Qué ya está validado y qué es todavía diseño
 
 Este documento es un diseño, pero una parte ya se construyó y se probó fuera del laboratorio, en una réplica local con Docker y en Packet Tracer. Se distingue para que ninguna decisión se lea como probada si no lo está.
 
@@ -543,7 +618,7 @@ Este documento es un diseño, pero una parte ya se construyó y se probó fuera 
 | Dashboard de automatización | ⚠️ **Construido, sin cargar** | 7 paneles; falta verlo en Grafana con datos |
 | Servicio detenido (PR-01), ambiente Windows, recuperación de red, RPA, Active Directory | 📐 **Solo diseño** | Se implementan en el E3 |
 
-## 11. Riesgos del diseño y decisiones pendientes
+## 13. Riesgos del diseño y decisiones pendientes
 
 | Pendiente | Qué decide | Cuándo |
 |---|---|---|
@@ -556,7 +631,7 @@ Este documento es un diseño, pero una parte ya se construyó y se probó fuera 
 
 Ninguno cambia la arquitectura: el que más impacto puede tener es la RAM, y su respuesta ya está planificada en 6.3.
 
-## 12. Respuestas a las preguntas orientadoras
+## 14. Respuestas a las preguntas orientadoras
 
 **¿Por qué se eligió cada tecnología?** Por costo cero sin limitaciones, porque cada una resuelve su parte sin desarrollo propio y porque encajan entre sí: Proxmox lleva las VLAN a las VMs por un solo troncal, Docker ya tenía la aplicación probada, Zabbix concentra todas las fuentes, Grafana presenta un tablero por público, n8n recibe las alertas de Zabbix sin plugins y Robot Framework mide cada paso del cliente sintético. Las alternativas descartadas y el motivo están en la sección 4.
 
@@ -568,7 +643,7 @@ Ninguno cambia la arquitectura: el que más impacto puede tener es la RAM, y su 
 
 **¿Qué fallas se automatizarán y cuáles solo generarán alertas?** Se recuperan solos el contenedor detenido, Nginx y el servicio de Windows detenidos, la interfaz de acceso caída, el puerto bloqueado y el equipo de red saturado, porque su causa es conocida y la acción no destruye nada. Los problemas de capacidad, los enlaces de gestión, la aplicación lenta, el RPA y el dominio solo alertan, porque hay que investigarlos antes de actuar. Sección 8.
 
-## 13. Próximos pasos hacia el E3 (2 de noviembre)
+## 15. Próximos pasos hacia el E3 (2 de noviembre)
 
 | Paso | Tareas |
 |---|---|
