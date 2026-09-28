@@ -72,7 +72,7 @@ Cada panel responde una pregunta concreta y usa colores de umbral (verde, amaril
 | Técnico (infraestructura) | `ip2-tecnico.json` | 11 paneles, todos con datos |
 | Red | `ip2-red.json` | 2 paneles con datos; 5 esperan los hosts SNMP `r1` y `sw1` (IP2-44) |
 | Experiencia del cliente | `ip2-experiencia.json` | 4 paneles con datos; 4 esperan los hosts `msmotos-rpa-linux` y `msmotos-rpa-windows` (IP2-56) |
-| **Automatización** | `ip2-automatizacion.json` | **Por construir (IP2-77)**: es el quinto dashboard que pidió el profesor |
+| **Automatización** | `ip2-automatizacion.json` | 7 paneles, construido el 23 sep 2026 (IP2-77); **falta cargarlo en Grafana** para verlo con datos. Es el quinto dashboard que pidió el profesor |
 
 **Por qué cinco y no cuatro:** el profesor pidió el 21 set 2026 un tablero del estado de los procesos automáticos. Como también aclaró que **CI/CD no forma parte del proyecto**, ese tablero muestra las automatizaciones que sí existen: los flujos de n8n y las ejecuciones del RPA. Si alguno de los cinco queda cargado, se divide (por ejemplo el técnico, en *Servidor y VMs* y *Contenedores y servicios*).
 
