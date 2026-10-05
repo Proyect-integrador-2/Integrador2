@@ -68,6 +68,8 @@ Es **idempotente**: se puede correr las veces que sea. Crea, si faltan:
 
 Cumple RNF-01 (detectar en menos de 2 minutos) y RNF-02 (recuperar en menos de 5 minutos).
 
+**Repetición del 5 oct 2026 (PR-02):** `docker stop msmotos-app` a las 12:40:46. Zabbix abrió T01 a las 12:40:58 (**12 s**), n8n levantó el contenedor a las 12:40:58 y comentó el evento a las 12:40:59, y Zabbix cerró el problema a las 12:41:58 (**72 s** desde la parada). Capturas en `docs/evidencias/e2/`.
+
 ## Hallazgos
 
 | # | Problema | Solución |

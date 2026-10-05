@@ -4,7 +4,7 @@ Entrega del **lunes 5 de octubre de 2026** (15 % del curso). Sigue la *Guía de 
 
 | Archivo | Para qué |
 |---|---|
-| **[E2-Analisis-y-diseno.pdf](E2-Analisis-y-diseno.pdf)** | **El PDF que se entrega**: portada, 16 secciones, anexo de evidencias y los cuatro diagramas en páginas horizontales (34 páginas) |
+| **[E2-Analisis-y-diseno.pdf](E2-Analisis-y-diseno.pdf)** | **El PDF que se entrega**: portada, 16 secciones, anexo de evidencias y los cuatro diagramas en páginas horizontales (35 páginas) |
 | [E2-documento-completo.md](E2-documento-completo.md) | Fuente del PDF. Consolida los diseños de `docs/diseno/` y `red/` |
 | [portada.json](portada.json) | Datos de la portada |
 

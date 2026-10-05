@@ -757,9 +757,9 @@ La réplica local ya permite comparar la recuperación automática con la manual
 
 | Etapa | Sin automatización | Con el diseño |
 |---|---|---|
-| Detección | Depende de que un usuario lo note y lo reporte | **83 s y 114 s** en las dos corridas |
-| Recuperación | Una persona tiene que estar disponible, entrar a la VM y diagnosticar | **Menos de 3 s** tras la detección |
-| Confirmación | Manual | Zabbix cerró el evento a los **142 s y 173 s** |
+| Detección | Depende de que un usuario lo note y lo reporte | **83 s y 114 s** el 17 set; **12 s** el 5 oct |
+| Recuperación | Una persona tiene que estar disponible, entrar a la VM y diagnosticar | **Menos de 3 s** tras la detección (1 s el 5 oct) |
+| Confirmación | Manual | Zabbix cerró el evento a los **142 s y 173 s** el 17 set, y a los **72 s** el 5 oct |
 
 Los dos tiempos quedan dentro de lo que compromete el E1: detectar en 2 minutos o menos (RNF-01) y recuperar en 5 minutos o menos (RNF-02).
 
@@ -792,7 +792,7 @@ Los criterios A-01 a A-07 verifican el diseño. La solución que se construye en
 | CA-05 | Zabbix monitorea infraestructura, red, VMs, contenedores, servicios y aplicación | Revisión de hosts | Todos los hosts de la sección 6.2 con datos y sin ítems en error | Pendiente del laboratorio |
 | CA-06 | Grafana presenta los dashboards general, técnico, de red y de experiencia | Revisión de dashboards | Los cinco, incluido el de automatización, con datos reales y colores de umbral | ⚠️ Cuatro probados en la réplica local |
 | CA-07 | Recuperación automática de un servicio detenido | PR-01 | Detección en 2 min o menos y recuperación en 5 min o menos | Pendiente |
-| CA-08 | Recuperación automática de un contenedor detenido | PR-02 | Ídem, y la aplicación vuelve a responder | ✅ 83 y 114 s; cerrado a los 142 y 173 s |
+| CA-08 | Recuperación automática de un contenedor detenido | PR-02 | Ídem, y la aplicación vuelve a responder | ✅ Tres corridas: detección entre 12 y 114 s, cierre entre 72 y 173 s |
 | CA-09 | La capacidad alta genera alerta, no ampliación de recursos | PR-03 a PR-05 | Alerta con valor y umbral; ninguna acción automática sobre CPU, RAM o disco | Pendiente |
 | CA-10 | Interfaz caída o con alto consumo visible en el dashboard de red | PR-06 y PR-07 | Alerta y el evento visible en el dashboard de red | Pendiente del laboratorio |
 | CA-11 | Notificación funcional por Telegram y correo | Todas las anteriores | Llega el mensaje con host, problema, severidad, hora y acción | Pendiente (riesgo R-04) |
@@ -801,7 +801,7 @@ Los criterios A-01 a A-07 verifican el diseño. La solución que se construye en
 | CA-14 | Ante un evento de red, la automatización reinicia la interfaz o el equipo | **PR-12** · IP2-87 | Interfaz de acceso recuperada sola; un enlace de gestión **no** se toca y solo alerta | Pendiente del laboratorio |
 | CA-15 | El personal de TI entra con su cuenta del dominio, según su grupo | **PR-13** · IP2-83 | Un administrador edita, un operador solo ve, y una cuenta sin grupo es rechazada en cada herramienta | Pendiente |
 
-**Estado al 28 de setiembre:** 2 criterios probados, 3 ensayados o probados en parte, y 10 pendientes de construir en el E3 y probar en el E4.
+**Estado al 5 de octubre:** 2 criterios probados, 3 ensayados o probados en parte, y 10 pendientes de construir en el E3 y probar en el E4.
 
 ## 12. Trazabilidad: de los requerimientos al diseño
 
@@ -848,9 +848,9 @@ Este documento es un diseño, pero una parte ya se construyó y se probó fuera 
 | Componente | Estado | Evidencia |
 |---|---|---|
 | MS Motos en contenedores | ✅ **Probado** · 17 set | 10 pruebas: construcción, esquema y migraciones, siembra de cuentas, persistencia tras reiniciar, contenedor detenido que no vuelve solo, caída de procesos internos |
-| Recuperación de un contenedor detenido (PR-02) | ✅ **Probado** · 17 set, dos corridas | Detección a los **83 s y 114 s**, recuperación en **menos de 3 s** tras la detección, evento cerrado a los 142 s y 173 s. Cumple RNF-01 y RNF-02 |
+| Recuperación de un contenedor detenido (PR-02) | ✅ **Probado** · 17 set (dos corridas) y 5 oct | 17 set: detección a los 83 s y 114 s, evento cerrado a los 142 s y 173 s. **5 oct: detección a los 12 s, contenedor arriba 1 s después y evento cerrado a los 72 s**, con los dos comentarios de n8n en el evento de Zabbix (capturas A.4). Cumple RNF-01 y RNF-02 |
 | Controles de la automatización | ✅ **Probado** · 17 set | Webhook con token inválido descartado; el usuario restringido puede iniciar la aplicación y **no** puede listar contenedores ni detener la base |
-| Dashboards general, técnico, red y experiencia | ✅ **Probados** · 17 set | 20 de 29 paneles de métricas con datos; los 9 restantes esperan el router, el switch y el RPA, que solo existen con el equipo real |
+| Dashboards general, técnico, red y experiencia | ✅ **Probados** · 17 set, verificados otra vez el 5 oct | 20 de 29 paneles de métricas con datos; los 9 restantes esperan el router, el switch y el RPA, que solo existen con el equipo real. Capturas del general y del técnico en A.4 |
 | Configuración de red | ⚠️ **Ensayada en Packet Tracer** | Validaciones V1 y V3 a V9 correctas el 17 set; la topología actualizada del 24 set está pendiente de repetirlas |
 | Dashboard de automatización | ⚠️ **Construido, sin cargar** | 7 paneles; falta verlo en Grafana con datos |
 | Servicio detenido (PR-01), ambiente Windows, recuperación de red, RPA, Active Directory | 📐 **Solo diseño** | Se implementan en el E3 |
@@ -924,16 +924,25 @@ Los archivos con contraseñas no están en el repositorio: las configuraciones v
 |---|---|
 | Diez pruebas de la aplicación en contenedores (17 set) | `app/docker/README.md` |
 | Recuperación de un contenedor detenido con sus tiempos (17 set) | `infra/lab-local/README.md` |
+| Repetición de esa prueba con capturas (5 oct) | `infra/lab-local/README.md` y figuras A.1 a A.3 |
 | Validaciones de red en Packet Tracer (17 set) | `red/README.md`, sección 6 |
 | Pruebas de carga de la aplicación | `app/pruebas-carga/INFORME.md` |
 
 ### A.4 Capturas
 
+Tomadas el 5 de octubre de 2026 en la réplica local, durante una repetición de la prueba PR-02: a las 12:40:46 se detuvo el contenedor `msmotos-app` con `docker stop`, sin otra intervención.
+
+<figure><img src="../../evidencias/e2/zabbix-problemas.png" alt="Problemas en Zabbix"><figcaption>Figura A.1 · Zabbix: el trigger T01 se abre a las 12:40:58 y queda resuelto a las 12:41:58. La columna Update muestra los dos comentarios que dejó n8n: la recuperación ejecutada y el cierre</figcaption></figure>
+
+<figure><img src="../../evidencias/e2/grafana-general.png" alt="Dashboard general de Grafana"><figcaption>Figura A.2 · Dashboard general: todos los componentes arriba, el tiempo de respuesta de la aplicación y, en el historial, el evento T01 resuelto con sus dos comentarios</figcaption></figure>
+
+<figure><img src="../../evidencias/e2/grafana-tecnico.png" alt="Dashboard técnico de Grafana"><figcaption>Figura A.3 · Dashboard técnico: CPU, memoria y disco del servidor de contenedores, consumo por contenedor y el estado de los nueve contenedores de la réplica</figcaption></figure>
+
 | Captura | Estado |
 |---|---|
+| Zabbix, dashboard general y dashboard técnico | ✅ Figuras A.1 a A.3, en `docs/evidencias/e2/` |
+| Dashboards de red y de experiencia | Sin captura: sus paneles esperan el router, el switch y el RPA, que solo existen con el equipo real |
 | Topología de Packet Tracer con las validaciones V1 a V11 | Pendiente: se toma al repetir el ensayo con el ISR4321 |
-| Dashboards de Grafana con datos de la réplica local | Pendiente: se toma con la réplica local encendida |
-| Evento de Zabbix con el comentario de recuperación de n8n | Pendiente: ídem |
 | Equipo real del laboratorio (router y switch) | Tomadas en la visita del 21 set (inventario IP2-14) |
 
 ### A.5 Tablero y cronograma del proyecto
