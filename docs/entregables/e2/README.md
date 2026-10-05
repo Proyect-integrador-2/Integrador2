@@ -1,10 +1,10 @@
 # Entregable 2 — Análisis y diseño de la solución
 
-Entrega del **lunes 5 de octubre de 2026** (15 % del curso). Responde la sección 8.2 de la guía del proyecto: arquitectura física y lógica, comparación de alternativas y justificación de las tecnologías, organizado alrededor de las cinco preguntas orientadoras.
+Entrega del **lunes 5 de octubre de 2026** (15 % del curso). Sigue la *Guía de contenido, rúbrica y criterios de aceptación* del E2 (`Documentos de entregas/Entregable_2_Guia_Rubrica_Aceptacion.pdf`): las secciones 1 a 10 son los diez puntos de contenido obligatorio, la 11 trae la tabla A-01 a A-07 de la guía, y la 15 responde sus cinco preguntas orientadoras.
 
 | Archivo | Para qué |
 |---|---|
-| **[E2-Analisis-y-diseno.pdf](E2-Analisis-y-diseno.pdf)** | **El PDF que se entrega**: portada, 15 secciones y los tres diagramas en páginas horizontales (26 páginas) |
+| **[E2-Analisis-y-diseno.pdf](E2-Analisis-y-diseno.pdf)** | **El PDF que se entrega**: portada, 16 secciones, anexo de evidencias y los cuatro diagramas en páginas horizontales (34 páginas) |
 | [E2-documento-completo.md](E2-documento-completo.md) | Fuente del PDF. Consolida los diseños de `docs/diseno/` y `red/` |
 | [portada.json](portada.json) | Datos de la portada |
 
@@ -14,6 +14,7 @@ Los diagramas viven en [`docs/diagramas/`](../../diagramas/), cada uno con su fu
 |---|---|
 | `arquitectura-fisica` | Qué se cablea con qué: router, switch, servidor y las siete VMs |
 | `arquitectura-logica` | Cómo se segmenta la red y qué tráfico está permitido |
+| `flujo-comunicacion` | Recorrido de una petición del cliente hasta la base de datos, lo bloqueado y la administración |
 | `flujo-monitoreo` | Qué vigila Zabbix, qué recupera n8n y qué solo alerta |
 
 `arquitectura-general` es el diagrama del E1 y queda como historia: ya no refleja el diseño.
@@ -47,4 +48,4 @@ El comando vuelve enseguida y el PNG aparece unos segundos después.
 
 - **Revisión por dos integrantes**, como se hizo con el E1.
 - **Publicarlo en Confluence** (02 Entregables → *E2 · Análisis y diseño de la solución*) y subir los tres PNG a *03 Diseño*. El conector de Atlassian no sube imágenes: los PNG se arrastran a mano.
-- Si antes del 5 de octubre se repiten las validaciones de Packet Tracer o se conoce la RAM del servidor, actualizar las secciones 5.5, 10, 12 y 13 y regenerar el PDF.
+- Si antes del 5 de octubre se repiten las validaciones de Packet Tracer o se conoce la RAM del servidor, actualizar las secciones 3.9, 11, 13 y 14 y regenerar el PDF.
