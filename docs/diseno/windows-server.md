@@ -23,7 +23,7 @@ El profesor pidió el 21 set 2026 que MS Motos corra en **un ambiente Linux y un
 | Instalación | **Server Core con Escritorio** (*Desktop Experience*), porque simplifica la instalación de Node y MySQL |
 | IP | 10.10.30.16/24 (VLAN 30), gateway 10.10.30.1 |
 | Recursos | 2 vCPU · 4 GB RAM · 60 GB disco |
-| Acceso | Escritorio remoto solo desde la VLAN 10 (Administración) |
+| Acceso | Escritorio remoto solo desde la VLAN 40 (Administración) |
 | Dominio | Unida al dominio de Active Directory (ver [active-directory.md](active-directory.md)) |
 
 ## 3. Componentes que se instalan

@@ -48,6 +48,9 @@ Columna **Tag `remediation`**: la etiqueta que Zabbix envía a n8n para decidir 
 | T15 | Controlador de dominio caído | Servicio AD DS o DNS detenido, o la VM sin responder 2 min | Disaster | `none` | Alerta: se entra con las cuentas locales de emergencia (riesgo R-14) |
 | T16 | Inicios de sesión fallidos | Más de 10 eventos 4625 en 5 min | Warning | `none` | Alerta (RNF-09) |
 | T17 | Cuenta bloqueada | Evento 4740 | Warning | `none` | Alerta con el nombre de la cuenta |
+| T18 | Configuración de R1 o SW1 modificada | Cambió `ccmHistoryRunningLastChanged` (SNMP) | Warning | `none` | Alerta: se confirma que el cambio fue autorizado |
+| T19 | Intentos de SSH fallidos en una VM Linux | Más de 10 en 5 min en el registro de autenticación | Warning | `none` | Alerta |
+| T20 | Certificado por vencer | Menos de 15 días de vigencia | Warning | `none` | Alerta |
 
 ### Qué se recupera solo y qué no
 

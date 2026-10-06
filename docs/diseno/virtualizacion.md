@@ -52,9 +52,9 @@ Se decide cuando esté el inventario (IP2-14):
 | RAM del servidor | Ajuste |
 |---|---|
 | ≥ 32 GB | Distribución completa de la tabla |
-| 24–32 GB | Unir Grafana en `vm-zabbix` (4 → 5 GB) y bajar `vm-rpa` a 3 GB: total 21 GB |
-| 16–24 GB | Además, n8n como contenedor en `vm-zabbix` y `vm-app-win` a 3 GB: total ~17 GB |
-| < 16 GB | Juntar la aplicación de Windows y el controlador de dominio en **una sola VM Windows** (la app queda en un servidor miembro del propio dominio). Es la opción menos deseable: si esa VM cae, caen a la vez el segundo ambiente y la identidad. Se justifica en el informe como decisión por capacidad |
+| 24–32 GB | Unir Grafana en `vm-zabbix` (4 → 5 GB) y bajar `vm-rpa` a 3 GB: total 22 GB, más los 2 GB de Proxmox |
+| 20–24 GB | Además, n8n como contenedor en `vm-zabbix`, y `vm-app-win` y `vm-dc` a 3 GB: total 18 GB, más los 2 GB de Proxmox |
+| < 20 GB | Juntar la aplicación de Windows y el controlador de dominio en **una sola VM Windows** (la app queda en un servidor miembro del propio dominio). Es la opción menos deseable: si esa VM cae, caen a la vez el segundo ambiente y la identidad. Se justifica en el informe como decisión por capacidad |
 
 **Orden para apagar si falta memoria durante una demostración:** primero `vm-rpa`, después `vm-n8n`. Nunca `vm-zabbix`, porque es la fuente de todos los tableros.
 

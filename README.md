@@ -38,7 +38,7 @@ experiencia de usuario con un RPA.
 
 - Rama principal: `main` (solo por Pull Request).
 - Ramas: `<CLAVE-JIRA>-descripcion-corta` → ej. `IP2-14-vlan-administracion`.
-- Commits: `<CLAVE-JIRA> verbo en presente` → ej. `IP2-14 configura VLAN 10 y 20 en el switch`.
+- Commits: `<CLAVE-JIRA> verbo en presente` → ej. `IP2-27 configura las VLAN en el switch`.
 - **Nunca** subir `.env`, contraseñas, llaves ni respaldos de base de datos.
 
 ## Fechas oficiales

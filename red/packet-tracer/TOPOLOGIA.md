@@ -9,7 +9,7 @@ Ensayo de la red **antes** de tocar el equipo real, para llegar al laboratorio c
 | `R1` | **ISR4321** | Cisco **ISR 4221** | Packet Tracer no tiene el 4221, pero el 4321 usa los mismos nombres de interfaz (`Gi0/0/0`, `Gi0/0/1`), así que `router/R1-4221.txt` se pega sin cambiar una línea |
 | `SW1` | **2960-24TT** | Catalyst **WS-C2960-24TT-L** | Mismo modelo |
 | `ISP` | 2911 | No existe: es la red de la universidad | Simula Internet y entrega la WAN. Ver `ISP-simulado-2911.txt` |
-| `PC-ADMIN` | PC-PT | PC de administración | VLAN 10 |
+| `PC-ADMIN` | PC-PT | PC de administración | VLAN 40 (era la 10 hasta el 5 oct 2026) |
 | `PC-CLIENTE` | PC-PT | PC de usuario | VLAN 20, IP por DHCP |
 | `SRV-APP` | Server-PT | `vm-app` (10.10.30.11) | Instancia Linux de MS Motos |
 | `SRV-ZABBIX` | Server-PT | `vm-zabbix` (10.10.30.12) | Monitoreo; también es el origen SNMP permitido |
@@ -37,7 +37,7 @@ Los puertos siguen el reparto de [../README.md](../README.md) §2: Fa0/1–4 adm
 
 | Equipo | IP | Máscara | Gateway | DNS |
 |---|---|---|---|---|
-| `PC-ADMIN` | 10.10.10.10 | 255.255.255.0 | 10.10.10.1 | 8.8.8.8 |
+| `PC-ADMIN` | 10.10.40.10 | 255.255.255.0 | 10.10.40.1 | 8.8.8.8 |
 | `PC-CLIENTE` | DHCP | — | — | — |
 | `SRV-APP` | 10.10.30.11 | 255.255.255.0 | 10.10.30.1 | 8.8.8.8 |
 | `SRV-ZABBIX` | 10.10.30.12 | 255.255.255.0 | 10.10.30.1 | 8.8.8.8 |

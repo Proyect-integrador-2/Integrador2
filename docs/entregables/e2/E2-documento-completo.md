@@ -8,7 +8,7 @@ El documento sigue el orden del contenido obligatorio de la *Guía de contenido,
 |---|---|---|---|
 | Correcciones del Entregable #1 | 1 | — | — |
 | Arquitectura física y lógica | 2 | Arquitectura física y lógica | 20 % |
-| Diseño de red | 3 | Diseño de red y seguridad básica | 20 % |
+| Diseño de red | 3, y la seguridad en la 11 | Diseño de red y seguridad básica | 20 % |
 | Diseño de virtualización | 4 | Virtualización y contenedores | 15 % |
 | Diseño de contenedores | 5 | Virtualización y contenedores | 15 % |
 | Diseño de monitoreo | 6 | Diseño de monitoreo y observabilidad | 15 % |
@@ -17,7 +17,9 @@ El documento sigue el orden del contenido obligatorio de la *Guía de contenido,
 | RPA / monitoreo sintético | 9 | Automatización y RPA | 15 % |
 | Análisis comparativo y costo/beneficio | 10 | Comparación y costo/beneficio | 10 % |
 
-Después vienen los criterios y pruebas de aceptación A-01 a A-07 (sección 11), la trazabilidad con los requerimientos, que sostiene el criterio de coherencia documental (sección 12), lo que ya está validado (13), los riesgos (14), las respuestas a las preguntas orientadoras (15) y los próximos pasos (16). El **Anexo A** lista las evidencias.
+Después vienen la seguridad y ciberseguridad de la plataforma, que el profesor pidió reforzar (sección 11), los criterios y pruebas de aceptación A-01 a A-07 (sección 12), la trazabilidad con los requerimientos, que sostiene el criterio de coherencia documental (sección 13), lo que ya está validado (14), los riesgos (15), las respuestas a las preguntas orientadoras (16) y los próximos pasos (17). El **Anexo A** lista las evidencias.
+
+Los tres cambios que el profesor pidió el 5 de octubre al revisar el avance están aplicados y se resumen en la sección 1.2.
 
 ## Resumen de la solución
 
@@ -27,15 +29,18 @@ En el servidor corren **siete máquinas virtuales**: MS Motos en Linux con Docke
 
 | Elemento | Cantidad |
 |---|---|
-| VLAN | 4 en uso (10, 20, 30, 99) + nativa 999 |
+| VLAN | 4 en uso (20, 30, 40, 99) + nativa 999 |
 | Máquinas virtuales | 7: cinco Linux y dos Windows Server 2022 |
 | Ambientes de MS Motos | 2: Linux (contenedores) y Windows (servicio nativo) |
-| Triggers de Zabbix | 21: de T01 a T17, más las variantes T03-W, T09-G, T09b y T11b |
+| Triggers de Zabbix | 24: de T01 a T20, más las variantes T03-W, T09-G, T09b y T11b |
 | Fallas que se recuperan solas | 6 |
 | Dashboards de Grafana | 5 |
 | Recorridos del cliente sintético | 2, cada uno contra las dos instancias |
+| Capas con controles de seguridad | 8, de la red a la aplicación (sección 11) |
 
 ## 1. Correcciones del Entregable #1
+
+### 1.1 Retroalimentación del Entregable #1 (21 de setiembre)
 
 El profesor revisó el E1 el 21 de setiembre de 2026 y dejó observaciones en cuatro rondas. Todas se incorporaron a los requerimientos en la **versión 1.5 del E1** y se desarrollan en este diseño:
 
@@ -58,6 +63,18 @@ Además del profesor, el inventario del laboratorio (IP2-14, fotos del 21 de set
 
 Como consecuencia, el diseño pasó de 5 a **7 máquinas virtuales** y de 16 a **24 GB de RAM** asignados.
 
+### 1.2 Revisión del avance del Entregable #2 (5 de octubre)
+
+Al revisar el avance de este entregable, el profesor pidió tres cambios antes de recibirlo. Los tres están aplicados:
+
+| # | Observación del profesor | Qué se cambió | Dónde |
+|---|---|---|---|
+| 1 | Usar otra VLAN que no sea la **VLAN 10** | La VLAN de Administración pasa de la 10 a la **VLAN 40**, con la red 10.10.40.0/24. Se actualizaron el direccionamiento, los troncales, las subinterfaces, las ACL, los tres diagramas y las configuraciones de `red/` | Secciones 2.2 y 3.1 a 3.5; figuras 1 a 3 |
+| 2 | Montar la aplicación **también en un Windows Server** | El segundo ambiente ya formaba parte del diseño (RF-19). Se amplió para que quede completo: qué se instala, cómo se configura el servicio de Windows y cómo se protege y se monitorea | Secciones 4.2, 5.6 y 11.3 |
+| 3 | Trabajar en la **seguridad y ciberseguridad** del proyecto | Sección nueva con las amenazas, los controles por capa, el firewall de cada VM, el manejo de secretos, la detección y respuesta, y las pruebas de seguridad. Tres triggers nuevos (T18 a T20), el criterio CA-16 y cinco tareas (IP2-88 a IP2-92) | Sección 11; también 3.6, 6.4 y 12.2 |
+
+El cambio de VLAN no altera la lógica de la red: solo el número y el tercer octeto de la red de Administración. Los ensayos de Packet Tracer se hicieron con la VLAN 10 y se repiten con la 40 (3.9).
+
 ## 2. Arquitectura física y lógica
 
 Tres diagramas, uno por vista: la física (figura 1), la lógica (figura 2) y el flujo de comunicación (figura 3). Van juntos en páginas horizontales al final de esta sección, para que se lean a tamaño completo.
@@ -78,9 +95,9 @@ El módulo NIM-2T de dos seriales que trae el router no se usa. En el rack hay t
 
 | VLAN | Nombre | Red | Gateway | Qué hay |
 |---|---|---|---|---|
-| 10 | ADMINISTRACION | 10.10.10.0/24 | 10.10.10.1 | PC de administración, con IP fija |
 | 20 | USUARIOS | 10.10.20.0/24 | 10.10.20.1 | PC de usuarios, DHCP de .100 a .200 |
 | 30 | SERVIDORES | 10.10.30.0/24 | 10.10.30.1 | Proxmox y las siete VMs, con IP fija |
+| 40 | ADMINISTRACION | 10.10.40.0/24 | 10.10.40.1 | PC de administración, con IP fija |
 | 99 | GESTION | 10.10.99.0/24 | 10.10.99.1 | IP de gestión del switch |
 | 999 | NATIVA-SIN-USO | — | — | VLAN nativa de los troncales y puertos apagados |
 
@@ -95,7 +112,7 @@ La tabla completa de flujos, incluidos los de las herramientas entre sí (la fig
 | Clientes (VLAN 20) | `vm-app` y `vm-app-win` | TCP 80 / 443 | Usar MS Motos |
 | Nginx | `msmotos-app` | TCP 3000 en `127.0.0.1` | Proxy hacia la aplicación |
 | `msmotos-app` | `msmotos-db` | TCP 3306 en la red Docker | Datos |
-| PC-ADMIN (VLAN 10) | R1 y SW1 | SSH 22 | Administración de la red |
+| PC-ADMIN (VLAN 40) | R1 y SW1 | SSH 22 | Administración de la red |
 | PC-ADMIN | Proxmox · VMs Linux · VMs Windows | HTTPS 8006 · SSH 22 · Escritorio remoto 3389 | Administración de servidores |
 | PC-ADMIN | Zabbix · Grafana · n8n | HTTP 80 · 3000 · 5678 | Consolas de las herramientas |
 | `vm-zabbix` | R1 y SW1 | SNMP UDP 161 | Métricas de red |
@@ -128,9 +145,9 @@ La tabla completa de flujos, incluidos los de las herramientas entre sí (la fig
 
 | Equipo | VLAN | IP | Observación |
 |---|---|---|---|
-| R1 | 10, 20, 30, 99 | `.1` de cada red | Gateway de cada VLAN |
+| R1 | 20, 30, 40, 99 | `.1` de cada red | Gateway de cada VLAN |
 | SW1 | 99 | 10.10.99.2 | SSH y SNMP del switch |
-| PC-ADMIN | 10 | 10.10.10.10 | |
+| PC-ADMIN | 40 | 10.10.40.10 | IP fija |
 | Proxmox | 30 | 10.10.30.10 | Panel web en el puerto 8006 |
 | vm-app | 30 | 10.10.30.11 | MS Motos en Linux; visible para usuarios en 80/443 |
 | vm-zabbix | 30 | 10.10.30.12 | Único origen SNMP permitido |
@@ -145,9 +162,9 @@ La tabla completa de flujos, incluidos los de las herramientas entre sí (la fig
 
 | Puerto | Modo | VLAN | Conecta a |
 |---|---|---|---|
-| Gi0/1 | Troncal 802.1Q | 10, 20, 30, 99 · nativa 999 | R1 Gi0/0/1 |
+| Gi0/1 | Troncal 802.1Q | 20, 30, 40, 99 · nativa 999 | R1 Gi0/0/1 |
 | Gi0/2 | Troncal 802.1Q | 30, 99 · nativa 999 | Servidor Proxmox |
-| Fa0/1 – Fa0/4 | Acceso | 10 | PC de administración |
+| Fa0/1 – Fa0/4 | Acceso | 40 | PC de administración |
 | Fa0/5 – Fa0/12 | Acceso | 20 | PC de usuarios |
 | Fa0/13 – Fa0/20 | Acceso | 30 | Reservados para servidores |
 | Fa0/21 – Fa0/24 | Apagados | 999 | Sin uso |
@@ -160,7 +177,7 @@ Todos los puertos de acceso llevan `spanning-tree portfast` y `bpduguard`. Los d
 
 | Tramo | Cómo se enruta |
 |---|---|
-| Entre VLAN | **Router-on-a-stick:** R1 tiene una subinterfaz por VLAN en Gi0/0/1 (`.10`, `.20`, `.30`, `.99`, más `.999` nativa sin IP). Las cuatro redes son directamente conectadas, así que R1 las enruta sin configuración adicional |
+| Entre VLAN | **Router-on-a-stick:** R1 tiene una subinterfaz por VLAN en Gi0/0/1 (`.20`, `.30`, `.40`, `.99`, más `.999` nativa sin IP). Las cuatro redes son directamente conectadas, así que R1 las enruta sin configuración adicional |
 | Hacia Internet | La ruta por defecto llega por **DHCP** en Gi0/0/0 desde la red de la universidad (`ip address dhcp`). En el ensayo de Packet Tracer se usa una ruta estática `0.0.0.0/0` hacia el ISP simulado |
 | Gestión del switch | `ip default-gateway 10.10.99.1`: el switch responde a SSH y SNMP desde otras VLAN a través de R1 |
 | Servidores | Todas las VMs usan `10.10.30.1` como gateway |
@@ -175,9 +192,9 @@ Sobrecarga (PAT) en R1: las cuatro VLAN internas salen a Internet con la direcci
 
 Se implementan con la ACL extendida `ACL-USUARIOS-IN`, aplicada en la entrada de la subinterfaz de la VLAN 20.
 
-| Origen ↓ · Destino → | Administración (10) | Usuarios (20) | Servidores (30) | Gestión (99) | Internet |
+| Origen ↓ · Destino → | Administración (40) | Usuarios (20) | Servidores (30) | Gestión (99) | Internet |
 |---|---|---|---|---|---|
-| **Administración (10)** | ✅ | ✅ | ✅ Todo | ✅ | ✅ |
+| **Administración (40)** | ✅ | ✅ | ✅ Todo | ✅ | ✅ |
 | **Usuarios (20)** | ❌ | ✅ | ⚠️ **Solo 10.10.30.11 y 10.10.30.16, TCP 80/443** | ❌ | ✅ |
 | **Servidores (30)** | ✅ | ✅ Respuestas | ✅ | ✅ SNMP desde Zabbix | ✅ |
 
@@ -193,8 +210,13 @@ La separación descansa en **tres capas** que no dependen una de otra: VLAN dist
 | Contraseñas | R1 y SW1 | `enable secret`, usuario local con `secret` y `service password-encryption`. Las reales no están en el repositorio: los archivos versionados llevan `CAMBIAR-` |
 | Puertos de acceso | SW1 | Seguridad de puerto, BPDU Guard y puertos sin uso apagados en la VLAN 999 |
 | DHCP | R1 | Solo para la VLAN 20 |
+| Bloqueo de intentos | R1 y SW1 | `login block-for 120 attempts 5 within 60`: tras 5 intentos fallidos en un minuto, el equipo rechaza inicios de sesión durante 2 minutos. Cada intento, fallido o exitoso, queda registrado |
+| Suplantación en la red de usuarios | SW1 | **DHCP snooping** e **inspección dinámica de ARP** en la VLAN 20: solo R1 puede responder DHCP y nadie puede anunciarse con la dirección de otro. Control de tormentas de difusión en los puertos de usuarios |
+| Servicios que no se usan | R1 y SW1 | Servidor HTTP apagado, CDP apagado hacia la red de la universidad y sesiones inactivas cerradas a los 10 minutos |
 
-**Condición del SSH:** solo existe si la imagen del IOS incluye `k9`. Se verifica con `show version` en la primera visita; si el switch no la trae, se administra por consola y se documenta como limitación.
+Los tres últimos controles se agregaron el 5 de octubre, a raíz de la observación del profesor sobre seguridad. Están en las configuraciones de `red/` y **falta ensayarlos** (3.9). El resto de la seguridad de la plataforma, más allá de la red, está en la sección 11.
+
+**Condiciones de la imagen del IOS:** el SSH solo existe si la imagen incluye `k9`, y el DHCP snooping, la inspección ARP y el bloqueo de intentos dependen de la versión del switch. Se verifica con `show version` en la primera visita; lo que el equipo no admita se documenta como limitación.
 
 ### 3.7 Monitoreo SNMP
 
@@ -237,6 +259,7 @@ El profesor pidió Active Directory para la validación de usuarios y la segurid
 |---|---|
 | 17 set · con un 2911 | V1 y V3 a V9 correctas: DHCP, bloqueos hacia Administración, Servidores y Gestión, SSH desde Administración, NAT y salida a Internet |
 | 24 set · con ISR4321 y los dos servidores nuevos | Topología completa, 10 equipos y 8 enlaces, sin enlaces caídos ni IP duplicadas. **Falta repetir las validaciones**, incluidas las nuevas V10 (usuarios llegan a la instancia Windows) y V11 (usuarios no llegan al controlador de dominio) |
+| 5 oct · cambio a la VLAN 40 y controles nuevos | Configuraciones de `red/` actualizadas. **Falta ensayarlas:** se repiten V1 a V11 con la VLAN 40 y se prueban el DHCP snooping, la inspección ARP y el bloqueo de intentos (IP2-26 e IP2-88) |
 
 ## 4. Diseño de virtualización
 
@@ -271,14 +294,14 @@ Proxmox necesita además unos 2 GB de RAM y 20 GB de disco para sí mismo. El se
 
 ### 4.4 Si el servidor tiene menos recursos
 
-La RAM real del servidor se conoce en la primera visita (IP2-14). El ajuste se decide ahí mismo:
+La RAM real del servidor se conoce en la primera visita (IP2-14). El ajuste se decide ahí mismo. A la RAM asignada a las VMs hay que sumarle los 2 GB de Proxmox:
 
-| RAM del servidor | Ajuste | RAM asignada |
+| RAM del servidor | Ajuste | RAM asignada a las VMs |
 |---|---|---|
 | 32 GB o más | La tabla 4.2 completa | 24 GB |
-| 24 a 32 GB | Grafana se une a `vm-zabbix` (5 GB) y `vm-rpa` baja a 3 GB | 21 GB |
-| 16 a 24 GB | Además, n8n pasa a contenedor en `vm-zabbix` y `vm-app-win` baja a 3 GB | ~17 GB |
-| Menos de 16 GB | La aplicación Windows y el controlador de dominio van en **una sola VM** | La opción menos deseable (ver 4.3); se justifica en el informe |
+| 24 a 32 GB | Grafana se une a `vm-zabbix` (5 GB) y `vm-rpa` baja a 3 GB | 22 GB |
+| 20 a 24 GB | Además, n8n pasa a contenedor en `vm-zabbix`, y `vm-app-win` y `vm-dc` bajan a 3 GB | 18 GB |
+| Menos de 20 GB | La aplicación Windows y el controlador de dominio van en **una sola VM** de 4 GB | 16 GB. Es la opción menos deseable (ver 4.3); se justifica en el informe |
 
 **Si falta memoria durante una demostración,** se apaga primero `vm-rpa` y después `vm-n8n`. Nunca `vm-zabbix`.
 
@@ -400,20 +423,45 @@ Las variables viven en `app/.env`, que **no se sube a Git**; el repositorio solo
 
 **Política de reinicio:** `restart: unless-stopped`. Levanta la aplicación si se cae sola, pero **no** si alguien la detiene con `docker stop`. Ese caso es el que detecta Zabbix y recupera n8n: si Docker lo resolviera solo, la prueba de la guía no mostraría nada.
 
-### 5.6 El segundo ambiente: Windows Server
+### 5.6 El segundo ambiente: MS Motos en Windows Server 2022
 
-Para el ambiente Windows que pidió el profesor (RF-19) se eligió una **instalación nativa**, no contenedores (la comparación está en 10.3): Node.js y MySQL instalados en `vm-app-win` y la aplicación registrada como servicio de Windows.
+El profesor pidió que la aplicación corra también en un Windows Server (RF-19), y lo reiteró el 5 de octubre. Es un **segundo ambiente completo**, no una copia del de Linux: la misma aplicación instalada de forma **nativa** en `vm-app-win` (10.10.30.16) y registrada como **servicio de Windows**. Los usuarios llegan a las dos instancias, y las dos se monitorean y se recuperan solas. La comparación con las alternativas en contenedores está en 10.3.
 
-| Tema | Linux (`vm-app`) | Windows (`vm-app-win`) |
+**Qué se instala en la VM:**
+
+| Componente | Versión | Para qué |
+|---|---|---|
+| Windows Server 2022 Standard | Evaluación de 180 días, con escritorio | Sistema operativo, unido al dominio `ip2.local` |
+| Node.js LTS | 22.x, la misma del contenedor | Ejecuta el backend y sirve el frontend compilado |
+| MySQL Server | 8.4 LTS | Base de datos propia de esta instancia, solo en `127.0.0.1` |
+| NSSM | Última estable | Registra la aplicación como el servicio `MSMotos` |
+| Agente de Zabbix para Windows | 7.0 | Métricas del sistema y estado del servicio |
+
+**Cómo queda configurada:**
+
+| Tema | Decisión |
+|---|---|
+| Servicio | `MSMotos`, de inicio automático, que ejecuta `node C:\opt\msmotos\backend\src\cluster.js` |
+| Cuenta del servicio | Local y con permisos mínimos: leer la carpeta de la aplicación y escuchar en el puerto 80 |
+| Recuperación propia de Windows | Desactivada, para que la haga n8n y se pueda medir, igual que la política de reinicio de Docker |
+| Variables | En `C:\opt\msmotos\.env`, legible solo por el administrador y la cuenta del servicio. Las contraseñas y el `JWT_SECRET` son distintos a los de Linux |
+| Base de datos | El mismo `schema.sql` y la misma carga inicial, con el cliente sintético del RPA |
+| Acceso administrativo | Escritorio remoto solo desde la VLAN 40 y WinRM solo desde `vm-n8n` (reglas del Firewall de Windows en 11.3) |
+| Registro | Salida de la aplicación en `C:\opt\msmotos\logs\`, con rotación semanal |
+
+**Diferencias entre los dos ambientes:**
+
+| Tema | Linux (vm-app) | Windows (vm-app-win) |
 |---|---|---|
 | Ejecución | Docker Compose: `msmotos-app` y `msmotos-db` | Servicio de Windows `MSMotos` + MySQL instalado |
 | Entrada de los usuarios | Nginx en el 80, que reenvía a `127.0.0.1:3000` | Node escucha directo en el 80 |
 | Base de datos | Contenedor en la red interna de Docker | MySQL local en `127.0.0.1:3306` |
 | Falla que se recupera sola | Contenedor detenido (PR-02) y Nginx detenido (PR-01) | Servicio `MSMotos` detenido (PR-11) |
 | Tareas programadas | Activas | Desactivadas (`DISABLE_CRON=1`), para que no se dupliquen recordatorios ni cierres automáticos |
+| Monitoreo | Agent 2 con el plugin de Docker | Agente para Windows y estado del servicio (trigger T03-W) |
 | Datos | Independientes | Independientes: las dos instancias no se replican |
 
-Así la demostración compara **contenedor detenido** contra **servicio de Windows detenido**, con la misma aplicación. La recuperación automática del propio Windows queda desactivada, por la misma razón que la política de reinicio de Docker.
+Así la demostración compara **contenedor detenido** contra **servicio de Windows detenido**, con la misma aplicación. En el E3 se crea la VM (IP2-73), se despliega la aplicación como servicio (IP2-74) y se monitorea (IP2-75).
 
 ## 6. Diseño de monitoreo
 
@@ -453,6 +501,7 @@ Así la demostración compara **contenedor detenido** contra **servicio de Windo
 | Aplicación | Código de respuesta y tiempo de respuesta de `/api/health` y del login | 60 s |
 | Red | Estado, tráfico, errores y descartes por interfaz; CPU y memoria de los equipos; latencia y pérdida por ping | 30–60 s |
 | Seguridad del dominio | Eventos 4625 (inicio fallido) y 4740 (cuenta bloqueada), estado de AD DS y DNS | 60 s |
+| Seguridad de la plataforma | Intentos de SSH fallidos en las VMs Linux, cambios de configuración en R1 y SW1, vigencia de los certificados | 60 s |
 | Experiencia del cliente | Resultado, duración total y por paso de cada recorrido | En cada ejecución |
 | Automatización | Resultado, duración y acción de cada flujo; recuperaciones, rechazos y escalamientos | En cada ejecución |
 
@@ -481,6 +530,11 @@ Así la demostración compara **contenedor detenido** contra **servicio de Windo
 | T15 | Controlador de dominio caído | AD DS o DNS detenidos, o la VM sin responder 2 min | Disaster | Alerta |
 | T16 | Inicios de sesión fallidos | Más de 10 en 5 min | Warning | Alerta |
 | T17 | Cuenta bloqueada | Cualquier bloqueo | Warning | Alerta con el nombre de la cuenta |
+| T18 | Configuración de R1 o SW1 modificada | La configuración en ejecución cambió (SNMP) | Warning | Alerta: se confirma que el cambio fue autorizado |
+| T19 | Intentos de SSH fallidos en una VM Linux | Más de 10 en 5 min en el registro de autenticación | Warning | Alerta |
+| T20 | Certificado por vencer | Menos de 15 días de vigencia | Warning | Alerta |
+
+T18 a T20 se agregaron el 5 de octubre con la sección de seguridad (11.5).
 
 ### 6.5 Señales de degradación antes de una caída
 
@@ -545,7 +599,7 @@ Una falla se recupera sola **solo si se cumplen las cuatro condiciones**:
 | Router o switch saturado | T11 | n8n → guardar la configuración → `reload` | Telegram | Zabbix cierra el problema |
 | CPU, RAM o disco altos | T06–T08 | **Ninguna** | Telegram + correo con valor y umbral | Intervención humana |
 | Enlace de gestión caído | T09-G | **Ninguna** | Telegram + correo | Intervención humana |
-| Aplicación caída o lenta, enlace saturado, RPA, dominio | T04–T05, T10, T12–T17 | **Ninguna** | Telegram + correo | Intervención humana |
+| Aplicación caída o lenta, enlace saturado, RPA, dominio y eventos de seguridad | T04–T05, T10, T12–T20 | **Ninguna** | Telegram + correo | Intervención humana |
 
 ### 8.3 Recuperación automática de la red
 
@@ -753,7 +807,7 @@ Las dos VMs que suman las observaciones del profesor cuestan un tercio de la RAM
 
 ### 10.11 Beneficio medido
 
-La réplica local ya permite comparar la recuperación automática con la manual en un caso real, el contenedor detenido (sección 13):
+La réplica local ya permite comparar la recuperación automática con la manual en un caso real, el contenedor detenido (sección 14):
 
 | Etapa | Sin automatización | Con el diseño |
 |---|---|---|
@@ -763,9 +817,97 @@ La réplica local ya permite comparar la recuperación automática con la manual
 
 Los dos tiempos quedan dentro de lo que compromete el E1: detectar en 2 minutos o menos (RNF-01) y recuperar en 5 minutos o menos (RNF-02).
 
-## 11. Criterios y pruebas de aceptación
+## 11. Seguridad y ciberseguridad
 
-### 11.1 Criterios del Entregable #2
+El profesor pidió trabajar en la seguridad del proyecto. Esta sección reúne en un solo lugar todo lo que protege la plataforma y agrega lo que faltaba. El criterio es la **defensa por capas**: ningún control es el único que protege algo, de modo que si uno falla, el siguiente lo contiene. Cada tabla distingue lo que **ya está** en el repositorio de lo que **se construye en el E3**.
+
+### 11.1 Qué se protege y de qué
+
+| Amenaza | Cómo se vería aquí | Qué la frena | Cómo se detecta |
+|---|---|---|---|
+| Un usuario llega a las consolas | Desde un PC de la VLAN 20 alguien intenta abrir Proxmox, Zabbix o el SSH de un equipo | VLAN separadas, `ACL-USUARIOS-IN`, administración solo desde la VLAN 40 y firewall en cada VM | Contadores de la ACL; prueba PR-14 |
+| Fuerza bruta contra contraseñas | Intentos repetidos contra el dominio, el SSH o el inicio de sesión de la aplicación | Bloqueo de la cuenta a los 5 intentos, `login block-for` en la red, `fail2ban` en SSH y el límite de intentos de la aplicación | T16, T17 y T19 |
+| Equipo ajeno en un puerto del switch | Alguien conecta su portátil o un switch propio | Seguridad de puerto con 2 MAC, BPDU Guard y puertos sin uso apagados | T09b |
+| Suplantación en la red de usuarios | Un servidor DHCP falso o un envenenamiento ARP para interceptar tráfico | DHCP snooping e inspección de ARP en la VLAN 20 | Registros del switch |
+| Salto entre VLAN | Tramas con doble etiqueta o negociación de un troncal | VLAN nativa 999 sin uso, `switchport nonegotiate` y troncales solo con las VLAN necesarias | Se evita por diseño |
+| Credenciales expuestas | Una contraseña o un token en el repositorio, que es público | Secretos fuera de Git, marcadores `CAMBIAR-` y revisión del historial (11.4) | Escaneo del repositorio, prueba PR-16 |
+| Tráfico interceptado | Alguien captura credenciales que viajan en claro | HTTPS en la aplicación, SSH versión 2 y SNMPv3 si la imagen lo permite | T20 avisa antes de que el certificado venza |
+| Aplicación comprometida | Una vulnerabilidad de MS Motos da acceso a su VM | Contenedor sin root, base de datos no publicada y firewall de host que impide saltar a otras VMs | T02 y T19 |
+| Abuso de la automatización | Alguien dispara acciones de n8n o inyecta un comando | Controles C1 a C11 (8.4) | Historial de n8n y comentarios en Zabbix |
+| Cambio no autorizado | Alguien modifica el router, el switch o una herramienta | Cuentas personales del dominio, permisos por grupo y acceso solo desde la VLAN 40 | T18 y auditoría del dominio |
+| Pérdida de datos o del servidor | Falla de disco, borrado o formateo del equipo compartido | Respaldos fuera del servidor y configuraciones en GitHub (4.6) | Prueba de restauración |
+
+### 11.2 Controles por capa
+
+| Capa | Ya está en el repositorio | Se agrega en el E3 | Tarea |
+|---|---|---|---|
+| Red (R1 y SW1) | Cuatro VLAN, ACL entre ellas, PAT sin servicios publicados, SSH y SNMP solo desde direcciones autorizadas, nativa 999, seguridad de puerto, BPDU Guard y puertos sin uso apagados. Ensayado en Packet Tracer | Bloqueo tras 5 intentos, registro de inicios de sesión, DHCP snooping, inspección ARP y control de tormentas. Ya están en `red/`; falta ensayarlos | IP2-88 |
+| Hipervisor | Panel inalcanzable para los usuarios, por la ACL | Firewall de Proxmox activo, cuentas del dominio con segundo factor (TOTP) y token de solo lectura para Zabbix | IP2-89 |
+| VMs Linux | Diseño sin entorno gráfico y con acceso por llave | `ufw` con denegación por defecto, SSH sin contraseña ni root, `fail2ban` y actualizaciones de seguridad automáticas | IP2-89 |
+| VMs Windows | Diseño unido al dominio, con política de grupo | Firewall de Windows con lista blanca, escritorio remoto con autenticación a nivel de red, Microsoft Defender, Windows Update y SMBv1 deshabilitado | IP2-89 |
+| Contenedores | Sin root (`USER node`), base de datos solo en la red interna, puerto 3000 solo en `127.0.0.1` e imágenes con versión fija. Probado | `no-new-privileges`, sin capacidades de Linux, límites de memoria y CPU, e imagen revisada con Trivy antes de desplegar | IP2-90 |
+| Aplicación | Contraseñas con `bcrypt`, sesiones con JWT firmado y límite por dirección IP: 600 solicitudes por minuto y 30 intentos de autenticación cada 15 minutos. Está en el código de MS Motos | HTTPS con certificado interno en Nginx, redirección del 80 al 443 y cabeceras de seguridad. En Windows, IIS como proxy inverso si el tiempo alcanza; si queda en HTTP, se documenta como riesgo aceptado | IP2-90 |
+| Identidad | Diseño del dominio: permisos por grupo, bloqueo a los 5 intentos y cuentas de emergencia (3.8) | Controlador de dominio, política de grupo e integración de las herramientas | IP2-79 a IP2-81 |
+| Automatización | Lista cerrada de acciones, límite de reintentos, webhook con token y usuario restringido (8.4). Probado en la réplica local | Cuenta `n8n-net` con privilegios limitados en el router y el switch | IP2-85 |
+
+### 11.3 Firewall de cada VM
+
+Todas las VMs comparten la VLAN 30, así que la ACL del router no filtra el tráfico **entre ellas**. Eso lo hace el firewall de cada una, con denegación por defecto y esta lista blanca. Si una VM se compromete, no puede saltar a las consolas de las demás.
+
+| Equipo | Entrada permitida (todo lo demás se rechaza) |
+|---|---|
+| `vm-app` | 80 y 443 desde las VLAN 20 y 40, `vm-zabbix` y `vm-rpa` · 22 desde la VLAN 40 y `vm-n8n` |
+| `vm-app-win` | 80 y 443 desde las VLAN 20 y 40, `vm-zabbix` y `vm-rpa` · 3389 desde la VLAN 40 · 5985 (WinRM) solo desde `vm-n8n` |
+| `vm-zabbix` | 80 desde la VLAN 40 y `vm-grafana` · 10051 desde las VMs de la VLAN 30 · 22 desde la VLAN 40 |
+| `vm-grafana` | 3000 y 22 desde la VLAN 40 |
+| `vm-n8n` | 5678 desde la VLAN 40 y `vm-zabbix` (webhook) · 22 desde la VLAN 40 |
+| `vm-rpa` | Solo 22 desde la VLAN 40: no ofrece ningún servicio |
+| `vm-dc` | DNS, Kerberos y LDAP desde las VMs de la VLAN 30 · 3389 desde la VLAN 40 |
+| Proxmox | 8006 desde la VLAN 40 y `vm-zabbix` · 22 desde la VLAN 40 |
+
+Los agentes de Zabbix trabajan en modo activo: son ellos los que se conectan al servidor, así que ninguna VM necesita abrir un puerto para ser monitoreada.
+
+### 11.4 Secretos y repositorio
+
+| Secreto | Dónde vive | Protección |
+|---|---|---|
+| Contraseñas de MySQL y `JWT_SECRET` | `app/.env` en Linux y `C:\opt\msmotos\.env` en Windows | Fuera de Git, legibles solo por su dueño y distintos en cada instancia |
+| Contraseñas y comunidad SNMP de R1 y SW1 | Archivo local, fuera del repositorio | Las configuraciones versionadas llevan `CAMBIAR-` en su lugar |
+| Credenciales de SSH, WinRM, Telegram y correo de la automatización | Dentro de n8n | Cifradas con la llave de n8n, que tampoco va a Git |
+| Token del webhook y token de la API de Proxmox | Variables de entorno de Zabbix y n8n | El de Proxmox es de solo lectura; los dos se cambian antes de la demostración final |
+| Contraseña de `svc-ldap` y cuentas de emergencia | Fuera del repositorio, en custodia de los administradores | Solo el grupo de administradores las conoce |
+
+**El repositorio es público** desde el 5 de octubre, para que el profesor pueda revisarlo. Antes de abrirlo se revisó el historial completo: nunca se versionó un `.env` ni una carpeta de secretos, y ninguna de las contraseñas ni de los tokens reales aparece en ningún commit. Desde el E3 esa revisión se repite con `gitleaks` antes de cada entrega. Si un secreto llegara a exponerse, se cambia de inmediato: borrarlo del historial no basta.
+
+### 11.5 Detección y respuesta
+
+| Evento | Cómo se detecta | Qué se hace |
+|---|---|---|
+| Inicios de sesión fallidos en el dominio o cuenta bloqueada | T16 y T17 | Un administrador revisa de dónde vinieron; la cuenta se desbloquea solo después de confirmar con su dueño |
+| Intentos de SSH fallidos | T19 | `fail2ban` bloquea la dirección de origen y se revisa de qué equipo vino |
+| Violación de la seguridad de puerto | T09b | n8n reactiva el puerto hasta 3 veces; si se repite, se revisa qué se conectó |
+| Cambio de configuración en R1 o SW1 | T18 | Se confirma con quien lo hizo. Si nadie lo reconoce, se restaura la configuración respaldada en GitHub y se cambian las contraseñas |
+| Certificado por vencer | T20 | Se renueva antes de que los clientes vean la advertencia |
+| Secreto expuesto | Escaneo del repositorio o aviso de un integrante | Se cambia el secreto, se revisan los accesos y se anota en el registro de riesgos |
+| VM comprometida o con comportamiento anómalo | T02, T06 a T08 o T19 | Se aísla desconectando su interfaz virtual en Proxmox, se conserva una copia para revisarla y se restaura del último respaldo |
+
+Estas alertas llegan por Telegram y correo como las demás (8.5). Salvo la reactivación del puerto y el bloqueo de `fail2ban`, **ninguna dispara una acción automática**: ante un evento de seguridad decide una persona.
+
+### 11.6 Cómo se va a comprobar
+
+| Prueba | Qué se hace | Resultado esperado |
+|---|---|---|
+| PR-09 y PR-10 | Acceso por rol y segmentación, desde un PC de usuarios hacia cada red | Solo llega a las dos instancias y a Internet |
+| PR-13 | Acceso por grupos del dominio | Un administrador edita, un operador solo ve y una cuenta sin grupo es rechazada |
+| **PR-14** | Barrido de puertos desde la VLAN 20 hacia Servidores, Administración y Gestión | Solo responden el 80 y el 443 de las dos instancias |
+| **PR-15** | Fuerza bruta controlada contra una cuenta de prueba del dominio, el SSH de una VM y el router | La cuenta se bloquea a los 5 intentos, el equipo rechaza nuevos intentos y llegan T16, T17 y T19 |
+| **PR-16** | Trivy sobre la imagen de MS Motos y `gitleaks` sobre el repositorio | Sin vulnerabilidades críticas pendientes ni secretos |
+
+Las tres pruebas nuevas se ejecutan en el E4 (IP2-92), solo sobre el equipo del proyecto y en horario de laboratorio.
+
+## 12. Criterios y pruebas de aceptación
+
+### 12.1 Criterios del Entregable #2
 
 La tabla de la guía, con la evidencia de cada criterio:
 
@@ -775,20 +917,20 @@ La tabla de la guía, con la evidencia de cada criterio:
 | A-02 | Segmentación | Se definen mínimo dos VLAN y las reglas de acceso entre ellas | Cuatro VLAN más la nativa (2.2 y 3.1), matriz de acceso y ACL (3.5); configuración en `red/router/R1-4221.txt` | **Cumple** |
 | A-03 | Internet | Se documenta salida a Internet mediante NAT/PAT | Sección 3.4 y ruta por defecto en 3.3; ensayo V8 y V9 en Packet Tracer (3.9) | **Cumple** |
 | A-04 | Capacidad | Cada VM tiene dimensionamiento propuesto | Tabla 4.2 (CPU, RAM, disco y sistema de las 7 VMs) y plan de ajuste 4.4 | **Cumple** |
-| A-05 | Monitoreo | Cada capa posee métricas y umbrales definidos | Métricas por capa (6.3), 21 triggers con umbrales (6.4) y señales de degradación (6.5) | **Cumple** |
+| A-05 | Monitoreo | Cada capa posee métricas y umbrales definidos | Métricas por capa (6.3), 24 triggers con umbrales (6.4) y señales de degradación (6.5) | **Cumple** |
 | A-06 | Automatización | Se distingue qué eventos se remedian y cuáles solo generan aviso | Criterio (8.1) y matriz de remediación y aviso (8.2) | **Cumple** |
 | A-07 | RPA | Se define una operación funcional de usuario y cómo se medirá | Recorridos del cliente (9.1) y métricas en Zabbix (9.2) | **Cumple** |
 
-### 11.2 Criterios de la solución terminada
+### 12.2 Criterios de la solución terminada
 
-Los criterios A-01 a A-07 verifican el diseño. La solución que se construye en el E3 y se prueba en el E4 se acepta cuando cumple los **criterios mínimos de la sección 10 de la guía del proyecto**, más los que sumó el profesor. Cada uno tiene su prueba y un resultado medible. **PR-11 a PR-13 son nuevas**: cubren los requerimientos que se agregaron después del E1.
+Los criterios A-01 a A-07 verifican el diseño. La solución que se construye en el E3 y se prueba en el E4 se acepta cuando cumple los **criterios mínimos de la sección 10 de la guía del proyecto**, más los que sumó el profesor. Cada uno tiene su prueba y un resultado medible. **PR-11 a PR-16 son nuevas**: cubren los requerimientos que se agregaron después del E1 y las pruebas de seguridad de la sección 11.
 
 | ID | Criterio | Prueba | Resultado esperado | Estado |
 |---|---|---|---|---|
 | CA-01 | MS Motos funciona dentro de contenedores | Despliegue de `vm-app` | `/api/health` responde 200 y los datos sobreviven a reiniciar los contenedores | ✅ Probado en la réplica local |
 | CA-02 | Servidor on-premise con las VMs necesarias | Inventario de Proxmox | Las 7 VMs encendidas, con IP fija y acceso administrativo | Pendiente del laboratorio |
 | CA-03 | Red con router, switch, Internet, NAT/PAT y al menos dos VLAN | PR-10 | V1 a V11 correctas; traducciones NAT activas | ⚠️ Ensayado en Packet Tracer |
-| CA-04 | Administradores y usuarios acceden según los permisos | PR-09 y PR-10 | Usuarios: solo las dos instancias en 80/443; Administración: todo; SSH solo desde la VLAN 10 | ⚠️ Ensayado en Packet Tracer |
+| CA-04 | Administradores y usuarios acceden según los permisos | PR-09 y PR-10 | Usuarios: solo las dos instancias en 80/443; Administración: todo; SSH solo desde la VLAN 40 | ⚠️ Ensayado en Packet Tracer |
 | CA-05 | Zabbix monitorea infraestructura, red, VMs, contenedores, servicios y aplicación | Revisión de hosts | Todos los hosts de la sección 6.2 con datos y sin ítems en error | Pendiente del laboratorio |
 | CA-06 | Grafana presenta los dashboards general, técnico, de red y de experiencia | Revisión de dashboards | Los cinco, incluido el de automatización, con datos reales y colores de umbral | ⚠️ Cuatro probados en la réplica local |
 | CA-07 | Recuperación automática de un servicio detenido | PR-01 | Detección en 2 min o menos y recuperación en 5 min o menos | Pendiente |
@@ -800,15 +942,16 @@ Los criterios A-01 a A-07 verifican el diseño. La solución que se construye en
 | CA-13 | MS Motos corre en Linux y en Windows Server, y ambos se monitorean | **PR-11** · servicio de Windows detenido | Ídem CA-07, con el servicio `MSMotos` | Pendiente |
 | CA-14 | Ante un evento de red, la automatización reinicia la interfaz o el equipo | **PR-12** · IP2-87 | Interfaz de acceso recuperada sola; un enlace de gestión **no** se toca y solo alerta | Pendiente del laboratorio |
 | CA-15 | El personal de TI entra con su cuenta del dominio, según su grupo | **PR-13** · IP2-83 | Un administrador edita, un operador solo ve, y una cuenta sin grupo es rechazada en cada herramienta | Pendiente |
+| CA-16 | La plataforma resiste las pruebas básicas de seguridad | **PR-14 a PR-16** · IP2-92 | Desde la VLAN 20 solo responden el 80 y el 443 de las dos instancias; la fuerza bruta termina en bloqueo y alerta; sin vulnerabilidades críticas ni secretos en el repositorio | Pendiente |
 
-**Estado al 5 de octubre:** 2 criterios probados, 3 ensayados o probados en parte, y 10 pendientes de construir en el E3 y probar en el E4.
+**Estado al 5 de octubre:** 2 criterios probados, 3 ensayados o probados en parte, y 11 pendientes de construir en el E3 y probar en el E4.
 
-## 12. Trazabilidad: de los requerimientos al diseño
+## 13. Trazabilidad: de los requerimientos al diseño
 
 | Requerimiento | Cómo lo resuelve el diseño | Sección |
 |---|---|---|
 | RF-01 · NAT/PAT | Sobrecarga en R1 Gi0/0/0 para las cuatro VLAN | 3.4 |
-| RF-02 · VLAN y troncales | VLAN 10, 20, 30 y 99; troncales hacia R1 y el servidor | 2.2, 3.2 |
+| RF-02 · VLAN y troncales | VLAN 20, 30, 40 y 99; troncales hacia R1 y el servidor | 2.2, 3.2 |
 | RF-03 · Enrutamiento entre VLAN | Router-on-a-stick en R1 | 3.3 |
 | RF-04 · Usuarios sin acceso a la infraestructura | `ACL-USUARIOS-IN` y SSH solo desde Administración | 3.5, 3.6 |
 | RF-05 · Hipervisor y VMs | Proxmox VE y siete VMs dimensionadas | 4 |
@@ -816,7 +959,7 @@ Los criterios A-01 a A-07 verifican el diseño. La solución que se construye en
 | RF-07 · Persistencia, redes, variables y puertos | Volumen, red interna de Docker, archivo de entorno, puertos | 5.4, 5.5 |
 | RF-08 · Zabbix monitorea todas las capas | Hosts de servidor, VMs, contenedores, servicios, aplicación, router y switch | 6.2 |
 | RF-09 · Métricas | CPU, memoria, disco, red, latencia, disponibilidad y tiempo de respuesta | 6.3 |
-| RF-10 · Triggers con umbrales | T01 a T17, incluidas caída y saturación de interfaces | 6.4 |
+| RF-10 · Triggers con umbrales | T01 a T20, incluidas caída y saturación de interfaces | 6.4 |
 | RF-11 · Cinco dashboards | General, técnico, red, experiencia y automatización | 7 |
 | RF-12 · Servicio detenido | T03 y T03-W | 8.2 |
 | RF-13 · Contenedor detenido | T01 | 8.2 |
@@ -834,14 +977,14 @@ Los criterios A-01 a A-07 verifican el diseño. La solución que se construye en
 | RNF-03 · Automatizaciones seguras | Controles C1 a C3 | 8.4 |
 | RNF-04 · Trazabilidad | Control C6 | 8.4 |
 | RNF-05 · Alertas accionables | Formato de alerta | 8.5 |
-| RNF-06 · Seguridad | Sin credenciales en Git, SNMP restringido, privilegios mínimos | 3.6, 3.7, 8.4 |
+| RNF-06 · Seguridad | Defensa por capas: segmentación, firewall de host, privilegios mínimos, secretos fuera de Git, detección y respuesta | 3.5 a 3.8, 8.4, 11 |
 | RNF-07 · Reproducibilidad | Configuraciones, dashboards y flujos versionados en GitHub | Anexo A |
 | RNF-09 · Seguridad de las cuentas | Política de grupo del dominio y triggers T16 y T17 | 3.8, 6.4 |
 | RNF-10 · Reinicios de red controlados | Orden, límites y exclusiones | 8.3 |
 
 RNF-08 (gestión del proyecto) no es de diseño: se sigue en Jira y en las minutas semanales.
 
-## 13. Qué ya está validado y qué es todavía diseño
+## 14. Qué ya está validado y qué es todavía diseño
 
 Este documento es un diseño, pero una parte ya se construyó y se probó fuera del laboratorio, en una réplica local con Docker y en Packet Tracer. Se distingue para que ninguna decisión se lea como probada si no lo está.
 
@@ -851,11 +994,12 @@ Este documento es un diseño, pero una parte ya se construyó y se probó fuera 
 | Recuperación de un contenedor detenido (PR-02) | ✅ **Probado** · 17 set (dos corridas) y 5 oct | 17 set: detección a los 83 s y 114 s, evento cerrado a los 142 s y 173 s. **5 oct: detección a los 12 s, contenedor arriba 1 s después y evento cerrado a los 72 s**, con los dos comentarios de n8n en el evento de Zabbix (capturas A.4). Cumple RNF-01 y RNF-02 |
 | Controles de la automatización | ✅ **Probado** · 17 set | Webhook con token inválido descartado; el usuario restringido puede iniciar la aplicación y **no** puede listar contenedores ni detener la base |
 | Dashboards general, técnico, red y experiencia | ✅ **Probados** · 17 set, verificados otra vez el 5 oct | 20 de 29 paneles de métricas con datos; los 9 restantes esperan el router, el switch y el RPA, que solo existen con el equipo real. Capturas del general y del técnico en A.4 |
-| Configuración de red | ⚠️ **Ensayada en Packet Tracer** | Validaciones V1 y V3 a V9 correctas el 17 set; la topología actualizada del 24 set está pendiente de repetirlas |
+| Configuración de red | ⚠️ **Ensayada en Packet Tracer** | Validaciones V1 y V3 a V9 correctas el 17 set; la topología actualizada del 24 set está pendiente de repetirlas, y el cambio a la VLAN 40 y los controles nuevos del 5 oct están sin ensayar |
+| Repositorio sin secretos | ✅ **Verificado** · 5 oct | Revisión del historial completo antes de hacerlo público: ningún `.env`, ninguna carpeta de secretos y ninguna contraseña ni token real en ningún commit |
 | Dashboard de automatización | ⚠️ **Construido, sin cargar** | 7 paneles; falta verlo en Grafana con datos |
-| Servicio detenido (PR-01), ambiente Windows, recuperación de red, RPA, Active Directory | 📐 **Solo diseño** | Se implementan en el E3 |
+| Servicio detenido (PR-01), ambiente Windows, recuperación de red, RPA, Active Directory y el endurecimiento de la sección 11 | 📐 **Solo diseño** | Se implementan en el E3 |
 
-## 14. Riesgos del diseño y decisiones pendientes
+## 15. Riesgos del diseño y decisiones pendientes
 
 | Pendiente | Qué decide | Cuándo |
 |---|---|---|
@@ -865,14 +1009,16 @@ Este documento es un diseño, pero una parte ya se construyó y se probó fuera 
 | Dirección WAN por DHCP | Si R1 recibe salida a Internet directamente | Primera visita (riesgo R-05) |
 | Telegram y correo desde la red de la universidad | Si las notificaciones salen o se usa otro canal | Primera visita (riesgo R-04) |
 | Equipos asignados al grupo | Cuál router y cuál switch del rack son del grupo | Primera visita (riesgo R-01) |
+| Funciones de seguridad del switch | Si el DHCP snooping, la inspección ARP y el bloqueo de intentos se aplican o se documentan como limitación | Primera visita, con `show version` |
+| HTTPS en la instancia Windows | Si se publica con IIS como proxy inverso o queda en HTTP como riesgo aceptado | Durante el E3 (IP2-90) |
 
 Ninguno cambia la arquitectura: el que más impacto puede tener es la RAM, y su respuesta ya está planificada en 4.4.
 
-## 15. Respuestas a las preguntas orientadoras
+## 16. Respuestas a las preguntas orientadoras
 
 **¿Por qué se eligió cada tecnología?** Por costo cero sin limitaciones, porque cada una resuelve su parte sin desarrollo propio y porque encajan entre sí: Proxmox lleva las VLAN a las VMs por un solo troncal, Docker ya tenía la aplicación probada, Zabbix concentra todas las fuentes, Grafana presenta un tablero por audiencia, n8n recibe las alertas de Zabbix sin plugins y Robot Framework mide cada paso del cliente sintético. Las alternativas descartadas y su costo están en la sección 10.
 
-**¿Cómo se separará el tráfico administrativo del tráfico de usuarios?** En tres capas independientes. Primero, VLAN distintas: Administración (10), Usuarios (20), Servidores (30) y Gestión (99). Segundo, la ACL en la entrada de la VLAN 20 deja a los usuarios llegar solo a las dos instancias de MS Motos por HTTP y HTTPS, y a Internet; todo lo demás queda bloqueado, incluidas las consolas y el controlador de dominio. Tercero, cada equipo acepta administración solo desde la VLAN 10. Secciones 3.5 y 3.6, y figura 3.
+**¿Cómo se separará el tráfico administrativo del tráfico de usuarios?** En tres capas independientes. Primero, VLAN distintas: Administración (40), Usuarios (20), Servidores (30) y Gestión (99). Segundo, la ACL en la entrada de la VLAN 20 deja a los usuarios llegar solo a las dos instancias de MS Motos por HTTP y HTTPS, y a Internet; todo lo demás queda bloqueado, incluidas las consolas y el controlador de dominio. Tercero, cada equipo acepta administración solo desde la VLAN 40. Además, el firewall de cada VM limita quién llega a cada puerto. Secciones 3.5, 3.6 y 11.3, y figura 3.
 
 **¿Qué métricas permiten detectar una degradación antes de una caída?** Las que cambian antes de la falla: el tiempo de respuesta del login (más de 2 s), la duración de los recorridos del cliente sintético (más de 10 y 20 s), el estado *unhealthy* del contenedor, la CPU, la memoria y el disco en su nivel de aviso (85 %, 15 % libre y 80 %), el uso de los enlaces sobre el 70 % y los errores de interfaz. Cada una tiene un umbral de aviso por debajo del de falla. Sección 6.5.
 
@@ -880,7 +1026,7 @@ Ninguno cambia la arquitectura: el que más impacto puede tener es la RAM, y su 
 
 **¿Cómo se medirá la experiencia real de usuario?** Con un cliente sintético que usa el portal de clientes como lo haría uno real: cada 5 minutos consulta sus motos, su historial y sus órdenes, y cada 30 minutos agenda una cita y la cancela. Mide la duración de cada paso y del recorrido completo en las dos instancias, registra dónde y por qué falla, y lo envía a Zabbix. Sección 9.
 
-## 16. Próximos pasos hacia el E3 (2 de noviembre)
+## 17. Próximos pasos hacia el E3 (2 de noviembre)
 
 | Paso | Tareas |
 |---|---|
@@ -891,6 +1037,7 @@ Ninguno cambia la arquitectura: el que más impacto puede tener es la RAM, y su 
 | Dominio, política de grupo e integración de las herramientas | IP2-80, IP2-81, IP2-82 |
 | Flujos de n8n, incluida la recuperación de red | IP2-50 a IP2-53, IP2-85, IP2-86 |
 | Cliente sintético contra las dos instancias | IP2-56, IP2-76 |
+| Endurecimiento de la red, las VMs y la aplicación, y triggers de seguridad | IP2-88, IP2-89, IP2-90, IP2-91 |
 
 ## Anexo A · Evidencias
 

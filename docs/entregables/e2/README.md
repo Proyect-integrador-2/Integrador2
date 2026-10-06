@@ -1,10 +1,12 @@
 # Entregable 2 — Análisis y diseño de la solución
 
-Entrega del **lunes 5 de octubre de 2026** (15 % del curso). Sigue la *Guía de contenido, rúbrica y criterios de aceptación* del E2 (`Documentos de entregas/Entregable_2_Guia_Rubrica_Aceptacion.pdf`): las secciones 1 a 10 son los diez puntos de contenido obligatorio, la 11 trae la tabla A-01 a A-07 de la guía, y la 15 responde sus cinco preguntas orientadoras.
+Entrega del **lunes 5 de octubre de 2026** (15 % del curso). Sigue la *Guía de contenido, rúbrica y criterios de aceptación* del E2 (`Documentos de entregas/Entregable_2_Guia_Rubrica_Aceptacion.pdf`): las secciones 1 a 10 son los diez puntos de contenido obligatorio, la 11 es la seguridad y ciberseguridad, la 12 trae la tabla A-01 a A-07 de la guía, y la 16 responde sus cinco preguntas orientadoras.
+
+El 5 de octubre, al revisar el avance, el profesor pidió tres cambios antes de recibirlo: usar otra VLAN que no fuera la 10 (Administración pasó a la **VLAN 40**, red 10.10.40.0/24), montar la aplicación también en un Windows Server (sección 5.6 ampliada) y trabajar la seguridad (sección 11 nueva). Están resumidos en la sección 1.2 del documento.
 
 | Archivo | Para qué |
 |---|---|
-| **[E2-Analisis-y-diseno.pdf](E2-Analisis-y-diseno.pdf)** | **El PDF que se entrega**: portada, 16 secciones, anexo de evidencias y los cuatro diagramas en páginas horizontales (35 páginas) |
+| **[E2-Analisis-y-diseno.pdf](E2-Analisis-y-diseno.pdf)** | **El PDF que se entrega**: portada, 17 secciones, anexo de evidencias y los cuatro diagramas en páginas horizontales (42 páginas) |
 | [E2-documento-completo.md](E2-documento-completo.md) | Fuente del PDF. Consolida los diseños de `docs/diseno/` y `red/` |
 | [portada.json](portada.json) | Datos de la portada |
 
@@ -44,8 +46,10 @@ Invoke-CommandInDesktopPackage -PackageFamilyName $pkg.PackageFamilyName -AppId 
 
 El comando vuelve enseguida y el PNG aparece unos segundos después.
 
-## Pendiente antes de entregar
+## Pendiente
 
 - **Revisión por dos integrantes**, como se hizo con el E1.
-- **Publicarlo en Confluence** (02 Entregables → *E2 · Análisis y diseño de la solución*) y subir los tres PNG a *03 Diseño*. El conector de Atlassian no sube imágenes: los PNG se arrastran a mano.
-- Si antes del 5 de octubre se repiten las validaciones de Packet Tracer o se conoce la RAM del servidor, actualizar las secciones 3.9, 11, 13 y 14 y regenerar el PDF.
+- **Repetir el ensayo de Packet Tracer** con la VLAN 40 y los controles nuevos (DHCP snooping, inspección ARP, bloqueo de intentos): IP2-26 e IP2-88.
+- Cuando se conozca la RAM del servidor, actualizar las secciones 2.1, 4.4 y 15.
+
+En Confluence el documento está en 02 Entregables → *E2 · Análisis y diseño de la solución* → *E2 · Documento de entrega*, con las imágenes enlazadas desde este repositorio.

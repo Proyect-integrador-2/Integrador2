@@ -89,7 +89,7 @@ Primero el switch, porque el router necesita el trunk para que sus subinterfaces
 | PC-ADMIN | — | SW1 | Fa0/1 |
 | PC-CLIENTE | — | SW1 | Fa0/5 |
 
-PC-ADMIN va con IP fija **10.10.10.10**, máscara 255.255.255.0, gateway 10.10.10.1. PC-CLIENTE se deja en **automático**: la dirección se la da el router.
+PC-ADMIN va con IP fija **10.10.40.10**, máscara 255.255.255.0, gateway 10.10.40.1. PC-CLIENTE se deja en **automático**: la dirección se la da el router.
 
 ## 6. Validar (IP2-29) y dejar la evidencia
 
@@ -100,7 +100,7 @@ Las mismas pruebas del ensayo, ahora sobre equipo real. Anotar el resultado de c
 | V1 | PC-CLIENTE recibe dirección por DHCP | 10.10.20.100 o superior |
 | V2 | PC-CLIENTE abre `http://10.10.30.11` | ✅ Responde |
 | V3 | PC-CLIENTE hace ping a 10.10.30.12 | ❌ Bloqueado |
-| V4 | PC-CLIENTE hace ping a 10.10.10.10 | ❌ Bloqueado |
+| V4 | PC-CLIENTE hace ping a 10.10.40.10 | ❌ Bloqueado |
 | V5 | PC-CLIENTE llega a 10.10.99.2 | ❌ Bloqueado |
 | V6 | PC-ADMIN alcanza usuarios y servidores | ✅ Responde |
 | V7 | PC-ADMIN entra por SSH a SW1 | ✅ Acceso (si hay imagen `k9`) |

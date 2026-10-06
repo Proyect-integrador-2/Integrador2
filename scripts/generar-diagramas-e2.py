@@ -132,12 +132,12 @@ sw1 = d.caja("<b>SW1</b> · Catalyst WS-C2960-24TT-L<br>IOS 12.2(50)SE5 · 24 Fa
              550, 360, 300, 64, *C["net"], tam=12)
 
 d.flecha(nube, r1, "Gi0/0/0 · WAN por DHCP", color=INFO, sale=(0.5, 0.92), entra=(0.5, 0))
-d.flecha(r1, sw1, "Gi0/0/1 ↔ Gi0/1 · trunk 802.1Q<br>VLAN 10, 20, 30, 99 · nativa 999",
+d.flecha(r1, sw1, "Gi0/0/1 ↔ Gi0/1 · trunk 802.1Q<br>VLAN 20, 30, 40, 99 · nativa 999",
          color=INFO, ancho=3, sale=(0.5, 1), entra=(0.5, 0))
 
-padm = d.caja("<b>PC-ADMIN</b><br>VLAN 10 · 10.10.10.10", 60, 470, 200, 56, *C["v10"])
+padm = d.caja("<b>PC-ADMIN</b><br>VLAN 40 · 10.10.40.10", 60, 470, 200, 56, *C["v10"])
 pcli = d.caja("<b>PC-CLIENTE</b><br>VLAN 20 · IP por DHCP", 60, 580, 200, 56, *C["v20"])
-d.flecha(sw1, padm, "Fa0/1 · acceso VLAN 10", sale=(0, 0.35), entra=(0.5, 0),
+d.flecha(sw1, padm, "Fa0/1 · acceso VLAN 40", sale=(0, 0.35), entra=(0.5, 0),
          puntos=[(160, 382)])
 d.flecha(sw1, pcli, "Fa0/5 · acceso VLAN 20", sale=(0, 0.75), entra=(1, 0.5),
          puntos=[(380, 408), (380, 608)])
@@ -197,9 +197,9 @@ r1 = d.caja("<b>R1</b> · gateway .1 de cada VLAN<br>NAT/PAT · DHCP de la VLAN 
             560, 195, 280, 60, *C["net"])
 d.flecha(r1, inet, "NAT/PAT (overload) por Gi0/0/0", color=INFO, sale=(0.5, 0), entra=(0.5, 0.92))
 
-z10 = d.zona("VLAN 10 · ADMINISTRACIÓN<br><font style='font-weight:normal'>10.10.10.0/24</font>",
+z10 = d.zona("VLAN 40 · ADMINISTRACIÓN<br><font style='font-weight:normal'>10.10.40.0/24</font>",
              40, 320, 330, 170, "v10")
-adm = d.caja("<b>PC-ADMIN</b> · 10.10.10.10<br>IP fija", 70, 400, 270, 50, "#ffffff", C["v10"][1])
+adm = d.caja("<b>PC-ADMIN</b> · 10.10.40.10<br>IP fija", 70, 400, 270, 50, "#ffffff", C["v10"][1])
 
 z20 = d.zona("VLAN 20 · USUARIOS<br><font style='font-weight:normal'>10.10.20.0/24 · DHCP .100–.200</font>",
              40, 560, 330, 250, "v20")
@@ -243,7 +243,7 @@ d.flecha(cli, nodos30["appwin"], "", color=OK, ancho=3, sale=(1, 0.7),
 d.flecha(cli, adm, "✘ bloqueado", color=NO, punteada=True, sale=(0.85, 0), entra=(0.85, 1))
 
 # Administracion
-d.flecha(adm, svi, "✔ administración: acceso total · SSH solo desde la VLAN 10 (ACL-SSH-ADMIN)",
+d.flecha(adm, svi, "✔ administración: acceso total · SSH solo desde la VLAN 40 (ACL-SSH-ADMIN)",
          color=INFO, sale=(0.85, 0), entra=(0.5, 0), puntos=[(300, 290), (1195, 290)])
 
 d.texto("<b>Leyenda</b><br>"
@@ -251,7 +251,7 @@ d.texto("<b>Leyenda</b><br>"
         "<font color='#c62828'>╌╌</font> bloqueado por la ACL<br>"
         "<font color='#1f5fa8'>━━</font> administración",
         1040, 540, 320, 90, tam=11)
-d.texto("<b>Bloqueado para la VLAN 20:</b> VLAN 10, VLAN 99, el resto de la VLAN 30 "
+d.texto("<b>Bloqueado para la VLAN 20:</b> VLAN 40, VLAN 99, el resto de la VLAN 30 "
         "(incluido el controlador de dominio) y las IP del router en otras VLAN.",
         1040, 640, 320, 70, tam=11)
 d.texto("<b>Por qué VLAN 99 y 999:</b> la gestión del switch no comparte red con los usuarios, "
@@ -370,12 +370,12 @@ d.flecha(pve, svc, "", color=OK, ancho=3, sale=(0.75, 1), entra=(0, 0.5), puntos
 d.texto("④ .16:80", 960, 396, 70, 20, tam=11, extra=etiq)
 d.flecha(svc, my, "", color=OK, ancho=2, sale=(1, 0.5), entra=(0, 0.5))
 
-bloq = d.caja("<font color='#c62828'><b>✘ Bloqueado para la VLAN 20</b></font><br>VLAN 10, VLAN 99, el resto de la VLAN 30 "
+bloq = d.caja("<font color='#c62828'><b>✘ Bloqueado para la VLAN 20</b></font><br>VLAN 40, VLAN 99, el resto de la VLAN 30 "
               "(incluido <b>vm-dc</b>) y las IP del router en otras VLAN", 30, 340, 430, 76, "#ffebee", NO, tam=11)
 d.flecha(cli, bloq, "", color=NO, punteada=True, sale=(0.5, 1), entra=(0.19, 0))
 
-adm = d.caja("<b>PC-ADMIN</b><br>VLAN 10 · 10.10.10.10", 30, 540, 170, 64, *C["v10"])
-dest = d.caja("<b>Administración</b> (solo desde la VLAN 10, enrutado por R1)<br>"
+adm = d.caja("<b>PC-ADMIN</b><br>VLAN 40 · 10.10.40.10", 30, 540, 170, 64, *C["v10"])
+dest = d.caja("<b>Administración</b> (solo desde la VLAN 40, enrutado por R1)<br>"
               "SSH 22 a R1 y SW1 (10.10.99.2) · Proxmox 8006 · Zabbix 80 · Grafana 3000 · n8n 5678 · "
               "Escritorio remoto 3389 a las VMs Windows · SSH 22 a las VMs Linux",
               500, 520, 990, 104, "#ffffff", INFO, tam=12, extra="align=left;spacingLeft=12;")

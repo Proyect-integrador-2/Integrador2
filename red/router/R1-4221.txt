@@ -22,6 +22,8 @@ interface GigabitEthernet0/0/0
  ip address dhcp
  ! (Packet Tracer) ip address 172.16.0.2 255.255.255.252
  ip nat outside
+ no cdp enable
+ no ip proxy-arp
  no shutdown
 !
 ! ---------------- Trunk hacia SW1 ----------------
@@ -30,10 +32,10 @@ interface GigabitEthernet0/0/1
  no ip address
  no shutdown
 !
-interface GigabitEthernet0/0/1.10
- description VLAN 10 - ADMINISTRACION
- encapsulation dot1Q 10
- ip address 10.10.10.1 255.255.255.0
+interface GigabitEthernet0/0/1.40
+ description VLAN 40 - ADMINISTRACION
+ encapsulation dot1Q 40
+ ip address 10.10.40.1 255.255.255.0
  ip nat inside
 !
 interface GigabitEthernet0/0/1.20
@@ -81,14 +83,14 @@ ip access-list extended ACL-USUARIOS-IN
  permit tcp 10.10.20.0 0.0.0.255 host 10.10.30.16 eq www
  permit tcp 10.10.20.0 0.0.0.255 host 10.10.30.16 eq 443
  remark Respuestas a conexiones iniciadas por Administracion (soporte remoto)
- permit tcp 10.10.20.0 0.0.0.255 10.10.10.0 0.0.0.255 established
- permit icmp 10.10.20.0 0.0.0.255 10.10.10.0 0.0.0.255 echo-reply
+ permit tcp 10.10.20.0 0.0.0.255 10.10.40.0 0.0.0.255 established
+ permit icmp 10.10.20.0 0.0.0.255 10.10.40.0 0.0.0.255 echo-reply
  remark Bloqueo de redes internas
- deny ip 10.10.20.0 0.0.0.255 10.10.10.0 0.0.0.255
+ deny ip 10.10.20.0 0.0.0.255 10.10.40.0 0.0.0.255
  deny ip 10.10.20.0 0.0.0.255 10.10.30.0 0.0.0.255
  deny ip 10.10.20.0 0.0.0.255 10.10.99.0 0.0.0.255
  remark Bloqueo de acceso al router por sus otras IP
- deny ip 10.10.20.0 0.0.0.255 host 10.10.10.1
+ deny ip 10.10.20.0 0.0.0.255 host 10.10.40.1
  deny ip 10.10.20.0 0.0.0.255 host 10.10.30.1
  deny ip 10.10.20.0 0.0.0.255 host 10.10.99.1
  remark Internet
@@ -97,7 +99,7 @@ ip access-list extended ACL-USUARIOS-IN
 !
 ! ---------------- NAT/PAT ----------------
 ip access-list standard ACL-NAT-INTERNAS
- permit 10.10.10.0 0.0.0.255
+ permit 10.10.40.0 0.0.0.255
  permit 10.10.20.0 0.0.0.255
  permit 10.10.30.0 0.0.0.255
  permit 10.10.99.0 0.0.0.255
@@ -108,9 +110,9 @@ ip nat inside source list ACL-NAT-INTERNAS interface GigabitEthernet0/0/0 overlo
 ! Laboratorio real: la ruta por defecto llega por DHCP en Gi0/0/0 (no hace falta).
 ! ip route 0.0.0.0 0.0.0.0 172.16.0.1
 !
-! ---------------- Acceso administrativo: solo SSH desde VLAN 10 ----------------
+! ---------------- Acceso administrativo: solo SSH desde VLAN 40 ----------------
 ip access-list standard ACL-SSH-ADMIN
- permit 10.10.10.0 0.0.0.255
+ permit 10.10.40.0 0.0.0.255
  exit
 crypto key generate rsa general-keys modulus 2048
 ip ssh version 2
@@ -123,6 +125,20 @@ line vty 0 4
  transport input ssh
  access-class ACL-SSH-ADMIN in
  exec-timeout 10 0
+!
+! ---------------- Endurecimiento (5 oct 2026, seccion 11 del E2) ----------------
+! Pendiente de ensayo en Packet Tracer (IP2-88).
+! Tras 5 intentos fallidos en 60 s, el router rechaza inicios de sesion 120 s,
+! salvo desde Administracion, para que un ataque no deje fuera a los administradores.
+no ip http server
+no ip http secure-server
+service timestamps log datetime msec
+logging buffered 16384 informational
+security passwords min-length 10
+login block-for 120 attempts 5 within 60
+login quiet-mode access-class ACL-SSH-ADMIN
+login on-failure log
+login on-success log
 !
 ! ---------------- SNMP: solo lectura y solo desde Zabbix ----------------
 ip access-list standard ACL-SNMP-ZABBIX

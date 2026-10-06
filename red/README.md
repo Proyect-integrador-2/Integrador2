@@ -4,18 +4,20 @@ Tareas: IP2-24 (topología, VLAN y direccionamiento), IP2-25 (ACL, NAT/PAT, SNMP
 
 > **Equipo real.** El router del laboratorio es un **Cisco ISR 4221** (IOS XE), confirmado con fotos el 21 set 2026 (IP2-14): dos puertos Gigabit (Gi0/0/0, que también acepta SFP, y Gi0/0/1), consola RJ45 y USB, y un módulo NIM-2T de dos seriales que no se usa. La configuración se escribió primero para un 2911; al pasar al 4221 solo cambiaron los nombres de interfaz (Gi0/0 → **Gi0/0/0** WAN, Gi0/1 → **Gi0/0/1** trunk), no la lógica. El switch también se confirmó: **Cisco Catalyst WS-C2960-24TT-L** con IOS **12.2(50)SE5** (24 puertos Fa0/1–24 y dos uplinks Gi0/1–Gi0/2), el mismo modelo del diseño, así que su configuración no cambia. En el rack hay tres ISR 4221 y varios 2960 compartidos entre grupos: hay que acordar con el profesor cuál router y cuál switch son del grupo (riesgo R-01).
 >
-> **Antes de configurar, correr `show version` en ambos equipos:** el SSH (`crypto key` e `ip ssh version 2`) solo existe si la imagen incluye `k9` (por ejemplo `c2960-lanbasek9-mz`). Si el switch trae una imagen sin `k9`, se administra por consola y Telnet restringido a la VLAN 10 hasta actualizar la imagen.
+> **Antes de configurar, correr `show version` en ambos equipos:** el SSH (`crypto key` e `ip ssh version 2`) solo existe si la imagen incluye `k9` (por ejemplo `c2960-lanbasek9-mz`). Si el switch trae una imagen sin `k9`, se administra por consola y Telnet restringido a la VLAN 40 hasta actualizar la imagen.
 
 ## 1. VLAN y direccionamiento
 
 | VLAN | Nombre | Red | Gateway (R1) | Uso |
 |---|---|---|---|---|
-| 10 | ADMINISTRACION | 10.10.10.0/24 | 10.10.10.1 | PC-ADMIN (IP fija) |
 | 20 | USUARIOS | 10.10.20.0/24 | 10.10.20.1 | PC-CLIENTE (DHCP .100–.200) |
 | 30 | SERVIDORES | 10.10.30.0/24 | 10.10.30.1 | Hipervisor y VMs (IP fija) |
+| 40 | ADMINISTRACION | 10.10.40.0/24 | 10.10.40.1 | PC-ADMIN (IP fija) |
 | 99 | GESTION | 10.10.99.0/24 | 10.10.99.1 | IP de gestión del switch |
 | 999 | NATIVA-SIN-USO | — | — | VLAN nativa de los trunks y puertos sin uso |
 | WAN | — | DHCP de la universidad (PT: 172.16.0.0/30) | — | Salida a Internet por NAT/PAT |
+
+**Por qué la Administración está en la VLAN 40:** hasta el 5 oct 2026 era la VLAN 10 (10.10.10.0/24). El profesor pidió usar otra, y pasó a la 40 con la red 10.10.40.0/24. La lógica no cambia: solo el número y el tercer octeto.
 
 **Por qué VLAN 99 y 999:** la gestión del switch no comparte red con usuarios, y la VLAN nativa no es la 1. Así se evita el salto de VLAN (VLAN hopping) por etiquetado doble.
 
@@ -23,9 +25,9 @@ Tareas: IP2-24 (topología, VLAN y direccionamiento), IP2-25 (ACL, NAT/PAT, SNMP
 
 | Equipo | VLAN | IP | Observación |
 |---|---|---|---|
-| R1 (subinterfaces) | 10/20/30/99 | .1 de cada red | Gateway de cada VLAN |
+| R1 (subinterfaces) | 20/30/40/99 | .1 de cada red | Gateway de cada VLAN |
 | SW1 (SVI VLAN 99) | 99 | 10.10.99.2 | Gestión SSH y SNMP |
-| PC-ADMIN | 10 | 10.10.10.10 | |
+| PC-ADMIN | 40 | 10.10.40.10 | |
 | Hipervisor (Proxmox) | 30 | 10.10.30.10 | Panel web :8006 |
 | VM App (Nginx + Docker) | 30 | 10.10.30.11 | Único servidor visible para usuarios (80/443) |
 | VM Monitoreo (Zabbix) | 30 | 10.10.30.12 | Recolector SNMP autorizado |
@@ -39,9 +41,9 @@ Tareas: IP2-24 (topología, VLAN y direccionamiento), IP2-25 (ACL, NAT/PAT, SNMP
 
 | Puerto | Modo | VLAN | Conecta a |
 |---|---|---|---|
-| Gi0/1 | Trunk | 10, 20, 30, 99 (nativa 999) | R1 Gi0/0/1 |
+| Gi0/1 | Trunk | 20, 30, 40, 99 (nativa 999) | R1 Gi0/0/1 |
 | Gi0/2 | Trunk | 30, 99 (nativa 999) | Servidor Proxmox (bridge con VLAN) |
-| Fa0/1 – Fa0/4 | Acceso | 10 | PCs de administración |
+| Fa0/1 – Fa0/4 | Acceso | 40 | PCs de administración |
 | Fa0/5 – Fa0/12 | Acceso | 20 | PCs de usuarios |
 | Fa0/13 – Fa0/20 | Acceso | 30 | Servidores (solo en Packet Tracer: cada VM es un Server-PT) |
 | Fa0/21 – Fa0/24 | Apagados | 999 | Sin uso |
@@ -52,9 +54,9 @@ Puertos de acceso: `spanning-tree portfast` + `bpduguard`. Puertos de usuarios: 
 
 Implementada con la ACL extendida `ACL-USUARIOS-IN` en la subinterfaz de la VLAN 20 (entrada).
 
-| Origen → Destino | Administración (10) | Usuarios (20) | Servidores (30) | Gestión (99) | Internet |
+| Origen → Destino | Administración (40) | Usuarios (20) | Servidores (30) | Gestión (99) | Internet |
 |---|---|---|---|---|---|
-| **Administración (10)** | ✅ | ✅ | ✅ todo | ✅ | ✅ |
+| **Administración (40)** | ✅ | ✅ | ✅ todo | ✅ | ✅ |
 | **Usuarios (20)** | ❌ | ✅ | ⚠️ **solo las dos instancias de la App: 10.10.30.11 y 10.10.30.16, TCP 80/443** | ❌ | ✅ |
 | **Servidores (30)** | ✅ | ✅ respuestas | ✅ | ✅ (SNMP desde Zabbix) | ✅ |
 
@@ -105,6 +107,8 @@ Ensayo en **Packet Tracer 9.0** (17 sep 2026), con las configuraciones de esta c
 | Servidores nuevos | `SRV-APP-WIN` (10.10.30.16) y `SRV-DC` (10.10.30.17) en puertos de acceso de la VLAN 30 |
 | Validaciones nuevas | V10 y V11 de la tabla de abajo |
 | Evidencia | Guardar `packet-tracer/integrador2-red.pkt` en el repositorio |
+
+> **Nota del 5 oct 2026.** Estas validaciones se ejecutaron el 17 set, cuando la Administración estaba en la VLAN 10 (10.10.10.0/24); por eso V4 y los contadores de la ACL nombran esa red. Con el cambio a la **VLAN 40** (10.10.40.0/24) hay que repetirlas: V4 pasa a ser un ping a 10.10.40.10. También quedan por ensayar el DHCP snooping, la inspección ARP y el bloqueo de intentos que se agregaron ese día (IP2-88).
 
 | # | Prueba | Esperado | Resultado en Packet Tracer |
 |---|---|---|---|
