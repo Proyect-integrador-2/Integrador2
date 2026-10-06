@@ -4,6 +4,8 @@ Guion de la sesión presencial. El tiempo en el laboratorio es limitado (riesgo 
 
 Tareas que se cierran con esta visita: IP2-14 (inventario), IP2-27 y IP2-28 (configurar switch y router), IP2-29 (validación).
 
+> **Cambio del 5 oct 2026.** El profesor autorizó administrar el laboratorio a distancia. La visita ahora empieza por [`infra/acceso-remoto/`](../infra/acceso-remoto/README.md) (IP2-93): instalar Proxmox, dejarlo con Tailscale por su segunda tarjeta y con las consolas de R1 y SW1 conectadas al servidor. Con eso listo, los pasos 3 a 6 de esta guía (configurar switch y router, y validar) se pueden hacer desde la casa por la consola, sin gastar tiempo del laboratorio. Los pasos 1 y 2 siguen siendo presenciales.
+
 ## 0. Antes de salir de la casa
 
 | | Qué llevar | Por qué |
