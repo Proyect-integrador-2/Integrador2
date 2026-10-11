@@ -138,6 +138,7 @@ Con la portátil conectada a los **datos del celular**, no a la red de la univer
 | Panel de Proxmox | `https://10.10.30.10:8006` en el navegador |
 | Terminal del servidor | MobaXterm → *Session* → SSH → `10.10.30.10`, usuario `root`, con la llave privada |
 | Consola de R1 o SW1 | En esa terminal: `tmux new -A -s red` y adentro `consola r1` |
+| Crear las VMs | En la terminal del servidor, con [`infra/proxmox/crear-vms.sh`](../proxmox/crear-vms.sh). Antes hay que tener R1 y SW1 configurados: las VMs salen a Internet por R1 |
 | VMs y consolas web | Por su IP de la VLAN 30, cuando existan |
 
 **Reglas para tocar la red a distancia:**
