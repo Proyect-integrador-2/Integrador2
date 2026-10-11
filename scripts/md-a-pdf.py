@@ -41,6 +41,10 @@ p { margin: 4pt 0 6pt; }
 ul, ol { margin: 4pt 0 8pt; padding-left: 18pt; }
 li { margin: 1.5pt 0; }
 code { font: 9pt Consolas, monospace; background: #eef1f5; padding: 0 2pt; border-radius: 2pt; }
+pre { background: #f3f5f8; border: 0.5pt solid #d5dbe3; border-radius: 3pt; padding: 6pt 8pt; margin: 4pt 0 8pt;
+      white-space: pre-wrap; overflow-wrap: anywhere; }
+pre code { font-size: 8.5pt; line-height: 1.35; background: none; padding: 0; }
+mark { background: #fff176; padding: 0 2pt; }
 hr { border: 0; border-top: 1pt solid #c9d1dc; margin: 16pt 0; }
 table { width: 100%; border-collapse: collapse; margin: 6pt 0 10pt; font-size: 9pt; }
 th, td { border: 0.75pt solid #b8c2cf; padding: 3.5pt 5pt; vertical-align: top; text-align: left; }
@@ -110,7 +114,7 @@ def main():
     a = ap.parse_args()
 
     texto = "\n\n".join(pathlib.Path(e).read_text(encoding="utf-8") for e in a.entradas)
-    cuerpo = markdown.markdown(texto, extensions=["tables", "md_in_html", "sane_lists"])
+    cuerpo = markdown.markdown(texto, extensions=["tables", "fenced_code", "md_in_html", "sane_lists"])
     # Solo las tablas cuya primera columna es un identificador (ID o #) la dejan en una línea;
     # si se aplica a todas, una primera columna de texto largo desborda la página y Edge
     # encoge el documento entero para que quepa.
