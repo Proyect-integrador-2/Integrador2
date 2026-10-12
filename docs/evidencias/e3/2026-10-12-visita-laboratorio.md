@@ -2,7 +2,7 @@
 
 Tareas: IP2-27 y IP2-28 (switch y router), IP2-32 (hipervisor), IP2-93 (administración remota), IP2-14 e IP2-31 (inventario y dimensionamiento).
 
-Resultado: el router, el switch y el servidor quedaron configurados, y la plataforma se administra a distancia desde ese día. Faltan las pruebas desde las computadoras de usuario y las máquinas virtuales.
+Resultado: el router, el switch y el servidor quedaron configurados, y la plataforma se administra a distancia desde ese día. Las pruebas desde una computadora de usuario pasaron. Faltan las de la computadora de administración y las máquinas virtuales.
 
 ## 1. Equipos del grupo
 
@@ -62,25 +62,43 @@ Tailscale publica las cuatro redes del proyecto (`10.10.20.0/24`, `10.10.30.0/24
 
 Se reinició el servidor sin tocar nada más. Volvió solo con la ruta por defecto por `nic2`, la dirección `10.10.30.10`, el cortafuegos, Tailscale y el panel activos, sin servicios fallidos, y con alcance al router, al switch y a Internet.
 
-## 4. Incidencias
+## 4. Segmentación desde una computadora de usuario
+
+PC-CLIENTE: computadora del laboratorio conectada a SW1 Fa0/5 (VLAN 20), con la red en automático.
+
+| # | Prueba | Esperado | Resultado | Evidencia |
+|---|---|---|---|---|
+| V1 | `ipconfig` | Dirección por DHCP entre .100 y .200 | `10.10.20.100`, puerta de enlace `10.10.20.1` | [foto](red/v1-cliente-ipconfig.jpg) |
+| — | `ping 10.10.20.1` | Responde | Responde, 4 de 4 | [foto](red/v1b-cliente-ping-gateway.jpg) |
+| V3 | `ping 10.10.30.10` (servidores) | Bloqueado | Bloqueado por el router | [foto](red/v3-cliente-ping-servidores.jpg) |
+| — | Abrir `https://10.10.30.10:8006` (panel de Proxmox) | No abre | No abre: tiempo de espera agotado | [foto](red/v3b-cliente-panel-proxmox-bloqueado.jpg) |
+| V4 | `ping 10.10.40.10` (administración) | Bloqueado | Bloqueado por el router | [foto](red/v4-cliente-ping-administracion.jpg) |
+| V5 | `ping 10.10.99.2` (gestión del switch) | Bloqueado | Bloqueado por el router | [foto](red/v5-cliente-ping-gestion.jpg) |
+| V8 | `ping 8.8.8.8` | Responde por NAT | Responde, 4 de 4, 61 ms en promedio | [foto](red/v8-cliente-ping-internet.jpg) |
+
+En las pruebas bloqueadas quien contesta es el router (`Reply from 10.10.20.1: Destination net unreachable`): es la lista `ACL-USUARIOS-IN` rechazando el paquete. Windows cuenta esos rechazos como recibidos, pero ningún ping llegó a su destino.
+
+Un usuario recibe dirección sola, sale a Internet y no alcanza los servidores, la red de administración ni la gestión de los equipos.
+
+## 5. Incidencias
 
 | Qué pasó | Cómo se resolvió |
 |---|---|
 | En la primera corrida del script el servidor quedó sin ruta por defecto y no pudo descargar Tailscale. Al recargar la red, Proxmox quitó el gateway que había dejado la instalación y se llevó la ruta recién recibida por DHCP | Se renovó el DHCP en `nic2` y se repitió el script. El script ya lo hace solo (commit `096ff8a`) |
 | R1 y SW1 rechazaban SSH desde el servidor: sus listas solo permitían la VLAN 40 | Se agregó `permit host 10.10.30.10` a `ACL-SSH-ADMIN` de R1 y a la lista 40 de SW1. Ya está en las configuraciones del repositorio |
 
-## 5. Diferencias con lo planeado
+## 6. Diferencias con lo planeado
 
 | Planeado | Lo que se hizo | Consecuencia |
 |---|---|---|
 | Dejar los cables de consola de R1 y SW1 conectados al servidor | No se dejaron: el servidor solo tiene dos USB traseros y el 2960 solo trae consola RJ45 | R1 y SW1 se administran solo por SSH. Antes de cada cambio riesgoso se programa `reload in 10`, para que el equipo vuelva solo a la configuración guardada si se pierde el acceso |
 | Activar el encendido automático del servidor tras un corte de corriente | No se activó | Los servidores del laboratorio no se apagan y están en UPS |
 
-## 6. Pendiente
+## 7. Pendiente
 
 | Qué | Tarea |
 |---|---|
-| Pruebas V1 a V8 desde PC-ADMIN y PC-CLIENTE (DHCP, segmentación entre VLAN, salida a Internet) | IP2-29 |
+| Pruebas desde PC-ADMIN: alcance a servidores y usuarios (V6), SSH a los equipos (V7) y traducciones de NAT (V9) | IP2-29 |
 | Verificar en los equipos reales cada control de endurecimiento | IP2-88 |
 | Crear las siete máquinas virtuales | IP2-33, IP2-73, IP2-79 |
 | Foto del rack con los equipos del grupo y los cables | Evidencia A-01 |
