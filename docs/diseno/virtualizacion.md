@@ -47,7 +47,7 @@ Sistema operativo de las VMs de servicios: **Ubuntu Server 24.04 LTS** (mínimo,
 
 Se decide cuando esté el inventario (IP2-14):
 
-**Dato crítico pendiente:** la RAM real del servidor (IP2-14). Con las dos VMs Windows el diseño pide 24 GB asignados, así que de ese dato depende si hay que fusionar servicios.
+**Dato resuelto el 12 oct 2026:** el servidor es un Dell PowerEdge R450 con **64 GB de RAM**, 16 núcleos (32 hilos) y cerca de 2 TB para discos de VM. Aplica la primera fila de la tabla siguiente: distribución completa, sin fusionar servicios. El inventario está en [`docs/evidencias/e3/2026-10-12-visita-laboratorio.md`](../evidencias/e3/2026-10-12-visita-laboratorio.md).
 
 | RAM del servidor | Ajuste |
 |---|---|

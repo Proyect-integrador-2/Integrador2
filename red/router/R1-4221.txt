@@ -113,6 +113,8 @@ ip nat inside source list ACL-NAT-INTERNAS interface GigabitEthernet0/0/0 overlo
 ! ---------------- Acceso administrativo: solo SSH desde VLAN 40 ----------------
 ip access-list standard ACL-SSH-ADMIN
  permit 10.10.40.0 0.0.0.255
+ remark Servidor Proxmox: origen de la administracion remota (IP2-93)
+ permit host 10.10.30.10
  exit
 crypto key generate rsa general-keys modulus 2048
 ip ssh version 2

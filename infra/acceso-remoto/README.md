@@ -4,7 +4,11 @@ Tarea: IP2-93. El profesor autorizó el 5 oct 2026 trabajar el servidor, el rout
 
 **La idea:** una sola visita al laboratorio para dejar el servidor con Proxmox, con salida propia a Internet y con las consolas de R1 y SW1 conectadas. De ahí en adelante, todo se hace desde la casa.
 
-> **Estado:** el script se probó en modo simulación (genera bien los archivos), pero **nunca ha corrido en un Proxmox real** y la sintaxis del cortafuegos no se pudo validar fuera del servidor. La primera corrida es la de la visita: por eso se hace en la consola física y guarda una copia de la red anterior.
+> **Estado (12 oct 2026): funcionando.** El script corrió en el servidor real (Proxmox VE 9.2) con `--oob nic2 --lab nic3` y el acceso se comprobó desde la portátil, también después de reiniciar el servidor. El detalle está en [`docs/evidencias/e3/2026-10-12-visita-laboratorio.md`](../../docs/evidencias/e3/2026-10-12-visita-laboratorio.md).
+>
+> **Dos diferencias con lo planeado en esta guía:**
+> - **No quedaron cables de consola.** El servidor solo tiene dos USB traseros y el 2960 solo trae consola RJ45. R1 y SW1 se administran por SSH desde el servidor (`10.10.30.10`), que ya está permitido en sus listas de acceso. La regla 3 de la sección 4 (`reload in 10`) pasa a ser obligatoria antes de cada cambio riesgoso.
+> - **No se activó el encendido automático en el BIOS.** Los servidores del laboratorio no se apagan y están en UPS.
 
 ## 1. Cómo queda
 
@@ -179,6 +183,7 @@ Lo mismo en el firewall de cada VM (sección 11.3 del E2): `10.10.30.10` se suma
 | Síntoma | Qué revisar |
 |---|---|
 | El script avisa que no hay salida a Internet | El cable de la tarjeta 2 y que ese punto de red entregue dirección por DHCP. Probar con otro punto |
+| `ip route` no muestra una línea `default` tras el script | Pasó en la primera corrida: al recargar la red se pierde la ruta que puso el DHCP. `ifdown <tarjeta 2>` y `ifup <tarjeta 2>`, y volver a correr el script. La versión actual ya lo hace sola |
 | Tailscale no conecta | Que la red de la universidad no lo bloquee: `tailscale netcheck`. Si lo bloquea, avisar al profesor antes de buscar alternativas |
 | La red del servidor quedó mal tras el script | `cp /etc/network/interfaces.antes-ip2-<fecha> /etc/network/interfaces` y `ifreload -a` |
 | Desde la casa responde Tailscale pero no `10.10.30.10` | Las rutas sin aprobar en la consola de Tailscale |
