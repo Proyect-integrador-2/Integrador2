@@ -227,6 +227,14 @@ rm -f "${TMPDIR:-/tmp}/hosts.ip2"
 ejecutar ifreload -a || echo "  AVISO: ifreload terminó con errores; revisar con 'ip -br a'."
 if [[ -z $SIMULAR ]]; then
   sleep 5
+  # Si la instalación dejó un gateway en vmbr0, ifreload lo quita al final y se lleva
+  # la ruta por defecto que el DHCP acababa de poner en la otra tarjeta. Se pide de nuevo.
+  if ! ip route get 1.1.1.1 2>/dev/null | grep -q "dev $OOB"; then
+    echo "  Sin ruta por defecto por $OOB: se renueva el DHCP."
+    ifdown "$OOB" || true
+    ifup "$OOB" || true
+    sleep 5
+  fi
   if ip route get 1.1.1.1 2>/dev/null | grep -q "dev $OOB"; then
     echo "  Salida a Internet por $OOB: correcto."
   else
@@ -294,6 +302,11 @@ ejecutar sysctl --system
 paso "4. Tailscale"
 if [[ -n $SIMULAR ]] || ! command -v tailscale >/dev/null; then
   ejecutar sh -c 'curl -fsSL https://tailscale.com/install.sh | sh'
+fi
+if [[ -z $SIMULAR ]] && ! command -v tailscale >/dev/null; then
+  echo "No se pudo instalar Tailscale: el servidor no tiene salida a Internet." >&2
+  echo "Revisar con 'ip route' que exista una ruta 'default' y volver a correr el script." >&2
+  exit 1
 fi
 echo "  Va a aparecer un enlace (https://login.tailscale.com/a/...) y un código QR."
 echo "  Si el QR no se ve bien en esta pantalla, escribe el enlace en el navegador de la"
