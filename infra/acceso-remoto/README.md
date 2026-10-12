@@ -85,7 +85,7 @@ bash preparar.sh                         # lista las tarjetas
 bash preparar.sh --oob eno2 --lab eno1   # con los nombres reales
 ```
 
-Para saber cuál tarjeta es cuál: desconectar un cable y volver a listar; la que pasa a `down` es la de ese cable.
+La columna CABLE dice cuáles tarjetas están conectadas: la de la universidad es la que ya tiene IP y la del switch es la que tiene cable pero no IP. Si hay dudas, desconectar el cable del switch y volver a listar: la que pasa a `no` es la del switch.
 
 El script deja la red como en el diagrama, cierra la tarjeta fuera de banda, instala Tailscale y muestra un **código QR**: se escanea con el celular y se inicia sesión con la cuenta del proyecto.
 

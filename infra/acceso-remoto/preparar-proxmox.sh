@@ -68,17 +68,35 @@ tarjetas() {
 }
 
 listar_tarjetas() {
-  local n dueno ip
-  printf '%-12s %-8s %-19s %s\n' TARJETA ENLACE MAC "IP ACTUAL"
+  local n dueno ip cable vel driver
+  local encendidas=()
+  # Una tarjeta sin configurar está apagada y no informa si tiene cable: se enciende un
+  # momento (solo como root) y al final se deja como estaba.
+  if [[ $EUID -eq 0 ]]; then
+    for n in $(tarjetas); do
+      if ! ip link show dev "$n" | grep -qE '<([^>]*,)?UP[,>]'; then
+        if ip link set dev "$n" up 2>/dev/null; then encendidas+=("$n"); fi
+      fi
+    done
+    if (( ${#encendidas[@]} > 0 )); then sleep 5; fi
+  fi
+  printf '%-8s %-6s %-11s %-11s %-18s %s\n' TARJETA CABLE VELOCIDAD CONTROLADOR MAC "IP ACTUAL"
   for n in $(tarjetas); do
     # Tras instalar Proxmox, la tarjeta de gestión está dentro de vmbr0 y la IP es del bridge.
     dueno=$n
-    [[ -e /sys/class/net/$n/master ]] && dueno=$(basename "$(readlink "/sys/class/net/$n/master")")
-    ip=$(ip -4 -o addr show dev "$dueno" 2>/dev/null | awk '{print $4}' | paste -sd' ' -)
-    [[ $dueno != "$n" && -n $ip ]] && ip="$ip (en $dueno)"
-    printf '%-12s %-8s %-19s %s\n' "$n" "$(cat "/sys/class/net/$n/operstate")" \
+    if [[ -e /sys/class/net/$n/master ]]; then dueno=$(basename "$(readlink "/sys/class/net/$n/master")"); fi
+    ip=$(ip -4 -o addr show dev "$dueno" 2>/dev/null | awk '{print $4}' | paste -sd' ' -) || true
+    if [[ $dueno != "$n" && -n $ip ]]; then ip="$ip (en $dueno)"; fi
+    cable="?"; vel="-"
+    case "$(cat "/sys/class/net/$n/carrier" 2>/dev/null || true)" in
+      1) cable="SI"; vel="$(cat "/sys/class/net/$n/speed" 2>/dev/null || echo '?') Mb/s" ;;
+      0) cable="no" ;;
+    esac
+    driver=$(basename "$(readlink -f "/sys/class/net/$n/device/driver" 2>/dev/null)" 2>/dev/null) || driver="-"
+    printf '%-8s %-6s %-11s %-11s %-18s %s\n' "$n" "$cable" "$vel" "$driver" \
       "$(cat "/sys/class/net/$n/address")" "${ip:--}"
   done
+  for n in "${encendidas[@]}"; do ip link set dev "$n" down 2>/dev/null || true; done
 }
 
 if [[ -z $OOB || -z $LAB ]]; then
@@ -89,8 +107,10 @@ Falta indicar las tarjetas:
   --oob  la que va DIRECTO a la red de la universidad (fuera de banda)
   --lab  la que va a SW1 Gi0/2 (troncal del laboratorio)
 
-Para distinguirlas: desconectar un cable y volver a correr el script; la que
-pasa a "down" es la de ese cable.
+La columna CABLE dice cuáles están conectadas. La de la universidad es la que ya
+tiene IP (aparece "en vmbr0" si la instaló Proxmox); la del switch tiene cable pero
+no tiene IP; las que dicen "no" no están conectadas. Si dudas, desconecta el cable
+del switch y vuelve a listar: la que pasa a "no" es la del switch.
 EOF
   exit 1
 fi
@@ -113,14 +133,19 @@ fi
 paso "1. Repositorios y paquetes"
 # shellcheck disable=SC1091
 codename=$(. /etc/os-release && echo "${VERSION_CODENAME:-}")
+# Sin suscripción, los repositorios "enterprise" responden 401 y apt-get update falla.
+# Se apartan a /root (no se borran) todos los archivos que apunten a ellos, sea cual
+# sea su nombre y su formato.
+for f in /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list; do
+  [[ -f $f ]] || continue
+  if grep -q 'enterprise\.proxmox\.com' "$f"; then
+    echo "  Apartando $f (repositorio de suscripción)"
+    ejecutar mv "$f" "/root/$(basename "$f").desactivado"
+  fi
+done
 case "$codename" in
   trixie)
     # Proxmox VE 9: fuentes en formato deb822.
-    for f in /etc/apt/sources.list.d/pve-enterprise.sources /etc/apt/sources.list.d/ceph.sources; do
-      if [[ -f $f ]] && ! grep -q '^Enabled: *false' "$f"; then
-        ejecutar sh -c "echo 'Enabled: false' >> $f"
-      fi
-    done
     escribir /etc/apt/sources.list.d/pve-no-subscription.sources <<EOF
 Types: deb
 URIs: http://download.proxmox.com/debian/pve
@@ -131,9 +156,6 @@ EOF
     ;;
   bookworm)
     # Proxmox VE 8: fuentes en formato clásico.
-    for f in /etc/apt/sources.list.d/pve-enterprise.list /etc/apt/sources.list.d/ceph.list; do
-      [[ -f $f ]] && ejecutar sed -i 's/^deb /#deb /' "$f"
-    done
     escribir /etc/apt/sources.list.d/pve-no-subscription.list <<EOF
 deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription
 EOF
@@ -142,7 +164,7 @@ EOF
     echo "  Versión de Debian no prevista ('$codename'): no se tocan los repositorios."
     ;;
 esac
-ejecutar apt-get update
+ejecutar apt-get update || echo "  AVISO: apt-get update terminó con errores; se sigue con lo que se descargó."
 # isc-dhcp-client: es el cliente DHCP que ifupdown2 sabe manejar en la tarjeta fuera de banda.
 ejecutar apt-get install -y curl nftables picocom tmux isc-dhcp-client
 [[ $ACTUALIZAR -eq 1 ]] && ejecutar apt-get -y dist-upgrade
@@ -202,7 +224,7 @@ completo=$(hostname -f 2>/dev/null || echo "$corto")
 escribir /etc/hosts < "${TMPDIR:-/tmp}/hosts.ip2"
 rm -f "${TMPDIR:-/tmp}/hosts.ip2"
 
-ejecutar ifreload -a
+ejecutar ifreload -a || echo "  AVISO: ifreload terminó con errores; revisar con 'ip -br a'."
 if [[ -z $SIMULAR ]]; then
   sleep 5
   if ip route get 1.1.1.1 2>/dev/null | grep -q "dev $OOB"; then
@@ -210,6 +232,11 @@ if [[ -z $SIMULAR ]]; then
   else
     echo "  AVISO: no hay salida a Internet por $OOB. Revisar el cable y que la red de la"
     echo "  universidad entregue dirección por DHCP en ese punto. Sin eso, Tailscale no conecta."
+  fi
+  if [[ $(cat "/sys/class/net/$LAB/carrier" 2>/dev/null || true) == 1 ]]; then
+    echo "  Cable en $LAB (hacia SW1): correcto."
+  else
+    echo "  AVISO: $LAB no tiene cable, o el puerto Gi0/2 del switch está apagado."
   fi
 fi
 
@@ -268,9 +295,10 @@ paso "4. Tailscale"
 if [[ -n $SIMULAR ]] || ! command -v tailscale >/dev/null; then
   ejecutar sh -c 'curl -fsSL https://tailscale.com/install.sh | sh'
 fi
-echo "  Va a aparecer un código QR y un enlace: abrirlo en el celular o la portátil"
-echo "  e iniciar sesión con la cuenta del proyecto. El script espera hasta que se haga."
-ejecutar tailscale up --advertise-routes="$RUTAS_TAILSCALE" --accept-dns=false \
+echo "  Va a aparecer un enlace (https://login.tailscale.com/a/...) y un código QR."
+echo "  Si el QR no se ve bien en esta pantalla, escribe el enlace en el navegador de la"
+echo "  portátil, que ya tiene la sesión de Tailscale iniciada. El script espera hasta entonces."
+ejecutar tailscale up --reset --advertise-routes="$RUTAS_TAILSCALE" --accept-dns=false \
   --hostname="$NOMBRE_TAILSCALE" --qr
 
 # ---------------------------------------------------------------------------
