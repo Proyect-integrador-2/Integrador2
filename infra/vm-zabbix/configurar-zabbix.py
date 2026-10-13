@@ -203,8 +203,11 @@ def main():
         print("Servidor: proxmox solo por ping (falta PVE_TOKEN_SECRET en .env; ver infra/proxmox/token-zabbix.sh)")
     else:
         # El secreto va como macro secreta (type 1). Se reescribe siempre, por si el token cambió.
+        # La memoria de una VM vista desde el hipervisor no es la que usa el sistema de adentro
+        # (cuenta la caché de Linux, y Windows sin controlador de globo aparece siempre al
+        # 100 %): con 200 esa alerta de la plantilla no dispara. La memoria real la vigila T07.
         macros = {"{$PVE.URL.HOST}": (PVE_HOST, 0), "{$PVE.TOKEN.ID}": (PVE_TOKEN_ID, 0),
-                  "{$PVE.TOKEN.SECRET}": (secreto, 1)}
+                  "{$PVE.TOKEN.SECRET}": (secreto, 1), "{$PVE.VM.MEMORY.PUSE.MAX.WARN}": ("200", 0)}
         actuales = {m["macro"]: m["hostmacroid"] for m in z.call(
             "usermacro.get", {"output": ["hostmacroid", "macro"], "hostids": pid})}
         for macro, (valor, tipo) in macros.items():
