@@ -18,19 +18,27 @@ SERVIDORES="10.100.8.2 10.100.8.3 1.1.1.1"
 
 # 1. El sistema. "Domains=~." hace que estos servidores se usen para todo, por encima
 #    del 8.8.8.8 que cloud-init dejó en la tarjeta de red.
+#    Con Docker, el resolvedor de la VM escucha además en la dirección del puente de
+#    Docker para que los contenedores lo usen a él (paso 2).
+PUENTE="172.17.0.1"
+escucha=""
+command -v docker >/dev/null && escucha="DNSStubListenerExtra=$PUENTE"
 sudo install -d /etc/systemd/resolved.conf.d
 sudo tee /etc/systemd/resolved.conf.d/ip2-dns.conf >/dev/null <<EOF
 # Integrador II: ver infra/proxmox/dns-vm.sh
 [Resolve]
 DNS=$SERVIDORES
 Domains=~.
+$escucha
 EOF
 sudo systemctl restart systemd-resolved
 
-# 2. Docker, si está: los contenedores no usan el resolvedor local de la VM, así que
-#    se les indican los mismos servidores. Solo se reinicia Docker si algo cambió.
+# 2. Docker, si está: los contenedores preguntan al resolvedor de la VM, no a los
+#    servidores de afuera. Así comparten su memoria de respuestas y sus reintentos: la
+#    red del laboratorio pierde de vez en cuando una consulta DNS, y una sola pérdida
+#    dejaba al contenedor esperando varios segundos. Solo se reinicia Docker si algo cambió.
 if command -v docker >/dev/null; then
-  lista=$(printf '"%s", ' $SERVIDORES); lista="[${lista%, }]"
+  lista="[\"$PUENTE\"]"
   nuevo=$(sudo python3 - "$lista" <<'PY'
 import json, os, sys
 ruta = "/etc/docker/daemon.json"
