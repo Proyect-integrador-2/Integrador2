@@ -92,8 +92,11 @@ PC-ADMIN: computadora del laboratorio conectada a SW1 Fa0/1 (VLAN 40), con la di
 | V6 | `ping 10.10.20.100` (PC-CLIENTE) | Responde | Responde, 4 de 4 | [foto](red/v6d-admin-ping-cliente.jpg) |
 | — | Abrir `https://10.10.30.10:8006` | Panel de Proxmox | Abre y permite iniciar sesión | [foto](red/v6e-admin-panel-proxmox.jpg) |
 | — | `ping 8.8.8.8` | Responde por NAT | Responde, 4 de 4, 58 ms | [foto](red/v6f-admin-ping-internet.jpg) |
+| V7 | SSH a SW1 (`10.10.99.2`) | Entra | Entra con usuario y contraseña; prompt `SW1#` | [foto](red/v7-admin-ssh-switch.jpg) |
 
 Las mismas tres redes que el usuario tiene bloqueadas responden desde Administración, y el mismo panel que al usuario no le abre aquí sí carga.
+
+SW1 corre IOS 15.0(2)SE11 (imagen `C2960-LANBASEK9-M`). Su servidor SSH solo ofrece algoritmos antiguos (intercambio Diffie-Hellman con SHA-1, cifrado AES-CBC y verificación `hmac-sha1`), que el cliente de Windows trae desactivados: hay que habilitarlos en el comando para esa conexión. Es una limitación del equipo y se anota en la sección de seguridad.
 
 Medido aparte desde el servidor: 0,4 ms al router, 1,3 ms al switch y 1,5 ms a PC-ADMIN pasando por el router. Desde el servidor no responde el ping a PC-CLIENTE, como está diseñado: la lista de usuarios solo deja volver las respuestas hacia Administración.
 
@@ -115,7 +118,7 @@ Medido aparte desde el servidor: 0,4 ms al router, 1,3 ms al switch y 1,5 ms a P
 
 | Qué | Tarea |
 |---|---|
-| SSH a los equipos desde PC-ADMIN (V7) y traducciones de NAT en el router (V9) | IP2-29 |
+| Traducciones de NAT vistas en el router (V9) | IP2-29 |
 | Verificar en los equipos reales cada control de endurecimiento | IP2-88 |
 | Crear las siete máquinas virtuales | IP2-33, IP2-73, IP2-79 |
 | Foto del rack con los equipos del grupo y los cables | Evidencia A-01 |
