@@ -1,0 +1,39 @@
+# Grafana en vm-grafana, 10.10.30.13 — Integrador II (IP2-47).
+#
+# Misma imagen y mismos tableros que la réplica de infra/lab-local. Los tableros se
+# leen de monitoreo/grafana/ del repositorio: el JSON del repo es la única fuente.
+#
+#   ./desplegar.sh     # instala Docker, genera .env y levanta Grafana
+#
+# Grafana → http://10.10.30.13   (usuario admin; la contraseña está en .env)
+
+name: grafana
+
+services:
+  grafana:
+    image: grafana/grafana-oss:12.4.3
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Definí GRAFANA_ADMIN_PASSWORD en .env}
+      GF_INSTALL_PLUGINS: alexanderzobnin-zabbix-app
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      TZ: America/Costa_Rica
+      ZABBIX_API_URL: ${ZABBIX_API_URL:-http://10.10.30.12/api_jsonrpc.php}
+      ZABBIX_API_USER: ${ZABBIX_API_USER:-grafana}
+      ZABBIX_API_PASSWORD: ${ZABBIX_API_PASSWORD:?Definí ZABBIX_API_PASSWORD en .env}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      # Los proveedores de tableros y del plugin son los mismos de la réplica local.
+      - ../lab-local/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../lab-local/grafana/provisioning/plugins:/etc/grafana/provisioning/plugins:ro
+      - ../../monitoreo/grafana:/etc/grafana/dashboards-ip2:ro
+    ports:
+      - "80:3000"
+
+volumes:
+  grafana-data:
+    name: grafana-data
