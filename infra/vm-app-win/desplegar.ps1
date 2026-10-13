@@ -6,8 +6,8 @@
 #   2. Crea C:\opt\msmotos\.env con secretos aleatorios (propios de esta instancia).
 #   3. Inicializa MySQL, crea la base, el usuario de la aplicacion y el esquema.
 #   4. Trae el codigo del repositorio, instala dependencias y compila el frontend.
-#   5. Crea las cuentas iniciales y el cliente sintetico del RPA.
-#   6. Registra el servicio MSMotos (Node en el puerto 80) y abre el cortafuegos.
+#   5. Registra el servicio MSMotos (Node en el puerto 80) y abre el cortafuegos.
+#   6. Crea las cuentas iniciales y el cliente sintetico del RPA.
 #
 # Se corre en la VM como Administrator. Se puede repetir: no regenera secretos, no
 # vuelve a crear el esquema si la base ya tiene tablas, y actualiza el codigo.
@@ -248,14 +248,7 @@ if (-not (Test-Path "$Raiz\frontend\www\index.html")) { throw 'El frontend no se
 Remove-Item "$Raiz\frontend\node_modules", "$Raiz\frontend\.angular" -Recurse -Force -ErrorAction SilentlyContinue
 
 # ---------------------------------------------------------------------------
-Paso '5. Cuentas iniciales'
-Push-Location $Raiz
-Correr "$Node\node.exe" backend\scripts\seed-usuarios.js
-Correr "$Node\node.exe" backend\scripts\seed-cliente-rpa.js
-Pop-Location
-
-# ---------------------------------------------------------------------------
-Paso '6. Servicio de Windows y cortafuegos'
+Paso '5. Servicio de Windows y cortafuegos'
 # La cuenta del servicio solo lee la aplicacion y escribe sus registros.
 icacls $Raiz /grant '*S-1-5-19:(OI)(CI)RX' | Out-Null
 icacls "$Raiz\logs" /grant '*S-1-5-19:(OI)(CI)M' | Out-Null
@@ -288,7 +281,7 @@ if (-not (Get-NetFirewallRule -Name 'IP2-MSMotos-HTTP' -ErrorAction SilentlyCont
 }
 
 # ---------------------------------------------------------------------------
-Paso '7. Comprobacion'
+Paso '6. Comprobacion'
 $codigo = 0
 foreach ($intento in 1..30) {
   try { $codigo = (Invoke-WebRequest 'http://127.0.0.1/api/health' -UseBasicParsing -TimeoutSec 5).StatusCode; break }
@@ -297,4 +290,13 @@ foreach ($intento in 1..30) {
 Get-Service $ServicioDb, $Servicio | Format-Table Name, Status, StartType -AutoSize
 Write-Output "  /api/health: HTTP $codigo"
 if ($codigo -ne 200) { throw "La aplicacion no respondio. Ver $Raiz\logs\msmotos.log" }
+
+# ---------------------------------------------------------------------------
+Paso '7. Cuentas iniciales'
+# Despues de arrancar la aplicacion: en su primer arranque completa el esquema
+# (columnas que schema.sql no trae) y el cliente sintetico las necesita.
+Push-Location $Raiz
+Correr "$Node\node.exe" backend\scripts\seed-usuarios.js
+Correr "$Node\node.exe" backend\scripts\seed-cliente-rpa.js
+Pop-Location
 Write-Output "Listo. MS Motos en http://10.10.30.16"

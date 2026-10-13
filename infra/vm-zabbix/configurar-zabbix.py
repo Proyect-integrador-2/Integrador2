@@ -16,6 +16,8 @@ Crea o ajusta:
   - Host msmotos-web con el escenario web contra la aplicación
   - Triggers T01 (contenedor), T03 (Nginx), T04 y T05 (aplicación)
   - Host "automatizacion" con los ítems que n8n reporta de cada ejecución
+  - Las dos VMs Windows por agente, el servicio MSMotos (T03-W) y el escenario web de
+    la instancia Windows (T04-W, T05-W)
   - Usuario de solo lectura para Grafana
   - Media type "Webhook n8n", la acción que le envía los problemas, y el usuario
     y token de API con que n8n deja constancia en cada evento
@@ -35,6 +37,7 @@ AQUI = Path(__file__).resolve().parent
 GRUPO = "Integrador II"
 CONTENEDOR = "msmotos-app"
 APP = "http://10.10.30.11"
+APP_WIN = "http://10.10.30.16"
 WEBHOOK_N8N = "http://10.10.30.14:5678/webhook/zabbix"
 
 # host, nombre visible, dirección, plantillas, capa
@@ -46,6 +49,12 @@ VMS = [
     ("vm-n8n", "vm-n8n (Automatización)", "10.10.30.14", ["Linux by Zabbix agent"]),
     ("vm-rpa", "vm-rpa (Usuario sintético)", "10.10.30.15", ["Linux by Zabbix agent"]),
 ]
+# VMs Windows Server: host, nombre visible, dirección
+WINDOWS = [
+    ("vm-app-win", "vm-app-win (App MS Motos · Windows)", "10.10.30.16"),
+    ("vm-dc", "vm-dc (Controlador de dominio)", "10.10.30.17"),
+]
+PLANTILLA_WINDOWS = "Windows by Zabbix agent"
 # host, nombre visible, dirección
 RED = [
     ("r1", "r1 (Router ISR 4221)", "10.10.30.1"),
@@ -148,7 +157,7 @@ def main():
     gid = grupo["groupid"] if grupo else z.call("hostgroup.create", {"name": GRUPO})["groupids"][0]
     print("Grupo:", GRUPO, gid)
 
-    necesarias = {p for _, _, _, ps in VMS for p in ps} | {PLANTILLA_RED, PLANTILLA_PING, PLANTILLA_PVE}
+    necesarias = {p for _, _, _, ps in VMS for p in ps} | {PLANTILLA_RED, PLANTILLA_PING, PLANTILLA_PVE, PLANTILLA_WINDOWS}
     plantillas = {t["host"]: t["templateid"] for t in z.call(
         "template.get", {"output": ["host"], "filter": {"host": sorted(necesarias)}})}
     faltan = necesarias - plantillas.keys()
@@ -377,6 +386,51 @@ def main():
         if item["trapper_hosts"]:
             z.call("item.update", {"itemid": item["itemid"], "trapper_hosts": ""})
     print("Automatización: host e ítems de n8n listos")
+
+    # --- VMs Windows (IP2-75, IP2-82): agente, servicio de la aplicación y escenario web ---
+    for host, visible, ip in WINDOWS:
+        if not z.uno("host.get", {"host": [host]}, ["hostid"]):
+            z.call("host.create", {
+                "host": host, "name": visible, "groups": [{"groupid": gid}],
+                "interfaces": [{"type": 1, "main": 1, "useip": 1, "ip": ip, "dns": "", "port": "10050"}],
+                "templates": [{"templateid": plantillas[PLANTILLA_WINDOWS]}],
+                "tags": [{"tag": "capa", "value": "vm"}]})
+    wvm = z.uno("host.get", {"host": ["vm-app-win"]}, ["hostid"])["hostid"]
+    # service.info devuelve 0 cuando el servicio está en ejecución y 6 cuando está detenido.
+    clave_servicio = "service.info[MSMotos,state]"
+    if not z.call("item.get", {"output": ["itemid"], "hostids": wvm, "filter": {"key_": clave_servicio}}):
+        interfaz = z.call("hostinterface.get", {"output": ["interfaceid"], "hostids": wvm})[0]["interfaceid"]
+        z.call("item.create", {
+            "hostid": wvm, "interfaceid": interfaz, "name": "Servicio MSMotos: estado (0 = en ejecución)",
+            "key_": clave_servicio, "type": 0, "value_type": 3, "delay": "30s", "history": "31d",
+            "tags": [{"tag": "component", "value": "servicio"}]})
+    # Por ahora solo avisa: la recuperación automática del servicio de Windows es un flujo aparte.
+    crear_trigger(z, "T03-W Servicio MSMotos detenido (Windows)", f"min(/vm-app-win/{clave_servicio},1m)<>0", 4,
+                  {"remediation": "none", "target": "MSMotos", "capa": "servicio"},
+                  "El servicio de Windows de la aplicación no está en ejecución.", opdata="estado {ITEM.LASTVALUE1}")
+
+    web = z.uno("host.get", {"host": ["msmotos-web-win"]}, ["hostid"])
+    wwid = web["hostid"] if web else z.call("host.create", {
+        "host": "msmotos-web-win", "name": "MS Motos (aplicación · Windows)",
+        "groups": [{"groupid": gid}], "tags": [{"tag": "capa", "value": "aplicacion"}],
+    })["hostids"][0]
+    if not z.call("httptest.get", {"output": ["httptestid"], "hostids": wwid, "filter": {"name": "App MS Motos Windows"}}):
+        z.call("httptest.create", {
+            "name": "App MS Motos Windows", "hostid": wwid, "delay": "30s", "retries": 1,
+            "steps": [
+                {"name": "health", "url": f"{APP_WIN}/api/health", "status_codes": "200",
+                 "required": "\"ok\":true", "no": 1, "timeout": "5s"},
+                {"name": "frontend", "url": f"{APP_WIN}/", "status_codes": "200",
+                 "required": "app-root", "no": 2, "timeout": "5s"},
+            ],
+        })
+    crear_trigger(z, "T04-W App MS Motos no disponible (Windows)",
+                  "count(/msmotos-web-win/web.test.fail[App MS Motos Windows],#2,\"ne\",0)=2", 5,
+                  {"remediation": "none", "capa": "aplicacion"})
+    crear_trigger(z, "T05-W App MS Motos lenta en Windows (health > 2 s)",
+                  "avg(/msmotos-web-win/web.test.time[App MS Motos Windows,health,resp],5m)>2", 2,
+                  {"remediation": "none", "capa": "aplicacion"})
+    print("Windows: vm-app-win y vm-dc por agente, servicio MSMotos (T03-W) y escenario web (T04-W, T05-W)")
 
     # --- Usuario de solo lectura para Grafana ---
     rol = z.uno("role.get", {"name": ["Solo lectura Grafana"]}, ["roleid"])
