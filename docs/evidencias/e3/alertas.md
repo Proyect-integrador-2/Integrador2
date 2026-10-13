@@ -42,6 +42,10 @@ Se puso la CPU de `vm-grafana` al 100 % durante 8 minutos (`yes > /dev/null`).
 
 El aviso llegó 5 minutos y 16 segundos después de empezar la carga: es la ventana de 5 minutos del umbral más la lectura siguiente. En la base de n8n los dos envíos quedaron con respuesta correcta de Telegram.
 
+Así se vio en el grupo: los dos avisos de problema y sus cierres.
+
+![Avisos de CPU alta en el grupo IP2 Alertas](alertas/telegram-a08-cpu.png)
+
 ## 4. Incidencia: avisos que no salían
 
 Las dos primeras corridas de esta prueba (12:13 y 14:25) dispararon la alerta en Zabbix y n8n la procesó, pero **el aviso de "PROBLEMA" no llegó a Telegram**. El envío fallaba con `getaddrinfo EAI_AGAIN api.telegram.org`: n8n no lograba resolver el nombre.
@@ -69,10 +73,17 @@ El flujo [`estado-telegram.json`](../../../automatizacion/n8n/estado-telegram.js
 
 ![Respuesta del bot al comando /estado](alertas/telegram-estado.png)
 
-## 6. Pendiente
+## 6. Aviso de una recuperación automática
+
+El mismo canal avisa cuando n8n corrige algo solo. Prueba del 13 de octubre a las 16:54: se detuvo Nginx en `vm-app`; n8n lo reinició, y al grupo llegaron la acción ejecutada con su resultado y los cierres. Nginx volvió a estar activo 90 segundos después de detenerlo.
+
+![Recuperación automática de Nginx avisada en el grupo](alertas/telegram-recuperacion-nginx.png)
+
+En esa misma prueba n8n reportó a Zabbix su ejecución (IP2-77): resultado correcto, 1 segundo de duración y el comando que corrió. Con eso se llenan los paneles del tablero de Automatización.
+
+## 7. Pendiente
 
 | Qué | Tarea |
 |---|---|
-| Captura del grupo con los avisos de la prueba A-08 | IP2-51 |
 | Correo como segundo canal (la rúbrica pide Telegram o correo) | IP2-51 |
 | Cambiar en R1 el DNS que reciben los usuarios por DHCP | IP2-28 |

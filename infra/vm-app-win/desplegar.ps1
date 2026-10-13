@@ -51,8 +51,17 @@ function Bajar($url, $archivo) {
     # Write-Host y no Write-Output: lo que una funcion escribe con Write-Output pasa a
     # ser parte de lo que devuelve, y aqui se devuelve solo la ruta.
     Write-Host "  bajando $archivo"
-    Invoke-WebRequest -Uri $url -OutFile "$destino.parcial" -UseBasicParsing
-    Move-Item "$destino.parcial" $destino
+    # Con reintentos: nssm.cc responde 503 a ratos.
+    foreach ($intento in 1..8) {
+      try {
+        Invoke-WebRequest -Uri $url -OutFile "$destino.parcial" -UseBasicParsing
+        break
+      } catch {
+        if ($intento -eq 8) { throw }
+        Start-Sleep -Seconds 20
+      }
+    }
+    Move-Item "$destino.parcial" $destino -Force
   }
   $destino
 }
@@ -161,7 +170,8 @@ icacls "$Raiz\secretos" /inheritance:r /grant '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-
 
 # ---------------------------------------------------------------------------
 Paso '3. Base de datos'
-$mysql = "$MySql\bin\mysql.exe"
+# PowerShell no distingue mayusculas en los nombres de variables: no puede llamarse $mysql.
+$cliente = "$MySql\bin\mysql.exe"
 $root = "$Raiz\secretos\mysql-root.cnf"
 $nueva = -not (Get-Service $ServicioDb -ErrorAction SilentlyContinue)
 if ($nueva) {
@@ -189,7 +199,7 @@ CREATE DATABASE IF NOT EXISTS proyecto_taller CHARACTER SET utf8mb4;
 CREATE USER IF NOT EXISTS 'taller_app'@'localhost' IDENTIFIED BY '$claveApp';
 CREATE USER IF NOT EXISTS 'taller_app'@'127.0.0.1' IDENTIFIED BY '$claveApp';
 GRANT ALL PRIVILEGES ON proyecto_taller.* TO 'taller_app'@'localhost', 'taller_app'@'127.0.0.1';
-"@ | & $mysql -u root
+"@ | & $cliente -u root
   if ($LASTEXITCODE -ne 0) { throw 'No se pudo preparar la base de datos.' }
   "[client]`nuser=root`npassword=$claveRoot" | Set-Content $root -Encoding ascii
   Write-Output '  MySQL inicializado; base y usuario de la aplicacion creados.'
@@ -218,9 +228,9 @@ Correr "$Node\npm.cmd" ci --omit=dev --no-audit --no-fund
 Pop-Location
 
 # El esquema se crea una sola vez: schema.sql empieza con DROP TABLE.
-$tablas = & $mysql "--defaults-extra-file=$root" -N -B -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'proyecto_taller'"
+$tablas = & $cliente "--defaults-extra-file=$root" -N -B -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'proyecto_taller'"
 if ([int]$tablas -eq 0) {
-  Correr $mysql "--defaults-extra-file=$root" --default-character-set=utf8mb4 proyecto_taller -e "source $($Raiz -replace '\\', '/')/backend/schema.sql"
+  Correr $cliente "--defaults-extra-file=$root" --default-character-set=utf8mb4 proyecto_taller -e "source $($Raiz -replace '\\', '/')/backend/schema.sql"
   Write-Output '  esquema creado.'
 } else {
   Write-Output "  la base ya tiene $tablas tablas: no se toca el esquema."
