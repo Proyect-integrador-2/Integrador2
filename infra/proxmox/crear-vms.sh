@@ -31,7 +31,9 @@ BRIDGE="vmbr0"
 VLAN=30
 RED="10.10.30"
 GATEWAY="10.10.30.1"
-DNS="8.8.8.8"
+# Los DNS de la universidad y 1.1.1.1 de respaldo. No 8.8.8.8: desde esta red pierde
+# cerca del 40 % de las consultas (ver dns-vm.sh, que corrige las VMs ya creadas).
+DNS="10.100.8.2 10.100.8.3 1.1.1.1"
 USUARIO="ip2"
 IMAGEN_URL="https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
 IMAGEN="/var/lib/vz/template/iso/noble-server-cloudimg-amd64.img"
