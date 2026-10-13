@@ -21,7 +21,7 @@ DISPONIBLE = {"0": "sin datos aún", "1": "disponible", "2": "NO disponible"}
 CLAVE = [
     ("vm-app", "CPU utilization"), ("vm-app", "Memory utilization"),
     ("vm-app", "Container /msmotos-app: Running"), ("vm-app", "Container /msmotos-db: Running"),
-    ("vm-app", "Servicio Nginx: estado"), ("vm-app", "Nginx: Connections active"),
+    ("vm-app", "Servicio Nginx: estado"), ("vm-app", "Connections active"),
     ("msmotos-web", "Response code for step \"health\" of scenario \"App MS Motos\"."),
     ("msmotos-web", "Response time for step \"health\" of scenario \"App MS Motos\"."),
     ("r1", "ICMP ping"), ("r1", "ICMP response time"),

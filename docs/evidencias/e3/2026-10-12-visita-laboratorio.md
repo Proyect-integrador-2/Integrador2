@@ -2,7 +2,7 @@
 
 Tareas: IP2-27 y IP2-28 (switch y router), IP2-32 (hipervisor), IP2-93 (administración remota), IP2-14 e IP2-31 (inventario y dimensionamiento).
 
-Resultado: el router, el switch y el servidor quedaron configurados, y la plataforma se administra a distancia desde ese día. Las pruebas de red desde una computadora de usuario y desde una de administración pasaron todas (V1 y V3 a V9), las cinco máquinas virtuales Linux quedaron creadas y la aplicación MS Motos ya responde en `vm-app`. Faltan las dos de Windows Server y el resto de los despliegues.
+Resultado: el router, el switch y el servidor quedaron configurados, y la plataforma se administra a distancia desde ese día. Las pruebas de red desde una computadora de usuario y desde una de administración pasaron todas (V1 y V3 a V9), las cinco máquinas virtuales Linux quedaron creadas y la aplicación MS Motos ya responde en `vm-app` y Zabbix vigila las VM, el router, el switch y la aplicación. Faltan Grafana, n8n, el robot y las dos VM de Windows Server.
 
 ## 1. Equipos del grupo
 
@@ -143,27 +143,69 @@ Los secretos (base de datos, firma de sesiones y contraseñas de las tres cuenta
 
 La construcción tomó cerca de 4 minutos. Con la aplicación arriba, la VM usa 1,1 GB de sus 4 GB de memoria y 5,4 GB de disco.
 
-## 8. Incidencias
+## 8. Monitoreo con Zabbix
+
+Desplegado el mismo día en `vm-zabbix` (tareas IP2-41 a IP2-45). Todo sale de [`infra/vm-zabbix/`](../../../infra/vm-zabbix/): `desplegar.sh` levanta Zabbix 7.0.30 con PostgreSQL 16 en contenedores, `instalar-agente.sh` pone Zabbix agent 2 (7.0.31) en cada VM y `configurar-zabbix.py` crea hosts, plantillas y triggers por la API. El frontend queda en `http://10.10.30.12`.
+
+| Host | Qué es | Método | Estado | Ítems |
+|---|---|---|---|---|
+| `vm-app` | VM de la aplicación | Agente, con Docker y Nginx | Disponible | 226 |
+| `vm-zabbix`, `vm-grafana`, `vm-n8n`, `vm-rpa` | Las otras cuatro VM | Agente | Disponibles | 75 cada una |
+| `r1` | Router ISR 4221 | SNMP v2c, solo lectura | Disponible | 96 |
+| `sw1` | Switch 2960 | SNMP v2c, solo lectura | Disponible | 245 |
+| `proxmox` | Servidor físico | Ping | Responde | 3 |
+| `msmotos-web` | La aplicación como la ve un usuario | Escenario web por Nginx, cada 30 s | HTTP 200 en 6 ms | 9 |
+
+Zabbix descubrió por SNMP 30 interfaces de red. Arriba al momento de la prueba: la WAN, el troncal y las cinco subinterfaces en R1; `Gi0/1`, `Gi0/2` y `Vl99` en SW1.
+
+El router y el switch solo responden SNMP a `10.10.30.12` y con la comunidad correcta: con otra comunidad no contestan. La comunidad viaja a la VM por el túnel y queda como macro secreta en Zabbix; no está en el repositorio.
+
+| Trigger | Condición | Severidad | Etiqueta para la automatización |
+|---|---|---|---|
+| T01 Contenedor `msmotos-app` detenido | Sin estado *running* durante 1 min | Alta | `restart-container` |
+| T03 Servicio Nginx detenido | Sin estado `active` durante 1 min | Alta | `restart-service` |
+| T04 App MS Motos no disponible | El chequeo web falla 2 veces seguidas | Desastre | `none` (depende de T01 y T03) |
+| T05 App MS Motos lenta | Respuesta promedio mayor a 2 s en 5 min | Advertencia | `none` |
+
+### Prueba de detección: contenedor detenido
+
+| Hora | Qué pasó |
+|---|---|
+| 20:10:39 | Se detiene `msmotos-app` con `docker stop` |
+| +73 s | Zabbix tiene abierto T01. También abrió T04 y el aviso de la plantilla de Docker |
+| — | Durante la caída, Nginx sigue arriba y el usuario recibe HTTP 502 |
+| 20:12:45 | Se inicia el contenedor a mano |
+| +67 s | Zabbix cierra los tres problemas. El usuario vuelve a recibir HTTP 200 |
+
+La detección quedó dentro del requisito de menos de 2 minutos (RNF-01).
+
+**Hallazgo:** la dependencia de T04 sobre T01 no ocultó T04 en esta prueba. T04 se disparó antes que T01, y Zabbix solo suprime el síntoma si la causa ya está abierta. Hay que ajustar los tiempos para que la causa siempre llegue primero.
+
+**Sin soporte, esperado:** en R1, los contadores de errores y descartes de las subinterfaces (IOS XE no los publica por subinterfaz). No afecta al resto.
+
+## 9. Incidencias
 
 | Qué pasó | Cómo se resolvió |
 |---|---|
 | En la primera corrida del script el servidor quedó sin ruta por defecto y no pudo descargar Tailscale. Al recargar la red, Proxmox quitó el gateway que había dejado la instalación y se llevó la ruta recién recibida por DHCP | Se renovó el DHCP en `nic2` y se repitió el script. El script ya lo hace solo (commit `096ff8a`) |
 | R1 y SW1 rechazaban SSH desde el servidor: sus listas solo permitían la VLAN 40 | Se agregó `permit host 10.10.30.10` a `ACL-SSH-ADMIN` de R1 y a la lista 40 de SW1. Ya está en las configuraciones del repositorio |
 
-## 9. Diferencias con lo planeado
+## 10. Diferencias con lo planeado
 
 | Planeado | Lo que se hizo | Consecuencia |
 |---|---|---|
 | Dejar los cables de consola de R1 y SW1 conectados al servidor | No se dejaron: el servidor solo tiene dos USB traseros y el 2960 solo trae consola RJ45 | R1 y SW1 se administran solo por SSH. Antes de cada cambio riesgoso se programa `reload in 10`, para que el equipo vuelva solo a la configuración guardada si se pierde el acceso |
 | Activar el encendido automático del servidor tras un corte de corriente | No se activó | Los servidores del laboratorio no se apagan y están en UPS |
 
-## 10. Pendiente
+## 11. Pendiente
 
 | Qué | Tarea |
 |---|---|
 | Verificar en los equipos reales cada control de endurecimiento | IP2-88 |
 | Crear las dos máquinas virtuales de Windows Server | IP2-73, IP2-79 |
 | Abrir la aplicación desde PC-CLIENTE (V2), que ya se puede probar | IP2-29 |
-| Desplegar Zabbix, Grafana, n8n y el robot en sus máquinas virtuales | IP2-41 en adelante |
+| Ajustar los tiempos de T01 y T04 para que la dependencia oculte el síntoma | IP2-43 |
+| Monitorear Proxmox por su API, no solo por ping | IP2-41 |
+| Desplegar Grafana, n8n y el robot en sus máquinas virtuales | IP2-47 en adelante |
 | Cortafuegos en cada máquina virtual | IP2-89 |
 | Foto del rack con los equipos del grupo y los cables | Evidencia A-01 |
