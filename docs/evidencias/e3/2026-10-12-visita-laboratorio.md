@@ -2,7 +2,7 @@
 
 Tareas: IP2-27 y IP2-28 (switch y router), IP2-32 (hipervisor), IP2-93 (administración remota), IP2-14 e IP2-31 (inventario y dimensionamiento).
 
-Resultado: el router, el switch y el servidor quedaron configurados, y la plataforma se administra a distancia desde ese día. Las pruebas desde una computadora de usuario pasaron. Faltan las de la computadora de administración y las máquinas virtuales.
+Resultado: el router, el switch y el servidor quedaron configurados, y la plataforma se administra a distancia desde ese día. Las pruebas de segmentación desde una computadora de usuario y desde una de administración pasaron. Faltan las máquinas virtuales.
 
 ## 1. Equipos del grupo
 
@@ -80,25 +80,42 @@ En las pruebas bloqueadas quien contesta es el router (`Reply from 10.10.20.1: D
 
 Un usuario recibe dirección sola, sale a Internet y no alcanza los servidores, la red de administración ni la gestión de los equipos.
 
-## 5. Incidencias
+## 5. Alcance desde la computadora de administración
+
+PC-ADMIN: computadora del laboratorio conectada a SW1 Fa0/1 (VLAN 40), con la dirección fija `10.10.40.10`.
+
+| # | Prueba | Esperado | Resultado | Evidencia |
+|---|---|---|---|---|
+| — | `ipconfig` | `10.10.40.10` | `10.10.40.10`, puerta de enlace `10.10.40.1` | [foto](red/v6a-admin-ipconfig.jpg) |
+| V6 | `ping 10.10.30.10` (servidor) | Responde | Responde, 4 de 4 | [foto](red/v6b-admin-ping-servidor.jpg) |
+| V6 | `ping 10.10.99.2` (gestión del switch) | Responde | Responde, 4 de 4 | [foto](red/v6c-admin-ping-switch.jpg) |
+| V6 | `ping 10.10.20.100` (PC-CLIENTE) | Responde | Responde, 4 de 4 | [foto](red/v6d-admin-ping-cliente.jpg) |
+| — | Abrir `https://10.10.30.10:8006` | Panel de Proxmox | Abre y permite iniciar sesión | [foto](red/v6e-admin-panel-proxmox.jpg) |
+| — | `ping 8.8.8.8` | Responde por NAT | Responde, 4 de 4, 58 ms | [foto](red/v6f-admin-ping-internet.jpg) |
+
+Las mismas tres redes que el usuario tiene bloqueadas responden desde Administración, y el mismo panel que al usuario no le abre aquí sí carga.
+
+Medido aparte desde el servidor: 0,4 ms al router, 1,3 ms al switch y 1,5 ms a PC-ADMIN pasando por el router. Desde el servidor no responde el ping a PC-CLIENTE, como está diseñado: la lista de usuarios solo deja volver las respuestas hacia Administración.
+
+## 6. Incidencias
 
 | Qué pasó | Cómo se resolvió |
 |---|---|
 | En la primera corrida del script el servidor quedó sin ruta por defecto y no pudo descargar Tailscale. Al recargar la red, Proxmox quitó el gateway que había dejado la instalación y se llevó la ruta recién recibida por DHCP | Se renovó el DHCP en `nic2` y se repitió el script. El script ya lo hace solo (commit `096ff8a`) |
 | R1 y SW1 rechazaban SSH desde el servidor: sus listas solo permitían la VLAN 40 | Se agregó `permit host 10.10.30.10` a `ACL-SSH-ADMIN` de R1 y a la lista 40 de SW1. Ya está en las configuraciones del repositorio |
 
-## 6. Diferencias con lo planeado
+## 7. Diferencias con lo planeado
 
 | Planeado | Lo que se hizo | Consecuencia |
 |---|---|---|
 | Dejar los cables de consola de R1 y SW1 conectados al servidor | No se dejaron: el servidor solo tiene dos USB traseros y el 2960 solo trae consola RJ45 | R1 y SW1 se administran solo por SSH. Antes de cada cambio riesgoso se programa `reload in 10`, para que el equipo vuelva solo a la configuración guardada si se pierde el acceso |
 | Activar el encendido automático del servidor tras un corte de corriente | No se activó | Los servidores del laboratorio no se apagan y están en UPS |
 
-## 7. Pendiente
+## 8. Pendiente
 
 | Qué | Tarea |
 |---|---|
-| Pruebas desde PC-ADMIN: alcance a servidores y usuarios (V6), SSH a los equipos (V7) y traducciones de NAT (V9) | IP2-29 |
+| SSH a los equipos desde PC-ADMIN (V7) y traducciones de NAT en el router (V9) | IP2-29 |
 | Verificar en los equipos reales cada control de endurecimiento | IP2-88 |
 | Crear las siete máquinas virtuales | IP2-33, IP2-73, IP2-79 |
 | Foto del rack con los equipos del grupo y los cables | Evidencia A-01 |
