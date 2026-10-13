@@ -2,7 +2,7 @@
 
 Tareas: IP2-27 y IP2-28 (switch y router), IP2-32 (hipervisor), IP2-93 (administración remota), IP2-14 e IP2-31 (inventario y dimensionamiento).
 
-Resultado: el router, el switch y el servidor quedaron configurados, y la plataforma se administra a distancia desde ese día. Las pruebas de red desde una computadora de usuario y desde una de administración pasaron todas (V1 y V3 a V9), las cinco máquinas virtuales Linux quedaron creadas y la aplicación MS Motos ya responde en `vm-app` y Zabbix vigila las VM, el router, el switch y la aplicación. Faltan Grafana, n8n, el robot y las dos VM de Windows Server.
+Resultado: el router, el switch y el servidor quedaron configurados, y la plataforma se administra a distancia desde ese día. Las pruebas de red desde una computadora de usuario y desde una de administración pasaron todas (V1 y V3 a V9), las cinco máquinas virtuales Linux quedaron creadas y la aplicación MS Motos ya responde en `vm-app` y Zabbix vigila las VM, el router, el switch y la aplicación, y Grafana muestra los tableros con esos datos. Faltan n8n, el robot y las dos VM de Windows Server.
 
 ## 1. Equipos del grupo
 
@@ -183,21 +183,42 @@ La detección quedó dentro del requisito de menos de 2 minutos (RNF-01).
 
 **Sin soporte, esperado:** en R1, los contadores de errores y descartes de las subinterfaces (IOS XE no los publica por subinterfaz). No afecta al resto.
 
-## 9. Incidencias
+## 9. Tableros de Grafana
+
+Desplegado el mismo día en `vm-grafana` con [`infra/vm-grafana/desplegar.sh`](../../../infra/vm-grafana/desplegar.sh) (tarea IP2-47). Grafana 12.4.3 con el plugin de Zabbix; lee Zabbix con un usuario de solo lectura y carga los cinco tableros de [`monitoreo/grafana/`](../../../monitoreo/grafana/). Queda en `http://10.10.30.13`.
+
+La fuente de datos responde "Zabbix API version 7.0.30". [`verificar-tableros.py`](../../../infra/vm-grafana/verificar-tableros.py) ejecutó las consultas de los 40 paneles:
+
+| Tablero | Con datos | Vacíos | Solo en el navegador |
+|---|---|---|---|
+| General (ejecutivo) | 4 | 0 | 2 |
+| Técnico (infraestructura) | 11 | 0 | 0 |
+| Red | 7 | 0 | 0 |
+| Experiencia del usuario | 3 | 4 | 2 |
+| Automatización (n8n y RPA) | 0 | 5 | 2 |
+| **Total** | **25** | **9** | **6** |
+
+Ninguna consulta dio error. Los 9 vacíos esperan al robot y a n8n, que todavía no están desplegados. Los 6 "solo en el navegador" son listas de problemas y textos, que el plugin resuelve del lado del navegador y no se pueden comprobar por la API.
+
+El tablero de Red, que en la réplica local tenía 5 paneles vacíos, aquí trae datos reales de R1 y SW1: tráfico y estado de las 30 interfaces, errores y descartes, y latencia y pérdida hacia el router, el switch y el servidor.
+
+## 10. Incidencias
 
 | Qué pasó | Cómo se resolvió |
 |---|---|
 | En la primera corrida del script el servidor quedó sin ruta por defecto y no pudo descargar Tailscale. Al recargar la red, Proxmox quitó el gateway que había dejado la instalación y se llevó la ruta recién recibida por DHCP | Se renovó el DHCP en `nic2` y se repitió el script. El script ya lo hace solo (commit `096ff8a`) |
+| Grafana arrancó sin fuente de datos ni tableros: el repositorio se había clonado con permisos que el contenedor no podía leer | Se corrigieron los permisos y los scripts de despliegue ya fijan la máscara (commit `cdf3652`) |
+| La plantilla de Nginx de Zabbix recibía 403 al leer la página de estado: consultaba `localhost`, que resuelve a IPv6, y solo se permite `127.0.0.1` | Macro del host ajustada a `127.0.0.1` |
 | R1 y SW1 rechazaban SSH desde el servidor: sus listas solo permitían la VLAN 40 | Se agregó `permit host 10.10.30.10` a `ACL-SSH-ADMIN` de R1 y a la lista 40 de SW1. Ya está en las configuraciones del repositorio |
 
-## 10. Diferencias con lo planeado
+## 11. Diferencias con lo planeado
 
 | Planeado | Lo que se hizo | Consecuencia |
 |---|---|---|
 | Dejar los cables de consola de R1 y SW1 conectados al servidor | No se dejaron: el servidor solo tiene dos USB traseros y el 2960 solo trae consola RJ45 | R1 y SW1 se administran solo por SSH. Antes de cada cambio riesgoso se programa `reload in 10`, para que el equipo vuelva solo a la configuración guardada si se pierde el acceso |
 | Activar el encendido automático del servidor tras un corte de corriente | No se activó | Los servidores del laboratorio no se apagan y están en UPS |
 
-## 11. Pendiente
+## 12. Pendiente
 
 | Qué | Tarea |
 |---|---|
@@ -206,6 +227,7 @@ La detección quedó dentro del requisito de menos de 2 minutos (RNF-01).
 | Abrir la aplicación desde PC-CLIENTE (V2), que ya se puede probar | IP2-29 |
 | Ajustar los tiempos de T01 y T04 para que la dependencia oculte el síntoma | IP2-43 |
 | Monitorear Proxmox por su API, no solo por ping | IP2-41 |
-| Desplegar Grafana, n8n y el robot en sus máquinas virtuales | IP2-47 en adelante |
+| Capturas de los cinco tableros con datos del laboratorio | IP2-48 |
+| Desplegar n8n y el robot en sus máquinas virtuales | IP2-50 en adelante |
 | Cortafuegos en cada máquina virtual | IP2-89 |
 | Foto del rack con los equipos del grupo y los cables | Evidencia A-01 |
