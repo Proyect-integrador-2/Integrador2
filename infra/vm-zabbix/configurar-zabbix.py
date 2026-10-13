@@ -136,6 +136,13 @@ def main():
     print("VMs:", ", ".join(hostids))
     hid = hostids["vm-app"]
 
+    # La plantilla de Nginx consulta "localhost", que en Ubuntu resuelve primero a ::1,
+    # y la página de estado solo se permite desde 127.0.0.1: respondía 403.
+    macro = "{$NGINX.STUB_STATUS.HOST}"
+    if not z.call("usermacro.get", {"output": ["hostmacroid"], "hostids": hid, "filter": {"macro": macro}}):
+        z.call("usermacro.create", {"hostid": hid, "macro": macro, "value": "127.0.0.1"})
+        print("Macro de Nginx ajustada a 127.0.0.1")
+
     # --- Router y switch (SNMP v2c de solo lectura) ---
     comunidad = env.get("SNMP_COMMUNITY", "")
     if not comunidad:

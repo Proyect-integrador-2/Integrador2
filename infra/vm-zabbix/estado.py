@@ -21,7 +21,7 @@ DISPONIBLE = {"0": "sin datos aún", "1": "disponible", "2": "NO disponible"}
 CLAVE = [
     ("vm-app", "CPU utilization"), ("vm-app", "Memory utilization"),
     ("vm-app", "Container /msmotos-app: Running"), ("vm-app", "Container /msmotos-db: Running"),
-    ("vm-app", "Servicio Nginx: estado"), ("vm-app", "Nginx: Service status"),
+    ("vm-app", "Servicio Nginx: estado"), ("vm-app", "Nginx: Connections active"),
     ("msmotos-web", "Response code for step \"health\" of scenario \"App MS Motos\"."),
     ("msmotos-web", "Response time for step \"health\" of scenario \"App MS Motos\"."),
     ("r1", "ICMP ping"), ("r1", "ICMP response time"),
@@ -45,7 +45,7 @@ def main():
         ifaz = h["interfaces"][0] if h["interfaces"] else None
         via = {"1": "agente", "2": "SNMP"}.get(ifaz["type"], "?") if ifaz else "web"
         estado = DISPONIBLE[ifaz["available"]] if ifaz else "-"
-        n = z.call("item.get", {"countOutput": True, "hostids": h["hostid"], "monitored": True})
+        n = z.call("item.get", {"countOutput": True, "hostids": h["hostid"], "monitored": True, "webitems": True})
         sin = z.call("item.get", {"countOutput": True, "hostids": h["hostid"], "monitored": True, "filter": {"state": 1}})
         print(f"  {h['host']:<12} {ifaz['ip'] if ifaz else '-':<12} {via:<7} {estado:<14} ítems: {n:>4}  sin soporte: {sin}")
         if ifaz and ifaz["error"]:
@@ -54,7 +54,7 @@ def main():
     print("\n== Datos clave ==")
     ahora = time.time()
     for host, nombre in CLAVE:
-        items = z.call("item.get", {"output": ["name", "lastvalue", "lastclock", "units"],
+        items = z.call("item.get", {"output": ["name", "lastvalue", "lastclock", "units"], "webitems": True,
                                     "hostids": por_host.get(host, 0), "filter": {"name": nombre}})
         if not items:
             print(f"  {host:<12} {nombre[:52]:<52} (no existe)")
