@@ -27,7 +27,11 @@ services:
       # Token de API de Zabbix para dejar constancia en los eventos (control C6).
       ZABBIX_API_URL: ${ZABBIX_API_URL:-http://10.10.30.12/api_jsonrpc.php}
       ZABBIX_N8N_TOKEN: ${ZABBIX_N8N_TOKEN:?Definí ZABBIX_N8N_TOKEN en .env}
-      # El flujo lee esas tres variables con $env.
+      # Bot de Telegram para avisar a una persona (IP2-51). Vacío = el flujo no avisa.
+      # Lo configura configurar-telegram.sh; el token nunca va en Git.
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      # El flujo lee estas variables con $env.
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
     volumes:
       - n8n-data:/home/node/.n8n

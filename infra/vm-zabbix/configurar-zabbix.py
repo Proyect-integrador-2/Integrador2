@@ -116,13 +116,17 @@ def entrar(z, env):
     print("Contraseña de fábrica de Admin reemplazada por la del .env")
 
 
-def crear_trigger(z, nombre, expresion, severidad, etiquetas, comentario=""):
-    existente = z.uno("trigger.get", {"description": [nombre]}, ["triggerid"])
+def crear_trigger(z, nombre, expresion, severidad, etiquetas, comentario="", host=None, opdata=""):
+    """Crea el trigger si no existe. Con `host`, el mismo nombre puede repetirse en cada host."""
+    busqueda = {"output": ["triggerid"], "filter": {"description": [nombre]}}
+    if host:
+        busqueda["host"] = host
+    existente = z.call("trigger.get", busqueda)
     if existente:
-        return existente["triggerid"]
+        return existente[0]["triggerid"]
     return z.call("trigger.create", {
         "description": nombre, "expression": expresion, "priority": severidad, "comments": comentario,
-        "tags": [{"tag": k, "value": v} for k, v in etiquetas.items()]})["triggerids"][0]
+        "opdata": opdata, "tags": [{"tag": k, "value": v} for k, v in etiquetas.items()]})["triggerids"][0]
 
 
 def main():
@@ -257,6 +261,25 @@ def main():
     # Con la dependencia, Zabbix muestra la causa (T01 o T03) y no abre además T04.
     z.call("trigger.update", {"triggerid": t04, "dependencies": [{"triggerid": t01}, {"triggerid": t03}]})
     print("T04 depende de T01 y T03")
+
+    # --- T06 a T08: capacidad de las VMs. Solo alertan: nadie amplía recursos en automático ---
+    # (nombre, clave del ítem de la plantilla, función, umbral de advertencia, umbral alto)
+    capacidad = [
+        ("T06 CPU alta", "system.cpu.util", "avg({},5m)", 85, 95, "promedio de 5 min"),
+        ("T07 Memoria alta", "vm.memory.util", "avg({},5m)", 85, 95, "promedio de 5 min"),
+        ("T08 Disco / lleno", "vfs.fs.dependent.size[/,pused]", "last({})", 80, 90, "última lectura"),
+    ]
+    for host, _, _, _ in VMS:
+        for nombre, clave, funcion, aviso, alto, ventana in capacidad:
+            etiquetas = {"remediation": "none", "capa": "capacidad"}
+            valor = funcion.format(f"/{host}/{clave}")
+            grave = crear_trigger(z, f"{nombre} en {{HOST.HOST}} (> {alto} %, {ventana})", f"{valor}>{alto}", 4,
+                                  etiquetas, host=host, opdata="{ITEM.LASTVALUE1}")
+            leve = crear_trigger(z, f"{nombre} en {{HOST.HOST}} (> {aviso} %, {ventana})", f"{valor}>{aviso}", 2,
+                                 etiquetas, host=host, opdata="{ITEM.LASTVALUE1}")
+            # Si ya está abierto el nivel alto, no hace falta mostrar además la advertencia.
+            z.call("trigger.update", {"triggerid": leve, "dependencies": [{"triggerid": grave}]})
+    print("Capacidad: T06 a T08 listos en las cinco VMs")
 
     # --- Cliente sintético (RPA): ítems que recibe de rpa/ejecutar.py y sus triggers ---
     for host, visible, origen in RPA_HOSTS:
