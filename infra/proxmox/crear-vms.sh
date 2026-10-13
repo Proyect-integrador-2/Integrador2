@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-# Crea las máquinas virtuales del proyecto en Proxmox VE (IP2-33, IP2-73, IP2-79).
+# Crea las máquinas virtuales Linux del proyecto en Proxmox VE (IP2-33).
 #
-# Las cinco VMs Linux salen de la imagen oficial de Ubuntu 24.04 para la nube y quedan
+# Las cinco VMs salen de la imagen oficial de Ubuntu 24.04 para la nube y quedan
 # configuradas por cloud-init: nombre, IP fija en la VLAN 30, usuario y llave SSH.
-# Las dos VMs Windows se crean vacías, con el instalador montado: Windows se instala
-# a mano desde la consola del panel de Proxmox.
+# Las dos VMs Windows Server las crea crear-vms-windows.sh.
 #
 # Se corre como root en el servidor Proxmox.
 #
@@ -14,8 +13,7 @@
 #
 # Opciones:
 #   --almacen NOMBRE   dónde van los discos (por defecto local-lvm)
-#   --llave ARCHIVO    llave pública que entra a las VMs Linux (por defecto la de root del servidor)
-#   --iso-windows VOL  instalador de Windows Server, p. ej. local:iso/windows-server-2022.iso
+#   --llave ARCHIVO    llave pública que entra a las VMs (por defecto la de root del servidor)
 #
 # Antes de correrlo: las VMs salen a Internet por R1 (gateway 10.10.30.1). Si el router,
 # el switch y el troncal todavía no están configurados, arrancan pero no pueden instalar nada.
@@ -23,7 +21,6 @@ set -euo pipefail
 
 ALMACEN="local-lvm"
 LLAVE="/root/.ssh/authorized_keys"
-ISO_WINDOWS=""
 SOLO=""
 SIMULAR=""
 
@@ -46,19 +43,14 @@ LINUX=(
   "114 vm-n8n     14 2 2048 20"
   "115 vm-rpa     15 2 4096 30"
 )
-WINDOWS=(
-  "116 vm-app-win 16 2 4096 60"
-  "117 vm-dc      17 2 4096 60"
-)
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --almacen) ALMACEN="$2"; shift 2 ;;
     --llave) LLAVE="$2"; shift 2 ;;
-    --iso-windows) ISO_WINDOWS="$2"; shift 2 ;;
     --solo) SOLO="$2"; shift 2 ;;
     --simular) SIMULAR=1; shift ;;
-    -h|--help) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Opción desconocida: $1" >&2; exit 1 ;;
   esac
 done
@@ -111,23 +103,6 @@ for fila in "${LINUX[@]}"; do
     --ciuser "$USUARIO" --sshkeys "$LLAVE" --ciupgrade 0 \
     --ipconfig0 "ip=$RED.$octeto/24,gw=$GATEWAY" --nameserver "$DNS"
   ejecutar qm start "$id"
-done
-
-echo "== VMs Windows =="
-for fila in "${WINDOWS[@]}"; do
-  read -r id nombre octeto cpus ram disco <<<"$fila"
-  pedida "$nombre" || continue
-  if existe "$id"; then echo "  $nombre ($id): ya existe, no se toca."; continue; fi
-  if [[ -z $ISO_WINDOWS ]]; then
-    echo "  $nombre ($id): falta --iso-windows. Subir el instalador al panel (local → ISO Images) y repetir."
-    continue
-  fi
-  echo "  $nombre ($id): $RED.$octeto · $cpus vCPU · $((ram / 1024)) GB · $disco GB"
-  # Disco SATA y tarjeta e1000: Windows los reconoce sin controladores adicionales.
-  ejecutar qm create "$id" --name "$nombre" --ostype win11 --cores "$cpus" --memory "$ram" \
-    --cpu host --sata0 "$ALMACEN:$disco" --net0 "e1000,bridge=$BRIDGE,tag=$VLAN" \
-    --ide2 "$ISO_WINDOWS,media=cdrom" --boot "order=sata0;ide2" --onboot 1
-  echo "    Instalar desde el panel: $nombre → Console. Después, IP fija $RED.$octeto/24, gateway $GATEWAY."
 done
 
 cat <<EOF
