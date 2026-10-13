@@ -48,7 +48,9 @@ function Secreto($largo) {
 function Bajar($url, $archivo) {
   $destino = Join-Path $Descargas $archivo
   if (-not (Test-Path $destino)) {
-    Write-Output "  bajando $archivo"
+    # Write-Host y no Write-Output: lo que una funcion escribe con Write-Output pasa a
+    # ser parte de lo que devuelve, y aqui se devuelve solo la ruta.
+    Write-Host "  bajando $archivo"
     Invoke-WebRequest -Uri $url -OutFile "$destino.parcial" -UseBasicParsing
     Move-Item "$destino.parcial" $destino
   }

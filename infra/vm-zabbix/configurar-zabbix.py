@@ -63,7 +63,6 @@ RPA_RECORRIDOS = {
 }
 # Lo que n8n reporta de sus ejecuciones: un juego de ítems por tipo de recuperación.
 N8N_TIPOS = ["servicio", "contenedor"]
-N8N_ORIGEN = "10.10.30.14"
 PLANTILLA_RED = "Cisco IOS by SNMP"
 PLANTILLA_PING = "ICMP Ping"
 PLANTILLA_PVE = "Proxmox VE by HTTP"
@@ -367,10 +366,16 @@ def main():
         ]
     for clave, nombre, tipo, unidad in nuevos:
         if clave not in existentes:
-            # Trapper: los escribe n8n por la API (history.push), solo desde su VM.
+            # Trapper: los escribe n8n por la API (history.push). Sin lista de orígenes: por la
+            # API Zabbix no ve la dirección de n8n, y lo que limita quién escribe es el token
+            # de n8n, que solo tiene permiso sobre el grupo del proyecto.
             z.call("item.create", {"hostid": aid, "name": nombre, "key_": clave, "type": 2,
-                                   "value_type": tipo, "units": unidad, "trapper_hosts": N8N_ORIGEN,
+                                   "value_type": tipo, "units": unidad, "trapper_hosts": "",
                                    "history": "31d", "tags": [{"tag": "component", "value": "n8n"}]})
+    con_origen = z.call("item.get", {"output": ["itemid", "trapper_hosts"], "hostids": aid})
+    for item in con_origen:
+        if item["trapper_hosts"]:
+            z.call("item.update", {"itemid": item["itemid"], "trapper_hosts": ""})
     print("Automatización: host e ítems de n8n listos")
 
     # --- Usuario de solo lectura para Grafana ---
