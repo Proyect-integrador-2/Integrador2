@@ -80,9 +80,16 @@ else
         -e "s|^SEED_ADMIN_PASSWORD=.*|SEED_ADMIN_PASSWORD=$(secreto 16)|" \
         -e "s|^SEED_RECEP_PASSWORD=.*|SEED_RECEP_PASSWORD=$(secreto 16)|" \
         -e "s|^SEED_RPA_PASSWORD=.*|SEED_RPA_PASSWORD=$(secreto 16)|" \
+        -e "s|^SEED_CLIENTE_RPA_PASSWORD=.*|SEED_CLIENTE_RPA_PASSWORD=$(secreto 16)|" \
         "$APP/.env.example" > "$APP/.env"
   )
   echo "  creado $APP/.env con secretos nuevos (permisos 600)."
+fi
+# Un .env creado antes de que existiera el cliente sintético del RPA no trae su contraseña.
+if ! grep -q '^SEED_CLIENTE_RPA_PASSWORD=.\+' "$APP/.env"; then
+  sed -i '/^SEED_CLIENTE_RPA_/d' "$APP/.env"
+  printf 'SEED_CLIENTE_RPA_EMAIL=cliente.rpa@taller.local\nSEED_CLIENTE_RPA_PASSWORD=%s\n' "$(secreto 16)" >> "$APP/.env"
+  echo "  agregada la contraseña del cliente sintético del RPA."
 fi
 
 # ---------------------------------------------------------------------------

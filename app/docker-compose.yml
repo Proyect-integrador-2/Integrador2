@@ -84,7 +84,10 @@ services:
       SEED_RECEP_PASSWORD: ${SEED_RECEP_PASSWORD:-}
       SEED_RPA_EMAIL: ${SEED_RPA_EMAIL:-rpa@taller.local}
       SEED_RPA_PASSWORD: ${SEED_RPA_PASSWORD:-}
-    command: ["node", "backend/scripts/seed-usuarios.js"]
+      # Cliente sintético del RPA: entra al portal de clientes, no al de personal.
+      SEED_CLIENTE_RPA_EMAIL: ${SEED_CLIENTE_RPA_EMAIL:-cliente.rpa@taller.local}
+      SEED_CLIENTE_RPA_PASSWORD: ${SEED_CLIENTE_RPA_PASSWORD:-}
+    command: ["sh", "-c", "node backend/scripts/seed-usuarios.js && node backend/scripts/seed-cliente-rpa.js"]
     networks: [backend]
 
 networks:
