@@ -2,7 +2,7 @@
 
 Tareas: IP2-27 y IP2-28 (switch y router), IP2-32 (hipervisor), IP2-93 (administración remota), IP2-14 e IP2-31 (inventario y dimensionamiento).
 
-Resultado: el router, el switch y el servidor quedaron configurados, y la plataforma se administra a distancia desde ese día. Las pruebas de red desde una computadora de usuario y desde una de administración pasaron todas (V1 y V3 a V9), y las cinco máquinas virtuales Linux quedaron creadas. Faltan las dos de Windows Server y los despliegues.
+Resultado: el router, el switch y el servidor quedaron configurados, y la plataforma se administra a distancia desde ese día. Las pruebas de red desde una computadora de usuario y desde una de administración pasaron todas (V1 y V3 a V9), las cinco máquinas virtuales Linux quedaron creadas y la aplicación MS Motos ya responde en `vm-app`. Faltan las dos de Windows Server y el resto de los despliegues.
 
 ## 1. Equipos del grupo
 
@@ -119,25 +119,51 @@ Comprobado en las cinco: Ubuntu 24.04.5, nombre y dirección correctos, recursos
 
 Con las cinco encendidas el servidor usa 6 GB de sus 64 GB de memoria y el 0,5 % del almacenamiento de VM.
 
-## 7. Incidencias
+## 7. Aplicación MS Motos en contenedores
+
+Desplegada el mismo día en `vm-app` con [`infra/vm-app/desplegar.sh`](../../../infra/vm-app/desplegar.sh) (tarea IP2-38). La imagen se construyó en la propia VM desde el `Dockerfile` del repositorio.
+
+| Componente | Dónde corre | Estado |
+|---|---|---|
+| Nginx | Servicio del sistema en `vm-app`, puerto 80 | Activo y habilitado al arranque |
+| `msmotos-app` | Contenedor, publicado solo en `127.0.0.1:3000` | En ejecución, `healthy` |
+| `msmotos-db` (MySQL 8.4) | Contenedor con el volumen `msmotos-db-data`, sin puerto publicado | En ejecución, `healthy` |
+
+| Prueba | Resultado |
+|---|---|
+| `http://127.0.0.1:3000/api/health` dentro de la VM | HTTP 200 |
+| `http://10.10.30.11/api/health` por Nginx | HTTP 200, `{"ok":true}` |
+| `http://10.10.30.11/` | HTTP 200, portada "MS Motos · Taller" |
+| Las mismas dos direcciones desde la portátil, por Tailscale | HTTP 200 |
+| Inicio de sesión de `admin@taller.com` | HTTP 200, rol `admin` |
+| Inicio de sesión de `recepcion@taller.com` y de `rpa@taller.local` | HTTP 200, rol `recepcion` |
+| Inicio de sesión con contraseña incorrecta | HTTP 401 |
+
+Los secretos (base de datos, firma de sesiones y contraseñas de las tres cuentas) se generaron al azar en la VM y viven solo en `/opt/integrador2/app/.env`, con permisos 600. No están en el repositorio.
+
+La construcción tomó cerca de 4 minutos. Con la aplicación arriba, la VM usa 1,1 GB de sus 4 GB de memoria y 5,4 GB de disco.
+
+## 8. Incidencias
 
 | Qué pasó | Cómo se resolvió |
 |---|---|
 | En la primera corrida del script el servidor quedó sin ruta por defecto y no pudo descargar Tailscale. Al recargar la red, Proxmox quitó el gateway que había dejado la instalación y se llevó la ruta recién recibida por DHCP | Se renovó el DHCP en `nic2` y se repitió el script. El script ya lo hace solo (commit `096ff8a`) |
 | R1 y SW1 rechazaban SSH desde el servidor: sus listas solo permitían la VLAN 40 | Se agregó `permit host 10.10.30.10` a `ACL-SSH-ADMIN` de R1 y a la lista 40 de SW1. Ya está en las configuraciones del repositorio |
 
-## 8. Diferencias con lo planeado
+## 9. Diferencias con lo planeado
 
 | Planeado | Lo que se hizo | Consecuencia |
 |---|---|---|
 | Dejar los cables de consola de R1 y SW1 conectados al servidor | No se dejaron: el servidor solo tiene dos USB traseros y el 2960 solo trae consola RJ45 | R1 y SW1 se administran solo por SSH. Antes de cada cambio riesgoso se programa `reload in 10`, para que el equipo vuelva solo a la configuración guardada si se pierde el acceso |
 | Activar el encendido automático del servidor tras un corte de corriente | No se activó | Los servidores del laboratorio no se apagan y están en UPS |
 
-## 9. Pendiente
+## 10. Pendiente
 
 | Qué | Tarea |
 |---|---|
 | Verificar en los equipos reales cada control de endurecimiento | IP2-88 |
 | Crear las dos máquinas virtuales de Windows Server | IP2-73, IP2-79 |
-| Desplegar la aplicación, Zabbix, Grafana, n8n y el robot en sus máquinas virtuales | IP2-35 en adelante |
+| Abrir la aplicación desde PC-CLIENTE (V2), que ya se puede probar | IP2-29 |
+| Desplegar Zabbix, Grafana, n8n y el robot en sus máquinas virtuales | IP2-41 en adelante |
+| Cortafuegos en cada máquina virtual | IP2-89 |
 | Foto del rack con los equipos del grupo y los cables | Evidencia A-01 |

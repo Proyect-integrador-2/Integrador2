@@ -110,6 +110,12 @@ sudo systemctl reload nginx
 # ---------------------------------------------------------------------------
 paso "7. Comprobación"
 ip=$(hostname -I | cut -d' ' -f1)
+# La recarga de Nginx no es inmediata: por unos instantes sigue respondiendo la
+# configuración anterior. Se espera a que el proxy ya esté atendiendo.
+for _ in $(seq 1 10); do
+  [[ $(curl -s -o /dev/null -w '%{http_code}' "http://$ip/api/health") == 200 ]] && break
+  sleep 1
+done
 printf '  contenedor  (127.0.0.1:3000/api/health): HTTP %s\n' "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/health)"
 printf '  por Nginx   (%s/api/health):     HTTP %s\n' "$ip" "$(curl -s -o /dev/null -w '%{http_code}' "http://$ip/api/health")"
 printf '  portada     (%s/):               HTTP %s\n' "$ip" "$(curl -s -o /dev/null -w '%{http_code}' "http://$ip/")"
