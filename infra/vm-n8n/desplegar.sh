@@ -147,9 +147,15 @@ for _ in $(seq 1 30); do
   curl -s -m 5 http://127.0.0.1:5678/healthz | grep -q '"status": *"ok"' && break
   sleep 3
 done
-sleep 5
-printf '  webhook sin token: HTTP %s (lo recibe y lo descarta)\n' \
-  "$(curl -s -o /dev/null -m 10 -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:5678/webhook/zabbix)"
+# n8n responde "ok" unos segundos antes de registrar el webhook: se espera a que exista.
+codigo=""
+for _ in $(seq 1 20); do
+  codigo=$(curl -s -o /dev/null -m 10 -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:5678/webhook/zabbix)
+  [[ $codigo == 200 ]] && break
+  sleep 3
+done
+printf '  webhook sin token: HTTP %s (200 = lo recibe; el flujo lo descarta por no traer el token)\n' "$codigo"
+[[ $codigo == 200 ]] || { echo "El webhook no quedó registrado. Ver: sudo docker compose logs n8n" >&2; exit 1; }
 sudo docker compose ps
 
 cat <<EOF

@@ -2,7 +2,7 @@
 
 Tareas: IP2-27 y IP2-28 (switch y router), IP2-32 (hipervisor), IP2-93 (administración remota), IP2-14 e IP2-31 (inventario y dimensionamiento).
 
-Resultado: el router, el switch y el servidor quedaron configurados, y la plataforma se administra a distancia desde ese día. Las pruebas de red desde una computadora de usuario y desde una de administración pasaron todas (V1 y V3 a V9), las cinco máquinas virtuales Linux quedaron creadas y la aplicación MS Motos ya responde en `vm-app` y Zabbix vigila las VM, el router, el switch y la aplicación, y Grafana muestra los tableros con esos datos. Faltan n8n, el robot y las dos VM de Windows Server.
+Resultado: el router, el switch y el servidor quedaron configurados, y la plataforma se administra a distancia desde ese día. Las pruebas de red desde una computadora de usuario y desde una de administración pasaron todas (V1 y V3 a V9), las cinco máquinas virtuales Linux quedaron creadas y la aplicación MS Motos ya responde en `vm-app` y Zabbix vigila las VM, el router, el switch y la aplicación, Grafana muestra los tableros con esos datos y n8n recupera solo el contenedor y Nginx cuando se caen. Faltan las alertas a una persona, el robot y las dos VM de Windows Server.
 
 ## 1. Equipos del grupo
 
@@ -202,7 +202,55 @@ Ninguna consulta dio error. Los 9 vacíos esperan al robot y a n8n, que todavía
 
 El tablero de Red, que en la réplica local tenía 5 paneles vacíos, aquí trae datos reales de R1 y SW1: tráfico y estado de las 30 interfaces, errores y descartes, y latencia y pérdida hacia el router, el switch y el servidor.
 
-## 10. Incidencias
+## 10. Automatización con n8n
+
+Desplegado el mismo día en `vm-n8n` con [`infra/vm-n8n/desplegar.sh`](../../../infra/vm-n8n/desplegar.sh) (tareas IP2-50, IP2-52 e IP2-53). n8n 2.40.2 con el flujo [`recuperacion-zabbix.json`](../../../automatizacion/n8n/recuperacion-zabbix.json) publicado. Zabbix le avisa cada problema del grupo del proyecto por un webhook; n8n decide, actúa por SSH sobre `vm-app` y deja constancia en el evento de Zabbix.
+
+### Controles probados
+
+La cuenta `n8n-ops` de `vm-app` la crea [`infra/vm-app/preparar-n8n-ops.sh`](../../../infra/vm-app/preparar-n8n-ops.sh): sin contraseña, fuera del grupo `docker` y con una lista cerrada de comandos.
+
+| Prueba | Esperado | Resultado |
+|---|---|---|
+| Consultar el estado del contenedor y de Nginx | Permitido | Responde `running` y `active` |
+| `docker ps` con sudo | Rechazado | `sudo: a password is required` |
+| Detener la base de datos | Rechazado | `sudo: a password is required` |
+| `docker ps` sin sudo | Rechazado | Sin permiso sobre el socket de Docker |
+| Abrir una sesión de root | Rechazado | `sudo: a password is required` |
+| Entrar como `n8n-ops` desde otro equipo (el servidor Proxmox) | Rechazado | `Permission denied (publickey)` |
+| Aviso al webhook con token falso, con el contenedor detenido | Descartado | El contenedor siguió detenido |
+
+La llave privada se generó en `vm-n8n` y no salió de esa VM; `vm-app` solo la acepta desde `10.10.30.14`.
+
+### PR-02: contenedor detenido
+
+| Hora | Desde la parada | Qué pasó |
+|---|---|---|
+| 21:48:33 | 0 s | `docker stop msmotos-app` |
+| 21:49:31 | 58 s | Zabbix abre T04 (la aplicación no responde) y avisa a n8n: solo notifica |
+| 21:49:54 | 81 s | Zabbix abre T01 (contenedor detenido) y avisa a n8n |
+| 21:49:55 | 82 s | `n8n-ops` ejecuta `docker start msmotos-app` (registro de sudo en `vm-app`) |
+| 21:49:56 | 83 s | n8n anota en el evento: "recuperación automática (intento 1 de 3): comando ejecutado" |
+| 21:49:57 | 84 s | El contenedor vuelve a estar en ejecución |
+| 21:50:54 | 141 s | Zabbix cierra T01 y n8n anota "RESUELTO" |
+
+### PR-01: servicio Nginx detenido
+
+| Hora | Desde la parada | Qué pasó |
+|---|---|---|
+| 21:56:24 | 0 s | `systemctl stop nginx`. El usuario no logra conectar |
+| 21:57:27 | 63 s | Zabbix abre T03 (servicio detenido) y avisa a n8n |
+| 21:57:28 | 64 s | `n8n-ops` ejecuta `systemctl restart nginx`; n8n lo anota en el evento |
+| 21:57:29 | 65 s | Nginx activo |
+| 21:57:57 | 93 s | Zabbix cierra T03 y n8n anota "RESUELTO" |
+
+En las dos pruebas la detección tomó menos de 2 minutos (RNF-01) y la recuperación menos de 5 (RNF-02), sin intervención de una persona. Durante PR-01 el contenedor siguió en ejecución: Zabbix distinguió el servicio caído del contenedor caído.
+
+**Detección adicional:** al crear la cuenta `n8n-ops`, Zabbix abrió por su cuenta "/etc/passwd has been changed" en `vm-app`.
+
+**Por revisar:** el aviso de la plantilla "Nginx: Process is not running" llegó dos veces a n8n, y la dependencia de T04 sigue sin ocultarlo cuando la causa es T01 o T03.
+
+## 11. Incidencias
 
 | Qué pasó | Cómo se resolvió |
 |---|---|
@@ -211,14 +259,14 @@ El tablero de Red, que en la réplica local tenía 5 paneles vacíos, aquí trae
 | La plantilla de Nginx de Zabbix recibía 403 al leer la página de estado: consultaba `localhost`, que resuelve a IPv6, y solo se permite `127.0.0.1` | Macro del host ajustada a `127.0.0.1` |
 | R1 y SW1 rechazaban SSH desde el servidor: sus listas solo permitían la VLAN 40 | Se agregó `permit host 10.10.30.10` a `ACL-SSH-ADMIN` de R1 y a la lista 40 de SW1. Ya está en las configuraciones del repositorio |
 
-## 11. Diferencias con lo planeado
+## 12. Diferencias con lo planeado
 
 | Planeado | Lo que se hizo | Consecuencia |
 |---|---|---|
 | Dejar los cables de consola de R1 y SW1 conectados al servidor | No se dejaron: el servidor solo tiene dos USB traseros y el 2960 solo trae consola RJ45 | R1 y SW1 se administran solo por SSH. Antes de cada cambio riesgoso se programa `reload in 10`, para que el equipo vuelva solo a la configuración guardada si se pierde el acceso |
 | Activar el encendido automático del servidor tras un corte de corriente | No se activó | Los servidores del laboratorio no se apagan y están en UPS |
 
-## 12. Pendiente
+## 13. Pendiente
 
 | Qué | Tarea |
 |---|---|
@@ -228,6 +276,9 @@ El tablero de Red, que en la réplica local tenía 5 paneles vacíos, aquí trae
 | Ajustar los tiempos de T01 y T04 para que la dependencia oculte el síntoma | IP2-43 |
 | Monitorear Proxmox por su API, no solo por ping | IP2-41 |
 | Capturas de los cinco tableros con datos del laboratorio | IP2-48 |
-| Desplegar n8n y el robot en sus máquinas virtuales | IP2-50 en adelante |
+| Crear la cuenta de dueño de n8n (la crea la primera persona que abre la interfaz) | IP2-50 |
+| Alertas a una persona por Telegram o correo | IP2-51 |
+| Recuperación de interfaces de red por n8n | IP2-76 en adelante |
+| Desplegar el robot en su máquina virtual | IP2-56 |
 | Cortafuegos en cada máquina virtual | IP2-89 |
 | Foto del rack con los equipos del grupo y los cables | Evidencia A-01 |
