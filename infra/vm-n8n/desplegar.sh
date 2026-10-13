@@ -26,8 +26,7 @@ umask 022
 REPO_URL="https://github.com/Proyect-integrador-2/Integrador2.git"
 DESTINO="/opt/integrador2"
 AQUI="$DESTINO/infra/vm-n8n"
-FLUJO="$DESTINO/automatizacion/n8n/recuperacion-zabbix.json"
-ID_FLUJO="IP2recuperacion01"
+FLUJOS="$DESTINO/automatizacion/n8n"
 LLAVE="$AQUI/secrets/n8n_ops_ed25519"
 VM_APP="10.10.30.11"
 ZONA="America/Costa_Rica"
@@ -136,11 +135,15 @@ sudo docker exec -u root n8n chown node:node /tmp/credencial.json
 sudo docker exec n8n n8n import:credentials --input=/tmp/credencial.json
 sudo docker exec n8n rm -f /tmp/credencial.json
 
-sudo docker cp "$FLUJO" n8n:/tmp/flujo.json
-sudo docker exec -u root n8n chown node:node /tmp/flujo.json
-sudo docker exec n8n n8n import:workflow --input=/tmp/flujo.json
-sudo docker exec n8n n8n publish:workflow --id="$ID_FLUJO"
-sudo docker exec n8n rm -f /tmp/flujo.json
+# Todos los flujos versionados: la recuperación desde Zabbix y la consulta /estado por Telegram.
+for flujo in "$FLUJOS"/*.json; do
+  id=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["id"])' "$flujo")
+  sudo docker cp "$flujo" n8n:/tmp/flujo.json
+  sudo docker exec -u root n8n chown node:node /tmp/flujo.json
+  sudo docker exec n8n n8n import:workflow --input=/tmp/flujo.json
+  sudo docker exec n8n n8n publish:workflow --id="$id"
+  sudo docker exec n8n rm -f /tmp/flujo.json
+done
 # n8n 2.x registra el webhook de un flujo publicado al arrancar.
 sudo docker compose restart n8n
 for _ in $(seq 1 30); do
