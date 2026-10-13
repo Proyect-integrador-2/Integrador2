@@ -11,7 +11,8 @@ Crea o ajusta:
   - Contraseña del usuario Admin (reemplaza la de fábrica)
   - Grupo "Integrador II"
   - Las cinco VMs Linux por agente; vm-app además con Docker y Nginx
-  - Router R1 y switch SW1 por SNMP, y el servidor Proxmox por ping
+  - Router R1 y switch SW1 por SNMP
+  - Servidor Proxmox por ping y, si el .env trae su token, por la API (nodo, VMs y discos)
   - Host msmotos-web con el escenario web contra la aplicación
   - Triggers T01 (contenedor), T03 (Nginx), T04 y T05 (aplicación)
   - Usuario de solo lectura para Grafana
@@ -61,6 +62,10 @@ RPA_RECORRIDOS = {
 }
 PLANTILLA_RED = "Cisco IOS by SNMP"
 PLANTILLA_PING = "ICMP Ping"
+PLANTILLA_PVE = "Proxmox VE by HTTP"
+# Token de solo lectura que crea infra/proxmox/token-zabbix.sh en el servidor.
+PVE_HOST = "10.10.30.10"
+PVE_TOKEN_ID = "zabbix@pve!monitoreo"
 
 
 def leer_env():
@@ -140,7 +145,7 @@ def main():
     gid = grupo["groupid"] if grupo else z.call("hostgroup.create", {"name": GRUPO})["groupids"][0]
     print("Grupo:", GRUPO, gid)
 
-    necesarias = {p for _, _, _, ps in VMS for p in ps} | {PLANTILLA_RED, PLANTILLA_PING}
+    necesarias = {p for _, _, _, ps in VMS for p in ps} | {PLANTILLA_RED, PLANTILLA_PING, PLANTILLA_PVE}
     plantillas = {t["host"]: t["templateid"] for t in z.call(
         "template.get", {"output": ["host"], "filter": {"host": sorted(necesarias)}})}
     faltan = necesarias - plantillas.keys()
@@ -185,15 +190,31 @@ def main():
         })
     print("Red: r1 y sw1 por SNMP")
 
-    # --- Servidor físico: por ahora solo disponibilidad por ping ---
-    if not z.uno("host.get", {"host": ["proxmox"]}, ["hostid"]):
-        z.call("host.create", {
-            "host": "proxmox", "name": "proxmox (Servidor R450)", "groups": [{"groupid": gid}],
-            "interfaces": [{"type": 1, "main": 1, "useip": 1, "ip": "10.10.30.10", "dns": "", "port": "10050"}],
-            "templates": [{"templateid": plantillas[PLANTILLA_PING]}],
-            "tags": [{"tag": "capa", "value": "servidor"}],
-        })
-    print("Servidor: proxmox por ping")
+    # --- Servidor físico: disponibilidad por ping y métricas por la API de Proxmox ---
+    pve = z.uno("host.get", {"host": ["proxmox"]}, ["hostid"])
+    pid = pve["hostid"] if pve else z.call("host.create", {
+        "host": "proxmox", "name": "proxmox (Servidor R450)", "groups": [{"groupid": gid}],
+        "interfaces": [{"type": 1, "main": 1, "useip": 1, "ip": PVE_HOST, "dns": "", "port": "10050"}],
+        "templates": [{"templateid": plantillas[PLANTILLA_PING]}],
+        "tags": [{"tag": "capa", "value": "servidor"}],
+    })["hostids"][0]
+    secreto = env.get("PVE_TOKEN_SECRET", "")
+    if not secreto:
+        print("Servidor: proxmox solo por ping (falta PVE_TOKEN_SECRET en .env; ver infra/proxmox/token-zabbix.sh)")
+    else:
+        # El secreto va como macro secreta (type 1). Se reescribe siempre, por si el token cambió.
+        macros = {"{$PVE.URL.HOST}": (PVE_HOST, 0), "{$PVE.TOKEN.ID}": (PVE_TOKEN_ID, 0),
+                  "{$PVE.TOKEN.SECRET}": (secreto, 1)}
+        actuales = {m["macro"]: m["hostmacroid"] for m in z.call(
+            "usermacro.get", {"output": ["hostmacroid", "macro"], "hostids": pid})}
+        for macro, (valor, tipo) in macros.items():
+            if macro in actuales:
+                z.call("usermacro.update", {"hostmacroid": actuales[macro], "value": valor, "type": tipo})
+            else:
+                z.call("usermacro.create", {"hostid": pid, "macro": macro, "value": valor, "type": tipo})
+        z.call("host.update", {"hostid": pid, "templates": [
+            {"templateid": plantillas[PLANTILLA_PING]}, {"templateid": plantillas[PLANTILLA_PVE]}]})
+        print("Servidor: proxmox por ping y por la API (nodo, VMs y almacenamiento)")
 
     # --- Aplicación: escenario web a través de Nginx, como la ve un usuario ---
     web = z.uno("host.get", {"host": ["msmotos-web"]}, ["hostid"])
