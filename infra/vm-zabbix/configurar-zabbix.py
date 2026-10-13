@@ -49,6 +49,16 @@ RED = [
     ("r1", "r1 (Router ISR 4221)", "10.10.30.1"),
     ("sw1", "sw1 (Switch 2960)", "10.10.99.2"),
 ]
+# Cliente sintético (RPA). El nombre visible lleva "rpa": los tableros filtran por él.
+# host, nombre visible, dirección desde la que se aceptan sus datos
+RPA_HOSTS = [
+    ("msmotos-rpa-linux", "msmotos-rpa-linux (Cliente sintético · Linux)", "10.10.30.15"),
+]
+# recorrido: (pasos, segundos a partir de los cuales es lento, tiempo sin datos que alerta)
+RPA_RECORRIDOS = {
+    "consulta": (["abrir", "login", "inicio", "motos", "citas", "logout"], 10, "15m"),
+    "agendar": (["abrir", "login", "elegir", "reservar", "verificar", "cancelar", "logout"], 20, "75m"),
+}
 PLANTILLA_RED = "Cisco IOS by SNMP"
 PLANTILLA_PING = "ICMP Ping"
 
@@ -247,6 +257,45 @@ def main():
     # Con la dependencia, Zabbix muestra la causa (T01 o T03) y no abre además T04.
     z.call("trigger.update", {"triggerid": t04, "dependencies": [{"triggerid": t01}, {"triggerid": t03}]})
     print("T04 depende de T01 y T03")
+
+    # --- Cliente sintético (RPA): ítems que recibe de rpa/ejecutar.py y sus triggers ---
+    for host, visible, origen in RPA_HOSTS:
+        actual = z.uno("host.get", {"host": [host]}, ["hostid"])
+        rid_host = actual["hostid"] if actual else z.call("host.create", {
+            "host": host, "name": visible, "groups": [{"groupid": gid}],
+            "tags": [{"tag": "capa", "value": "experiencia"}]})["hostids"][0]
+        existentes = {i["key_"] for i in z.call("item.get", {"output": ["key_"], "hostids": rid_host})}
+        nuevos = []
+        for recorrido, (pasos, _, _) in RPA_RECORRIDOS.items():
+            # (clave, nombre, tipo de valor, unidad). Tipos: 0 decimal, 1 texto corto, 3 entero, 4 texto.
+            nuevos += [
+                (f"rpa.status[{recorrido}]", f"RPA: resultado · {recorrido}", 3, ""),
+                (f"rpa.duration.total[{recorrido}]", f"RPA: duración total · {recorrido}", 0, "s"),
+                (f"rpa.failed_step[{recorrido}]", f"RPA: paso fallido · {recorrido}", 1, ""),
+                (f"rpa.error[{recorrido}]", f"RPA: último error · {recorrido}", 4, ""),
+            ] + [(f"rpa.step[{recorrido},{p}]", f"RPA: duración del paso {p} · {recorrido}", 0, "s") for p in pasos]
+        for clave, nombre, tipo, unidad in nuevos:
+            if clave not in existentes:
+                # type 2 = trapper. trapper_hosts: solo la VM del robot puede escribir estos datos.
+                z.call("item.create", {"hostid": rid_host, "name": nombre, "key_": clave, "type": 2,
+                                       "value_type": tipo, "units": unidad, "trapper_hosts": origen,
+                                       "history": "31d", "tags": [{"tag": "component", "value": "rpa"}]})
+        for recorrido, (_, lento, sin_datos) in RPA_RECORRIDOS.items():
+            etiquetas = {"remediation": "none", "capa": "experiencia", "recorrido": recorrido}
+            # El paso fallido entra en la expresión solo para poder mostrarlo en la alerta.
+            if not z.uno("trigger.get", {"description": [f"T12 El cliente no pudo completar: {recorrido} ({host})"]}, ["triggerid"]):
+                z.call("trigger.create", {
+                    "description": f"T12 El cliente no pudo completar: {recorrido} ({host})", "priority": 4,
+                    "expression": f"last(/{host}/rpa.status[{recorrido}])=0 and length(last(/{host}/rpa.failed_step[{recorrido}]))>=0",
+                    "opdata": "Paso: {ITEM.LASTVALUE2}",
+                    "comments": "El detalle está en el ítem «RPA: último error» y la captura en /opt/rpa/salidas de vm-rpa.",
+                    "tags": [{"tag": k, "value": v} for k, v in etiquetas.items()]})
+            crear_trigger(z, f"T13 Recorrido lento: {recorrido} > {lento} s ({host})",
+                          f"last(/{host}/rpa.duration.total[{recorrido}])>{lento}", 2, etiquetas)
+            crear_trigger(z, f"T14 El robot dejó de reportar: {recorrido} ({host})",
+                          f"nodata(/{host}/rpa.status[{recorrido}],{sin_datos})=1", 2, etiquetas,
+                          "El recorrido no envió resultados: revisar los temporizadores en vm-rpa.")
+    print("Cliente sintético: ítems y triggers T12 a T14 listos")
 
     # --- Usuario de solo lectura para Grafana ---
     rol = z.uno("role.get", {"name": ["Solo lectura Grafana"]}, ["roleid"])

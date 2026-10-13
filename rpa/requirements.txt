@@ -1,0 +1,4 @@
+# Versiones con las que se probaron los recorridos en vm-rpa (13 oct 2026).
+robotframework==7.5
+# [bb] trae las "baterías": Node.js y Playwright empaquetados, sin instalarlos aparte.
+robotframework-browser[bb]==20.6.0
