@@ -1,6 +1,6 @@
 # Windows Server y Active Directory
 
-Tareas: IP2-73 (VM Windows de la aplicación), IP2-79 (controlador de dominio), IP2-80 (política de contraseñas) y parte de IP2-42 (monitoreo del servidor). Hecho y probado el 13 de octubre de 2026, a distancia.
+Tareas: IP2-73 (VM Windows de la aplicación), IP2-74 (MS Motos en Windows), IP2-75 (su monitoreo), IP2-79 (controlador de dominio), IP2-80 (política de contraseñas) y parte de IP2-42 (monitoreo del servidor). Hecho y probado el 13 de octubre de 2026, a distancia.
 
 Estas dos VM no están en la rúbrica del E3: las pidió el profesor en sus observaciones al E1 (aplicación también en Windows Server, y Active Directory para validar usuarios).
 
@@ -8,7 +8,7 @@ Estas dos VM no están en la rúbrica del E3: las pidió el profesor en sus obse
 
 | VM | ID | Nombre en Windows | IP | Recursos | Papel |
 |---|---|---|---|---|---|
-| `vm-app-win` | 116 | `VM-APP-WIN` | 10.10.30.16 | 2 vCPU · 4 GB · 60 GB | Segundo ambiente de MS Motos (pendiente de instalar) |
+| `vm-app-win` | 116 | `VM-APP-WIN` | 10.10.30.16 | 2 vCPU · 4 GB · 60 GB | Segundo ambiente de MS Motos, como servicio de Windows |
 | `vm-dc` | 117 | `DC01` | 10.10.30.17 | 2 vCPU · 4 GB · 60 GB | Controlador del dominio `ip2.local` y su DNS |
 
 Las dos corren **Windows Server 2022 Standard, evaluación de 180 días** (con escritorio), en la VLAN 30, y arrancan solas con el servidor.
@@ -120,20 +120,63 @@ De paso se completó el monitoreo del servidor (prueba A-05), que hasta ahora er
 
 105 ítems, ninguno con error. La alerta de "memoria alta por VM" de la plantilla se silenció: desde el hipervisor la memoria de una VM siempre parece llena, y la memoria real ya la vigila T07 con el agente de cada VM.
 
-## 7. Diferencias con el diseño
+## 7. MS Motos en Windows
+
+Instalación nativa, sin contenedores, con [`desplegar.ps1`](../../../infra/vm-app-win/desplegar.ps1). Cada instalador se comprueba antes de ejecutarse (huella publicada o firma digital del fabricante).
+
+| Componente | Versión | Cómo queda |
+|---|---|---|
+| Node.js | 22.23.3 | Ejecuta el backend y sirve el frontend compilado en la propia VM |
+| MySQL | 8.4.9 | Servicio `MySQL84`; solo escucha en `127.0.0.1` |
+| NSSM | 2.24 | Registra la aplicación como servicio |
+| Servicio `MSMotos` | — | Inicio automático, cuenta `LocalService`, puerto 80, depende de `MySQL84` |
+
+Las variables están en `C:\opt\msmotos\.env`, con secretos propios de esta instancia que solo leen los administradores y la cuenta del servicio. Las tareas programadas quedan apagadas aquí (`DISABLE_CRON=1`) para no duplicar las de Linux. El script creó las cuentas iniciales y el cliente sintético del RPA con su moto y su servicio de prueba.
+
+Comprobación desde `vm-rpa`: `/api/health` responde 200 en 5 ms y el portal carga.
+
+![Portal de MS Motos servido desde Windows Server](windows/msmotos-en-windows.png)
+
+## 8. Monitoreo de las VM Windows
+
+Las dos VM tienen el agente 2 de Zabbix 7.0.31 ([`instalar-agente-windows.ps1`](../../../infra/vm-zabbix/instalar-agente-windows.ps1)) con la plantilla *Windows by Zabbix agent*: CPU, memoria, discos, red y servicios. Solo el servidor de Zabbix puede consultar al agente.
+
+| Qué | Cómo | Trigger |
+|---|---|---|
+| Servicio `MSMotos` | Ítem de estado cada 30 s en `vm-app-win` | **T03-W**: detenido durante 1 minuto → High |
+| Aplicación | Escenario web contra `http://10.10.30.16` (host `msmotos-web-win`) | **T04-W** no disponible → Disaster · **T05-W** lenta |
+
+**Prueba** del 13 de octubre: se detuvo el servicio a las 17:13:15.
+
+| Hora | Qué pasó |
+|---|---|
+| 17:13:15 | `Stop-Service MSMotos` |
+| 17:13:52 | Zabbix abre T03-W (37 s después) y llega el aviso a Telegram |
+| 17:14:07 | Zabbix abre T04-W: la aplicación de Windows no responde |
+| 17:15:55 | Se inicia el servicio a mano; `/api/health` vuelve a 200 |
+| 17:16 | Llegan los "RESUELTO" |
+
+![Avisos del servicio de Windows en el grupo IP2 Alertas](windows/telegram-servicio-windows.png)
+
+Por ahora esta alerta solo avisa. La recuperación automática del servicio de Windows desde n8n queda pendiente.
+
+## 9. Diferencias con el diseño
 
 | Diseño | Lo que se hizo | Por qué |
 |---|---|---|
 | Windows se instala a mano desde la consola | Instalación desatendida | El laboratorio se administra a distancia; además queda repetible |
 | Escritorio remoto solo desde la VLAN 40 | Desde la VLAN 40 y la VLAN 30 | La administración remota entra por el servidor Proxmox, que está en la VLAN 30 (IP2-93) |
 | El dominio reenvía a 8.8.8.8 | Reenvía a los DNS de la universidad y a 1.1.1.1 | 8.8.8.8 pierde consultas desde esta red (ver [alertas.md](alertas.md)) |
+| El servicio se recupera solo con n8n por WinRM | Por ahora solo alerta | El flujo de recuperación para Windows no está hecho todavía |
 
-## 8. Pendiente
+## 10. Pendiente
 
 | Qué | Tarea |
 |---|---|
-| Instalar MS Motos en `vm-app-win` como servicio (el script [`desplegar.ps1`](../../../infra/vm-app-win/desplegar.ps1) está escrito, sin ejecutar) | IP2-74 |
-| Agente de Zabbix en las dos VM Windows, servicio `MSMotos` y eventos de seguridad | IP2-75, IP2-82 |
+| Abrir la aplicación de Windows desde PC-CLIENTE (hay que ir al laboratorio) | IP2-74 |
+| Recuperación automática del servicio `MSMotos` desde n8n | IP2-74 |
+| Recorridos del RPA contra la instancia Windows | IP2-57, IP2-76 |
+| Eventos de seguridad del controlador de dominio en Zabbix (4625, 4740) | IP2-82 |
 | Unir `vm-app-win` al dominio e integrar Proxmox, Zabbix, Grafana y el SSH de las VM Linux | IP2-81 |
 | Respaldo de `vm-dc` y cuenta local de emergencia en cada herramienta (riesgo R-14) | IP2-34, IP2-79 |
 | Capturas por escritorio remoto: *Usuarios y equipos de Active Directory* y la política aplicada | IP2-79, IP2-80 |
