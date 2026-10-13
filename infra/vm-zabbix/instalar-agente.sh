@@ -48,4 +48,4 @@ sudo systemctl enable zabbix-agent2 >/dev/null 2>&1
 sudo systemctl restart zabbix-agent2
 sleep 2
 printf '%s: %s, agente %s, servidor %s\n' "$(hostname)" "$(systemctl is-active zabbix-agent2)" \
-  "$(zabbix_agent2 -V | head -1 | grep -o '[0-9][0-9.]*' | head -1)" "$permitidos"
+  "$(zabbix_agent2 -V | head -1 | awk '{print $NF}')" "$permitidos"
