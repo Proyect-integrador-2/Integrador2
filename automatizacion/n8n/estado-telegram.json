@@ -10,7 +10,7 @@
   "nodes": [
     {
       "id": "b2a1f0c2-0001-4a00-9000-000000000001",
-      "name": "Cada minuto",
+      "name": "Cada 10 segundos",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
@@ -21,8 +21,8 @@
         "rule": {
           "interval": [
             {
-              "field": "minutes",
-              "minutesInterval": 1
+              "field": "seconds",
+              "secondsInterval": 10
             }
           ]
         }
@@ -53,9 +53,9 @@
       "onError": "continueRegularOutput",
       "parameters": {
         "method": "GET",
-        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/getUpdates?timeout=50&offset={{ $json.offset }}&allowed_updates=%5B%22message%22%5D",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/getUpdates?timeout=5&offset={{ $json.offset }}&allowed_updates=%5B%22message%22%5D",
         "options": {
-          "timeout": 60000
+          "timeout": 15000
         }
       }
     },
@@ -99,7 +99,10 @@
         "options": {
           "timeout": 20000
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "id": "b2a1f0c2-0006-4a00-9000-000000000006",
@@ -132,11 +135,14 @@
         "options": {
           "timeout": 10000
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     }
   ],
   "connections": {
-    "Cada minuto": {
+    "Cada 10 segundos": {
       "main": [
         [
           {
