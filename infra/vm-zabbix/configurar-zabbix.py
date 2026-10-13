@@ -15,11 +15,14 @@ Crea o ajusta:
   - Host msmotos-web con el escenario web contra la aplicación
   - Triggers T01 (contenedor), T03 (Nginx), T04 y T05 (aplicación)
   - Usuario de solo lectura para Grafana
+  - Media type "Webhook n8n", la acción que le envía los problemas, y el usuario
+    y token de API con que n8n deja constancia en cada evento
 
 La réplica de infra/lab-local tiene su propio configurador: allá los nombres de red
 son los de Docker y aquí son las direcciones de la VLAN 30.
 """
 import json
+import secrets
 import sys
 import time
 import urllib.request
@@ -30,6 +33,7 @@ AQUI = Path(__file__).resolve().parent
 GRUPO = "Integrador II"
 CONTENEDOR = "msmotos-app"
 APP = "http://10.10.30.11"
+WEBHOOK_N8N = "http://10.10.30.14:5678/webhook/zabbix"
 
 # host, nombre visible, dirección, plantillas, capa
 VMS = [
@@ -56,6 +60,12 @@ def leer_env():
             k, v = linea.split("=", 1)
             valores[k.strip()] = v.strip()
     return valores
+
+
+def agregar_env(comentario, clave, valor):
+    """Agrega una variable al .env (que ya existe con permisos 600)."""
+    with open(AQUI / ".env", "a", encoding="utf-8", newline="\n") as f:
+        f.write(f"# {comentario}\n{clave}={valor}\n")
 
 
 class Zabbix:
@@ -249,6 +259,85 @@ def main():
         z.call("user.create", {"username": env["ZABBIX_API_USER"], "passwd": env["ZABBIX_API_PASSWORD"],
                                "roleid": rid, "usrgrps": [{"usrgrpid": ugid}]})
     print("Usuario de Grafana listo (solo lectura sobre", GRUPO + ")")
+
+    # --- Webhook hacia n8n (control C5: el aviso lleva un token que n8n comprueba) ---
+    if not env.get("N8N_WEBHOOK_TOKEN"):
+        env["N8N_WEBHOOK_TOKEN"] = secrets.token_urlsafe(32)
+        agregar_env("Token que Zabbix envía a n8n en cada aviso (va también al .env de vm-n8n).",
+                    "N8N_WEBHOOK_TOKEN", env["N8N_WEBHOOK_TOKEN"])
+    script = r"""
+var p = JSON.parse(value);
+var req = new HttpRequest();
+req.addHeader('Content-Type: application/json');
+req.addHeader('X-Zabbix-Token: ' + p.token);
+var cuerpo = {
+  event_id: p.event_id, event_value: p.event_value, severity: p.severity,
+  host: p.host, trigger: p.trigger, opdata: p.opdata, tags: p.tags, time: p.time
+};
+var resp = req.post(p.url, JSON.stringify(cuerpo));
+if (req.getStatus() < 200 || req.getStatus() >= 300) {
+  throw 'n8n respondio ' + req.getStatus() + ': ' + resp;
+}
+return 'OK';
+"""
+    parametros = [
+        {"name": "url", "value": WEBHOOK_N8N},
+        {"name": "token", "value": env["N8N_WEBHOOK_TOKEN"]},
+        {"name": "event_id", "value": "{EVENT.ID}"},
+        {"name": "event_value", "value": "{EVENT.VALUE}"},
+        {"name": "severity", "value": "{EVENT.SEVERITY}"},
+        {"name": "host", "value": "{HOST.HOST}"},
+        {"name": "trigger", "value": "{EVENT.NAME}"},
+        {"name": "opdata", "value": "{EVENT.OPDATA}"},
+        {"name": "tags", "value": "{EVENT.TAGSJSON}"},
+        {"name": "time", "value": "{EVENT.DATE} {EVENT.TIME}"},
+    ]
+    mt = z.uno("mediatype.get", {"name": ["Webhook n8n"]}, ["mediatypeid"])
+    # status 0 = habilitado. Sin indicarlo, la API lo crea deshabilitado y las alertas
+    # quedan como "Media type disabled" sin llegar a n8n.
+    datos_mt = {"name": "Webhook n8n", "type": 4, "status": 0, "script": script, "parameters": parametros, "timeout": "15s",
+                "message_templates": [
+                    {"eventsource": 0, "recovery": 0, "subject": "Problema: {EVENT.NAME}", "message": "{EVENT.NAME}"},
+                    {"eventsource": 0, "recovery": 1, "subject": "Resuelto: {EVENT.NAME}", "message": "{EVENT.NAME}"}]}
+    if mt:
+        datos_mt["mediatypeid"] = mt["mediatypeid"]
+        z.call("mediatype.update", datos_mt)
+        mtid = mt["mediatypeid"]
+    else:
+        mtid = z.call("mediatype.create", datos_mt)["mediatypeids"][0]
+    admin = z.uno("user.get", {"username": ["Admin"]}, ["userid"])
+    z.call("user.update", {"userid": admin["userid"], "medias": [
+        {"mediatypeid": mtid, "sendto": "n8n", "active": 0, "severity": 63, "period": "1-7,00:00-24:00"}]})
+    if not z.uno("action.get", {"name": ["Enviar problemas a n8n"]}, ["actionid"]):
+        z.call("action.create", {
+            "name": "Enviar problemas a n8n", "eventsource": 0, "status": 0, "esc_period": "1m",
+            # Solo el grupo del proyecto: un host ajeno no dispara la automatización.
+            "filter": {"evaltype": 0, "conditions": [{"conditiontype": 0, "operator": 0, "value": gid}]},
+            "operations": [{"operationtype": 0, "opmessage": {"default_msg": 1, "mediatypeid": mtid},
+                            "opmessage_usr": [{"userid": admin["userid"]}]}],
+            "recovery_operations": [{"operationtype": 11, "opmessage": {"default_msg": 1}}],
+        })
+    print("Media type 'Webhook n8n' y acción listos ->", WEBHOOK_N8N)
+
+    # --- Usuario y token de API para n8n (constancia en cada evento: control C6) ---
+    if not env.get("ZABBIX_N8N_TOKEN"):
+        rol_admin = z.uno("role.get", {"name": ["Admin role"]}, ["roleid"])
+        grupo_n8n = z.uno("usergroup.get", {"name": ["n8n automatizacion"]}, ["usrgrpid"])
+        gnid = grupo_n8n["usrgrpid"] if grupo_n8n else z.call("usergroup.create", {
+            "name": "n8n automatizacion", "gui_access": 3,
+            "hostgroup_rights": [{"id": gid, "permission": 3}]})["usrgrpids"][0]
+        usuario = z.uno("user.get", {"username": ["n8n"]}, ["userid"])
+        uid = usuario["userid"] if usuario else z.call("user.create", {
+            "username": "n8n", "roleid": rol_admin["roleid"], "usrgrps": [{"usrgrpid": gnid}]})["userids"][0]
+        viejos = z.call("token.get", {"output": ["tokenid"], "userids": uid, "filter": {"name": "n8n"}})
+        if viejos:
+            z.call("token.delete", [v["tokenid"] for v in viejos])
+        tid = z.call("token.create", {"name": "n8n", "userid": uid})["tokenids"][0]
+        valor = z.call("token.generate", [tid])[0]["token"]
+        agregar_env("Token de API de Zabbix para n8n (va también al .env de vm-n8n).", "ZABBIX_N8N_TOKEN", valor)
+        print("Token de API para n8n creado y guardado en .env")
+    else:
+        print("Token de API para n8n ya existe en .env")
 
     # --- Host por defecto "Zabbix server": se deshabilita ---
     # Apunta a 127.0.0.1:10050 dentro del contenedor, donde no hay agente, y deja un

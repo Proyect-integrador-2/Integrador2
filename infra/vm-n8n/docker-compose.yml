@@ -1,0 +1,39 @@
+# n8n en vm-n8n, 10.10.30.14 — Integrador II (IP2-50).
+#
+# Misma imagen que la réplica de infra/lab-local, donde se probó el flujo de
+# recuperación. Recibe los avisos de Zabbix, actúa por SSH sobre vm-app con una
+# cuenta restringida y deja constancia en el evento de Zabbix.
+#
+#   ./desplegar.sh     # instala Docker, genera .env y la llave, levanta n8n e importa el flujo
+#
+# n8n → http://10.10.30.14:5678
+
+name: n8n
+
+services:
+  n8n:
+    image: n8nio/n8n:2.40.2
+    container_name: n8n
+    restart: unless-stopped
+    environment:
+      GENERIC_TIMEZONE: America/Costa_Rica
+      TZ: America/Costa_Rica
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?Definí N8N_ENCRYPTION_KEY en .env}
+      # La red del laboratorio es http: sin esto n8n exige HTTPS para la cookie de sesión.
+      N8N_SECURE_COOKIE: "false"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      # Token que Zabbix envía en el webhook (control C5 del diseño).
+      WEBHOOK_TOKEN: ${N8N_WEBHOOK_TOKEN:?Definí N8N_WEBHOOK_TOKEN en .env}
+      # Token de API de Zabbix para dejar constancia en los eventos (control C6).
+      ZABBIX_API_URL: ${ZABBIX_API_URL:-http://10.10.30.12/api_jsonrpc.php}
+      ZABBIX_N8N_TOKEN: ${ZABBIX_N8N_TOKEN:?Definí ZABBIX_N8N_TOKEN en .env}
+      # El flujo lee esas tres variables con $env.
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+    volumes:
+      - n8n-data:/home/node/.n8n
+    ports:
+      - "5678:5678"
+
+volumes:
+  n8n-data:
+    name: n8n-data
