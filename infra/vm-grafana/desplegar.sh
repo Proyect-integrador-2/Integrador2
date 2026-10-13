@@ -16,6 +16,9 @@
 # de correr este script, sus dos líneas (ZABBIX_API_USER y ZABBIX_API_PASSWORD) se dejan
 # en ~/zabbix-api.env; el script las pasa al .env y borra ese archivo.
 set -euo pipefail
+# Los contenedores leen archivos del repositorio con otro usuario: que no hereden una
+# máscara restrictiva de la sesión. Los .env se crean aparte, con permisos 600.
+umask 022
 
 REPO_URL="https://github.com/Proyect-integrador-2/Integrador2.git"
 DESTINO="/opt/integrador2"
@@ -98,11 +101,16 @@ for _ in $(seq 1 60); do
 done
 sudo docker compose ps
 [[ -n $ok ]] || { echo "Grafana no respondió. Ver: sudo docker compose logs grafana" >&2; exit 1; }
+# La API responde antes de que termine el aprovisionamiento: se espera a la fuente de datos.
+clave=$(grep -m1 '^GRAFANA_ADMIN_PASSWORD=' .env | cut -d= -f2-)
+api() { curl -s -m 20 -u "admin:$clave" "http://127.0.0.1$1"; }
+for _ in $(seq 1 24); do
+  api /api/datasources/uid/zabbix | grep -q '"uid":"zabbix"' && break
+  sleep 5
+done
 
 # ---------------------------------------------------------------------------
 paso "5. Comprobación"
-clave=$(grep -m1 '^GRAFANA_ADMIN_PASSWORD=' .env | cut -d= -f2-)
-api() { curl -s -m 20 -u "admin:$clave" "http://127.0.0.1$1"; }
 printf '  versión:          %s\n' "$(api /api/health | grep -o '"version": *"[^"]*"' | cut -d'"' -f4)"
 printf '  fuente de datos:  %s\n' "$(api /api/datasources/uid/zabbix/health | grep -o '"message": *"[^"]*"' | cut -d'"' -f4)"
 printf '  tableros con la etiqueta ip2: %s\n' "$(api '/api/search?tag=ip2' | grep -o '"uid"' | wc -l)"

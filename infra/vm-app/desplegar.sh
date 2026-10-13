@@ -18,6 +18,9 @@
 # Las contraseñas quedan solo en /opt/integrador2/app/.env (permisos 600). Para verlas:
 #   grep SEED_ /opt/integrador2/app/.env
 set -euo pipefail
+# Los contenedores leen archivos del repositorio con otro usuario: que no hereden una
+# máscara restrictiva de la sesión. Los .env se crean aparte, con permisos 600.
+umask 022
 
 REPO_URL="https://github.com/Proyect-integrador-2/Integrador2.git"
 DESTINO="/opt/integrador2"
