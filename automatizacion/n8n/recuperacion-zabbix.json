@@ -25,7 +25,7 @@
       "typeVersion": 2,
       "position": [240, 300],
       "parameters": {
-        "jsCode": "// C5: solo se aceptan avisos con el token de Zabbix.\nconst entrada = $input.first().json;\nconst cab = entrada.headers || {};\nconst b = entrada.body || {};\nif (!cab['x-zabbix-token'] || cab['x-zabbix-token'] !== $env.WEBHOOK_TOKEN) {\n  return [{ json: { accion: 'rechazar', motivo: 'token inválido: aviso descartado', event_id: null } }];\n}\n\nlet tags = [];\ntry { tags = typeof b.tags === 'string' ? JSON.parse(b.tags) : (b.tags || []); } catch (e) { tags = []; }\nconst tag = (n) => (tags.find((t) => t.tag === n) || {}).value;\nconst remediation = tag('remediation') || 'none';\nconst target = tag('target') || '';\n\n// C1: lista cerrada. El comando sale de esta tabla, NUNCA del texto recibido.\nconst PERMITIDOS = {\n  'restart-container': { 'msmotos-app': 'sudo /usr/bin/docker start msmotos-app' },\n  'restart-service': { 'nginx': 'sudo /usr/bin/systemctl restart nginx' },\n};\n\nconst esProblema = String(b.event_value) === '1';\nlet accion = 'notificar';\nlet comando = null;\nlet motivo = '';\n\nif (esProblema && remediation !== 'none') {\n  comando = (PERMITIDOS[remediation] || {})[target] || null;\n  if (!comando) {\n    motivo = `acción rechazada: ${remediation}/${target} no está en la lista permitida`;\n  } else {\n    // C2 y C3: máximo 3 intentos por objetivo cada 10 minutos; luego se escala a una persona.\n    const estado = $getWorkflowStaticData('global');\n    const clave = `${remediation}:${target}`;\n    const ahora = Date.now();\n    const recientes = (estado[clave] || []).filter((t) => ahora - t < 10 * 60 * 1000);\n    if (recientes.length >= 3) {\n      accion = 'escalar';\n      comando = null;\n      motivo = 'recuperación automática agotada (3 intentos en 10 min): requiere intervención humana';\n    } else {\n      recientes.push(ahora);\n      estado[clave] = recientes;\n      accion = 'recuperar';\n      motivo = `intento ${recientes.length} de 3`;\n    }\n  }\n}\n\nreturn [{ json: {\n  accion, motivo, comando, remediation, target,\n  event_id: b.event_id, event_value: String(b.event_value), severity: b.severity,\n  host: b.host, trigger: b.trigger, time: b.time, opdata: b.opdata,\n} }];\n"
+        "jsCode": "// C5: solo se aceptan avisos con el token de Zabbix.\nconst entrada = $input.first().json;\nconst cab = entrada.headers || {};\nconst b = entrada.body || {};\nconst inicio = Date.now();   // para medir cuánto tarda la ejecución\nif (!cab['x-zabbix-token'] || cab['x-zabbix-token'] !== $env.WEBHOOK_TOKEN) {\n  return [{ json: { accion: 'rechazar', motivo: 'token inválido: aviso descartado', event_id: null, rechazada: true, inicio } }];\n}\n\nlet tags = [];\ntry { tags = typeof b.tags === 'string' ? JSON.parse(b.tags) : (b.tags || []); } catch (e) { tags = []; }\nconst tag = (n) => (tags.find((t) => t.tag === n) || {}).value;\nconst remediation = tag('remediation') || 'none';\nconst target = tag('target') || '';\n\n// C1: lista cerrada. El comando sale de esta tabla, NUNCA del texto recibido.\nconst PERMITIDOS = {\n  'restart-container': { 'msmotos-app': 'sudo /usr/bin/docker start msmotos-app' },\n  'restart-service': { 'nginx': 'sudo /usr/bin/systemctl restart nginx' },\n};\n\nconst esProblema = String(b.event_value) === '1';\nlet accion = 'notificar';\nlet comando = null;\nlet motivo = '';\nlet rechazada = false;\n\nif (esProblema && remediation !== 'none') {\n  comando = (PERMITIDOS[remediation] || {})[target] || null;\n  if (!comando) {\n    motivo = `acción rechazada: ${remediation}/${target} no está en la lista permitida`;\n    rechazada = true;\n  } else {\n    // C2 y C3: máximo 3 intentos por objetivo cada 10 minutos; luego se escala a una persona.\n    const estado = $getWorkflowStaticData('global');\n    const clave = `${remediation}:${target}`;\n    const ahora = Date.now();\n    const recientes = (estado[clave] || []).filter((t) => ahora - t < 10 * 60 * 1000);\n    if (recientes.length >= 3) {\n      accion = 'escalar';\n      comando = null;\n      motivo = 'recuperación automática agotada (3 intentos en 10 min): requiere intervención humana';\n    } else {\n      recientes.push(ahora);\n      estado[clave] = recientes;\n      accion = 'recuperar';\n      motivo = `intento ${recientes.length} de 3`;\n    }\n  }\n}\n\nreturn [{ json: {\n  accion, motivo, comando, remediation, target,\n  event_id: b.event_id, event_value: String(b.event_value), severity: b.severity,\n  host: b.host, trigger: b.trigger, time: b.time, opdata: b.opdata,\n  duration: b.duration, rechazada, inicio,\n} }];\n"
       }
     },
     {
@@ -179,6 +179,41 @@
         "jsonBody": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_CHAT_ID, text: String($json.aviso).slice(0, 3500), disable_web_page_preview: true }) }}",
         "options": { "timeout": 10000 }
       }
+    },
+    {
+      "id": "b1a1f0c2-0012-4a00-9000-000000000012",
+      "name": "Preparar métricas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 60],
+      "parameters": {
+        "jsCode": "// Arma lo que n8n reporta a Zabbix de esta ejecución (IP2-77). Alimenta el tablero de\n// Automatización. Cada dato es un evento: el tablero los suma en el periodo elegido.\nconst d = $input.first().json;\nconst TIPOS = { 'restart-service': 'servicio', 'restart-container': 'contenedor' };\nconst tipo = TIPOS[d.remediation];\nconst ahora = Math.floor(Date.now() / 1000);\nconst valores = [];\nconst agregar = (key, value) => valores.push({ host: 'automatizacion', key, value: String(value), clock: ahora });\n\nif (d.rechazada) agregar('n8n.rejected', 1);\nif (d.accion === 'escalar') agregar('n8n.escalated', 1);\nif (d.accion === 'recuperar' && tipo) {\n  const ok = d.resultado === 'OK';\n  agregar(`n8n.exec.status[${tipo}]`, ok ? 1 : 0);\n  agregar(`n8n.exec.duration[${tipo}]`, ((Date.now() - d.inicio) / 1000).toFixed(1));\n  agregar(`n8n.exec.action[${tipo}]`, `${d.comando} (${ok ? 'OK' : 'falló'}, ${d.motivo})`);\n  if (ok) agregar(`n8n.recovery.count[${tipo}]`, 1);\n}\n// Al cerrarse un problema que tiene recuperación automática: cuánto duró, de la\n// detección al cierre. Zabbix lo manda como texto, por ejemplo \"1m 23s\".\nif (d.event_value === '0' && tipo) {\n  const UNIDAD = { d: 86400, h: 3600, m: 60, s: 1 };\n  let segundos = 0;\n  for (const [, n, u] of String(d.duration || '').matchAll(/(\\d+)\\s*([dhms])/g)) segundos += Number(n) * UNIDAD[u];\n  if (segundos > 0) agregar(`n8n.recovery.seconds[${tipo}]`, segundos);\n}\n// Sin nada que reportar, el flujo termina aquí.\nreturn valores.length ? [{ json: { valores } }] : [];\n"
+      }
+    },
+    {
+      "id": "b1a1f0c2-0013-4a00-9000-000000000013",
+      "name": "Enviar métricas a Zabbix",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1440, 60],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ZABBIX_API_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.ZABBIX_N8N_TOKEN }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ jsonrpc: '2.0', method: 'history.push', params: $json.valores, id: 1 }) }}",
+        "options": { "timeout": 10000 }
+      }
     }
   ],
   "connections": {
@@ -194,7 +229,8 @@
     "Resultado de la recuperación": {
       "main": [[
         { "node": "Registrar en Zabbix", "type": "main", "index": 0 },
-        { "node": "Preparar aviso", "type": "main", "index": 0 }
+        { "node": "Preparar aviso", "type": "main", "index": 0 },
+        { "node": "Preparar métricas", "type": "main", "index": 0 }
       ]]
     },
     "Armar mensaje": { "main": [[{ "node": "¿Evento válido?", "type": "main", "index": 0 }]] },
@@ -202,13 +238,15 @@
       "main": [
         [
           { "node": "Registrar en Zabbix", "type": "main", "index": 0 },
-          { "node": "Preparar aviso", "type": "main", "index": 0 }
+          { "node": "Preparar aviso", "type": "main", "index": 0 },
+          { "node": "Preparar métricas", "type": "main", "index": 0 }
         ],
-        []
+        [{ "node": "Preparar métricas", "type": "main", "index": 0 }]
       ]
     },
     "Preparar aviso": { "main": [[{ "node": "¿Avisar a una persona?", "type": "main", "index": 0 }]] },
-    "¿Avisar a una persona?": { "main": [[{ "node": "Enviar a Telegram", "type": "main", "index": 0 }], []] }
+    "¿Avisar a una persona?": { "main": [[{ "node": "Enviar a Telegram", "type": "main", "index": 0 }], []] },
+    "Preparar métricas": { "main": [[{ "node": "Enviar métricas a Zabbix", "type": "main", "index": 0 }]] }
   },
   "pinData": {},
   "tags": []

@@ -15,6 +15,7 @@ Crea o ajusta:
   - Servidor Proxmox por ping y, si el .env trae su token, por la API (nodo, VMs y discos)
   - Host msmotos-web con el escenario web contra la aplicación
   - Triggers T01 (contenedor), T03 (Nginx), T04 y T05 (aplicación)
+  - Host "automatizacion" con los ítems que n8n reporta de cada ejecución
   - Usuario de solo lectura para Grafana
   - Media type "Webhook n8n", la acción que le envía los problemas, y el usuario
     y token de API con que n8n deja constancia en cada evento
@@ -60,6 +61,9 @@ RPA_RECORRIDOS = {
     "consulta": (["abrir", "login", "inicio", "motos", "citas", "logout"], 10, "15m"),
     "agendar": (["abrir", "login", "elegir", "reservar", "verificar", "cancelar", "logout"], 20, "75m"),
 }
+# Lo que n8n reporta de sus ejecuciones: un juego de ítems por tipo de recuperación.
+N8N_TIPOS = ["servicio", "contenedor"]
+N8N_ORIGEN = "10.10.30.14"
 PLANTILLA_RED = "Cisco IOS by SNMP"
 PLANTILLA_PING = "ICMP Ping"
 PLANTILLA_PVE = "Proxmox VE by HTTP"
@@ -344,6 +348,31 @@ def main():
                           "El recorrido no envió resultados: revisar los temporizadores en vm-rpa.")
     print("Cliente sintético: ítems y triggers T12 a T14 listos")
 
+    # --- Automatización: lo que n8n reporta de cada ejecución (IP2-77) ---
+    # El tablero de Automatización filtra por estos nombres ("n8n: ...") y por el host.
+    actual = z.uno("host.get", {"host": ["automatizacion"]}, ["hostid"])
+    aid = actual["hostid"] if actual else z.call("host.create", {
+        "host": "automatizacion", "name": "Automatización (n8n)", "groups": [{"groupid": gid}],
+        "tags": [{"tag": "capa", "value": "automatizacion"}]})["hostids"][0]
+    existentes = {i["key_"] for i in z.call("item.get", {"output": ["key_"], "hostids": aid})}
+    nuevos = [("n8n.rejected", "n8n: acciones rechazadas", 3, ""),
+              ("n8n.escalated", "n8n: escalamientos a una persona", 3, "")]
+    for tipo in N8N_TIPOS:
+        nuevos += [
+            (f"n8n.exec.status[{tipo}]", f"n8n: resultado · {tipo}", 3, ""),
+            (f"n8n.exec.duration[{tipo}]", f"n8n: duración · {tipo}", 0, "s"),
+            (f"n8n.exec.action[{tipo}]", f"n8n: última acción · {tipo}", 4, ""),
+            (f"n8n.recovery.count[{tipo}]", f"n8n: recuperaciones · {tipo}", 3, ""),
+            (f"n8n.recovery.seconds[{tipo}]", f"n8n: tiempo hasta la recuperación · {tipo}", 0, "s"),
+        ]
+    for clave, nombre, tipo, unidad in nuevos:
+        if clave not in existentes:
+            # Trapper: los escribe n8n por la API (history.push), solo desde su VM.
+            z.call("item.create", {"hostid": aid, "name": nombre, "key_": clave, "type": 2,
+                                   "value_type": tipo, "units": unidad, "trapper_hosts": N8N_ORIGEN,
+                                   "history": "31d", "tags": [{"tag": "component", "value": "n8n"}]})
+    print("Automatización: host e ítems de n8n listos")
+
     # --- Usuario de solo lectura para Grafana ---
     rol = z.uno("role.get", {"name": ["Solo lectura Grafana"]}, ["roleid"])
     rid = rol["roleid"] if rol else z.call("role.create", {"name": "Solo lectura Grafana", "type": 1})["roleids"][0]
@@ -368,7 +397,8 @@ req.addHeader('Content-Type: application/json');
 req.addHeader('X-Zabbix-Token: ' + p.token);
 var cuerpo = {
   event_id: p.event_id, event_value: p.event_value, severity: p.severity,
-  host: p.host, trigger: p.trigger, opdata: p.opdata, tags: p.tags, time: p.time
+  host: p.host, trigger: p.trigger, opdata: p.opdata, tags: p.tags, time: p.time,
+  duration: p.duration
 };
 var resp = req.post(p.url, JSON.stringify(cuerpo));
 if (req.getStatus() < 200 || req.getStatus() >= 300) {
@@ -387,6 +417,8 @@ return 'OK';
         {"name": "opdata", "value": "{EVENT.OPDATA}"},
         {"name": "tags", "value": "{EVENT.TAGSJSON}"},
         {"name": "time", "value": "{EVENT.DATE} {EVENT.TIME}"},
+        # Cuánto lleva abierto el problema; en el aviso de cierre, cuánto duró.
+        {"name": "duration", "value": "{EVENT.DURATION}"},
     ]
     mt = z.uno("mediatype.get", {"name": ["Webhook n8n"]}, ["mediatypeid"])
     # status 0 = habilitado. Sin indicarlo, la API lo crea deshabilitado y las alertas
