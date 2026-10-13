@@ -206,6 +206,10 @@ El tablero de Red, que en la réplica local tenía 5 paneles vacíos, aquí trae
 
 Desplegado el mismo día en `vm-n8n` con [`infra/vm-n8n/desplegar.sh`](../../../infra/vm-n8n/desplegar.sh) (tareas IP2-50, IP2-52 e IP2-53). n8n 2.40.2 con el flujo [`recuperacion-zabbix.json`](../../../automatizacion/n8n/recuperacion-zabbix.json) publicado. Zabbix le avisa cada problema del grupo del proyecto por un webhook; n8n decide, actúa por SSH sobre `vm-app` y deja constancia en el evento de Zabbix.
 
+![Flujo de recuperación publicado en n8n](automatizacion/n8n-flujo-publicado.png)
+
+*El flujo en la interfaz de n8n del laboratorio, en estado "Published". La rama de arriba ejecuta la recuperación por SSH; la de abajo solo arma el mensaje. Las dos terminan anotando el resultado en el evento de Zabbix.*
+
 ### Controles probados
 
 La cuenta `n8n-ops` de `vm-app` la crea [`infra/vm-app/preparar-n8n-ops.sh`](../../../infra/vm-app/preparar-n8n-ops.sh): sin contraseña, fuera del grupo `docker` y con una lista cerrada de comandos.
@@ -276,7 +280,6 @@ En las dos pruebas la detección tomó menos de 2 minutos (RNF-01) y la recupera
 | Ajustar los tiempos de T01 y T04 para que la dependencia oculte el síntoma | IP2-43 |
 | Monitorear Proxmox por su API, no solo por ping | IP2-41 |
 | Capturas de los cinco tableros con datos del laboratorio | IP2-48 |
-| Crear la cuenta de dueño de n8n (la crea la primera persona que abre la interfaz) | IP2-50 |
 | Alertas a una persona por Telegram o correo | IP2-51 |
 | Recuperación de interfaces de red por n8n | IP2-76 en adelante |
 | Desplegar el robot en su máquina virtual | IP2-56 |
