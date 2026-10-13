@@ -2,7 +2,7 @@
 
 Tareas: IP2-27 y IP2-28 (switch y router), IP2-32 (hipervisor), IP2-93 (administración remota), IP2-14 e IP2-31 (inventario y dimensionamiento).
 
-Resultado: el router, el switch y el servidor quedaron configurados, y la plataforma se administra a distancia desde ese día. Las pruebas de segmentación desde una computadora de usuario y desde una de administración pasaron. Faltan las máquinas virtuales.
+Resultado: el router, el switch y el servidor quedaron configurados, y la plataforma se administra a distancia desde ese día. Las pruebas de red desde una computadora de usuario y desde una de administración pasaron todas (V1 y V3 a V9). Faltan las máquinas virtuales.
 
 ## 1. Equipos del grupo
 
@@ -93,8 +93,11 @@ PC-ADMIN: computadora del laboratorio conectada a SW1 Fa0/1 (VLAN 40), con la di
 | — | Abrir `https://10.10.30.10:8006` | Panel de Proxmox | Abre y permite iniciar sesión | [foto](red/v6e-admin-panel-proxmox.jpg) |
 | — | `ping 8.8.8.8` | Responde por NAT | Responde, 4 de 4, 58 ms | [foto](red/v6f-admin-ping-internet.jpg) |
 | V7 | SSH a SW1 (`10.10.99.2`) | Entra | Entra con usuario y contraseña; prompt `SW1#` | [foto](red/v7-admin-ssh-switch.jpg) |
+| V9 | SSH a R1 (`10.10.40.1`) y `show ip nat translations` | Traducciones activas | 122 traducciones, con origen en `10.10.20.100` y en `10.10.40.10`, todas saliendo con la dirección de la WAN | [traducciones](red/v9-router-nat-traducciones.jpg), [total y versión](red/v9b-router-nat-total-y-version.jpg) |
 
 Las mismas tres redes que el usuario tiene bloqueadas responden desde Administración, y el mismo panel que al usuario no le abre aquí sí carga.
+
+R1 corre Cisco IOS XE 17.12.03a y muestra el aviso de acceso restringido al entrar. Entre las traducciones está la del ping de PC-CLIENTE a 8.8.8.8, que se dejó corriendo durante la prueba.
 
 SW1 corre IOS 15.0(2)SE11 (imagen `C2960-LANBASEK9-M`). Su servidor SSH solo ofrece algoritmos antiguos (intercambio Diffie-Hellman con SHA-1, cifrado AES-CBC y verificación `hmac-sha1`), que el cliente de Windows trae desactivados: hay que habilitarlos en el comando para esa conexión. Es una limitación del equipo y se anota en la sección de seguridad.
 
@@ -118,7 +121,6 @@ Medido aparte desde el servidor: 0,4 ms al router, 1,3 ms al switch y 1,5 ms a P
 
 | Qué | Tarea |
 |---|---|
-| Traducciones de NAT vistas en el router (V9) | IP2-29 |
 | Verificar en los equipos reales cada control de endurecimiento | IP2-88 |
 | Crear las siete máquinas virtuales | IP2-33, IP2-73, IP2-79 |
 | Foto del rack con los equipos del grupo y los cables | Evidencia A-01 |
