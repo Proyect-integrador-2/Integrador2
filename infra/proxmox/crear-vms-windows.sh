@@ -140,7 +140,7 @@ done
 
 cat <<EOF
 
-Listo. Para entrar:
+Listo. Para entrar (vm-app-win es $RED.16 y vm-dc es $RED.17):
   ssh Administrator@$RED.16                 (con llave, abre PowerShell)
   mstsc /v:$RED.16                          (escritorio remoto, usuario Administrator)
 La contraseña está en $SECRETO
