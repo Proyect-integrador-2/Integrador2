@@ -4,6 +4,8 @@ Tareas: IP2-55 (diseño) e IP2-76 (cliente sintético). Borrador para el E2 (05 
 
 El profesor pidió (21 set 2026) que el RPA mida la **experiencia del cliente**, con el tipo de experiencia definido en los requerimientos (RF-16 a RF-18). El usuario sintético es un cliente de MS Motos que usa el portal de clientes, no un empleado del taller.
 
+> **Implementado el 13 oct 2026.** Los recorridos están en [`rpa/`](../../rpa/) y los resultados de las pruebas en [`docs/evidencias/e3/rpa.md`](../evidencias/e3/rpa.md). Tres diferencias con este diseño: la cuenta del cliente es `cliente.rpa@taller.local` (variables `SEED_CLIENTE_RPA_*`), el paso `ordenes` de la consulta es `citas`, y el agendamiento reserva a partir de tres días adelante en vez del próximo espacio libre, porque la aplicación no deja cancelar con menos de dos horas de anticipación.
+
 ## 1. Herramienta: Robot Framework + Browser Library
 
 | Criterio | **Robot Framework + Browser** | OpenRPA |

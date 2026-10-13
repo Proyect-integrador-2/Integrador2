@@ -282,6 +282,5 @@ En las dos pruebas la detección tomó menos de 2 minutos (RNF-01) y la recupera
 | Capturas de los cinco tableros con datos del laboratorio | IP2-48 |
 | Alertas a una persona por Telegram o correo | IP2-51 |
 | Recuperación de interfaces de red por n8n | IP2-76 en adelante |
-| Desplegar el robot en su máquina virtual | IP2-56 |
 | Cortafuegos en cada máquina virtual | IP2-89 |
 | Foto del rack con los equipos del grupo y los cables | Evidencia A-01 |
