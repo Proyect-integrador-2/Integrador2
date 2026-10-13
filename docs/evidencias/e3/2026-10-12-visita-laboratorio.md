@@ -2,7 +2,7 @@
 
 Tareas: IP2-27 y IP2-28 (switch y router), IP2-32 (hipervisor), IP2-93 (administración remota), IP2-14 e IP2-31 (inventario y dimensionamiento).
 
-Resultado: el router, el switch y el servidor quedaron configurados, y la plataforma se administra a distancia desde ese día. Las pruebas de red desde una computadora de usuario y desde una de administración pasaron todas (V1 y V3 a V9). Faltan las máquinas virtuales.
+Resultado: el router, el switch y el servidor quedaron configurados, y la plataforma se administra a distancia desde ese día. Las pruebas de red desde una computadora de usuario y desde una de administración pasaron todas (V1 y V3 a V9), y las cinco máquinas virtuales Linux quedaron creadas. Faltan las dos de Windows Server y los despliegues.
 
 ## 1. Equipos del grupo
 
@@ -103,24 +103,41 @@ SW1 corre IOS 15.0(2)SE11 (imagen `C2960-LANBASEK9-M`). Su servidor SSH solo ofr
 
 Medido aparte desde el servidor: 0,4 ms al router, 1,3 ms al switch y 1,5 ms a PC-ADMIN pasando por el router. Desde el servidor no responde el ping a PC-CLIENTE, como está diseñado: la lista de usuarios solo deja volver las respuestas hacia Administración.
 
-## 6. Incidencias
+## 6. Máquinas virtuales Linux
+
+Creadas el mismo día por la tarde, a distancia, con [`infra/proxmox/crear-vms.sh`](../../../infra/proxmox/crear-vms.sh) (tarea IP2-33). Salen de la imagen oficial de Ubuntu 24.04 para la nube y quedan configuradas por cloud-init.
+
+| ID | VM | Dirección | vCPU | Memoria | Disco | Arranca con el servidor |
+|---|---|---|---|---|---|---|
+| 111 | `vm-app` | 10.10.30.11 | 2 | 4 GB | 40 GB | Sí |
+| 112 | `vm-zabbix` | 10.10.30.12 | 2 | 4 GB | 60 GB | Sí |
+| 113 | `vm-grafana` | 10.10.30.13 | 1 | 2 GB | 20 GB | Sí |
+| 114 | `vm-n8n` | 10.10.30.14 | 2 | 2 GB | 20 GB | Sí |
+| 115 | `vm-rpa` | 10.10.30.15 | 2 | 4 GB | 30 GB | Sí |
+
+Comprobado en las cinco: Ubuntu 24.04.5, nombre y dirección correctos, recursos según la tabla, cloud-init terminado, `sudo` sin contraseña para el usuario `ip2`, salida a Internet por R1 (ping a 8.8.8.8) y acceso por SSH con llave desde el servidor y desde la portátil por Tailscale. No tienen contraseña: solo se entra con llave.
+
+Con las cinco encendidas el servidor usa 6 GB de sus 64 GB de memoria y el 0,5 % del almacenamiento de VM.
+
+## 7. Incidencias
 
 | Qué pasó | Cómo se resolvió |
 |---|---|
 | En la primera corrida del script el servidor quedó sin ruta por defecto y no pudo descargar Tailscale. Al recargar la red, Proxmox quitó el gateway que había dejado la instalación y se llevó la ruta recién recibida por DHCP | Se renovó el DHCP en `nic2` y se repitió el script. El script ya lo hace solo (commit `096ff8a`) |
 | R1 y SW1 rechazaban SSH desde el servidor: sus listas solo permitían la VLAN 40 | Se agregó `permit host 10.10.30.10` a `ACL-SSH-ADMIN` de R1 y a la lista 40 de SW1. Ya está en las configuraciones del repositorio |
 
-## 7. Diferencias con lo planeado
+## 8. Diferencias con lo planeado
 
 | Planeado | Lo que se hizo | Consecuencia |
 |---|---|---|
 | Dejar los cables de consola de R1 y SW1 conectados al servidor | No se dejaron: el servidor solo tiene dos USB traseros y el 2960 solo trae consola RJ45 | R1 y SW1 se administran solo por SSH. Antes de cada cambio riesgoso se programa `reload in 10`, para que el equipo vuelva solo a la configuración guardada si se pierde el acceso |
 | Activar el encendido automático del servidor tras un corte de corriente | No se activó | Los servidores del laboratorio no se apagan y están en UPS |
 
-## 8. Pendiente
+## 9. Pendiente
 
 | Qué | Tarea |
 |---|---|
 | Verificar en los equipos reales cada control de endurecimiento | IP2-88 |
-| Crear las siete máquinas virtuales | IP2-33, IP2-73, IP2-79 |
+| Crear las dos máquinas virtuales de Windows Server | IP2-73, IP2-79 |
+| Desplegar la aplicación, Zabbix, Grafana, n8n y el robot en sus máquinas virtuales | IP2-35 en adelante |
 | Foto del rack con los equipos del grupo y los cables | Evidencia A-01 |
