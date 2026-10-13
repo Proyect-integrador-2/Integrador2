@@ -1,0 +1,74 @@
+# Zabbix en vm-zabbix, 10.10.30.12 — Integrador II (IP2-41).
+#
+# Mismas imágenes y versiones que la réplica de infra/lab-local, donde se probaron
+# las plantillas, los triggers y la cadena de recuperación.
+#
+#   ./desplegar.sh     # instala Docker, genera .env y levanta todo
+#
+# Frontend → http://10.10.30.12   (usuario Admin; la contraseña está en .env)
+
+name: zabbix
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: zabbix-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: ${ZBX_DB_PASSWORD:?Definí ZBX_DB_PASSWORD en .env}
+      TZ: America/Costa_Rica
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks: [zabbix]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zabbix -d zabbix"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  server:
+    image: zabbix/zabbix-server-pgsql:alpine-7.0.30
+    container_name: zabbix-server
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_SERVER_HOST: db
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: ${ZBX_DB_PASSWORD}
+      ZBX_CACHESIZE: 64M
+      ZBX_STARTPINGERS: 2
+      TZ: America/Costa_Rica
+    # 10051: por aquí llegan los agentes en modo activo y los datos del RPA y de n8n
+    # (zabbix_sender). Las consultas a los agentes y el SNMP salen de la VM con su IP.
+    ports:
+      - "10051:10051"
+    networks: [zabbix]
+
+  web:
+    image: zabbix/zabbix-web-nginx-pgsql:alpine-7.0.30
+    container_name: zabbix-web
+    restart: unless-stopped
+    depends_on: [server]
+    environment:
+      ZBX_SERVER_HOST: server
+      DB_SERVER_HOST: db
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: ${ZBX_DB_PASSWORD}
+      PHP_TZ: America/Costa_Rica
+    ports:
+      - "80:8080"
+    networks: [zabbix]
+
+networks:
+  zabbix:
+    name: zabbix
+
+volumes:
+  db-data:
+    name: zabbix-db-data
