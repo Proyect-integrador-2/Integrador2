@@ -1,0 +1,34 @@
+# Inicio de sesión en Grafana con las cuentas del dominio ip2.local (IP2-81).
+#
+# Va por LDAPS a dc01.ip2.local y solo acepta el certificado que firmó la autoridad
+# interna. Los permisos salen del grupo del dominio; una cuenta que no está en ninguno de
+# los dos grupos no entra. La cuenta local admin sigue funcionando (emergencia, riesgo R-14).
+# La contraseña de svc-ldap llega por la variable LDAP_BIND_PASSWORD, desde el .env.
+
+[[servers]]
+host = "dc01.ip2.local"
+port = 636
+use_ssl = true
+start_tls = false
+ssl_skip_verify = false
+root_ca_cert = "/etc/grafana/ip2-ca.crt"
+bind_dn = "CN=svc-ldap,OU=Servicios,OU=IP2,DC=ip2,DC=local"
+bind_password = "$__env{LDAP_BIND_PASSWORD}"
+search_filter = "(sAMAccountName=%s)"
+search_base_dns = ["OU=IP2,DC=ip2,DC=local"]
+
+[servers.attributes]
+name = "givenName"
+surname = "sn"
+username = "sAMAccountName"
+member_of = "memberOf"
+email = "userPrincipalName"
+
+# Administradores: editan tableros. Operadores: solo ven.
+[[servers.group_mappings]]
+group_dn = "CN=GG-IP2-Administradores,OU=IP2,DC=ip2,DC=local"
+org_role = "Admin"
+
+[[servers.group_mappings]]
+group_dn = "CN=GG-IP2-Operadores,OU=IP2,DC=ip2,DC=local"
+org_role = "Viewer"

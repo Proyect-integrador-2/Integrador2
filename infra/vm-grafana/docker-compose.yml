@@ -24,6 +24,12 @@ services:
       ZABBIX_API_URL: ${ZABBIX_API_URL:-http://10.10.30.12/api_jsonrpc.php}
       ZABBIX_API_USER: ${ZABBIX_API_USER:-grafana}
       ZABBIX_API_PASSWORD: ${ZABBIX_API_PASSWORD:?Definí ZABBIX_API_PASSWORD en .env}
+      # Cuentas del dominio (IP2-81). Sin LDAP_BIND_PASSWORD el inicio con el dominio falla
+      # y solo entra la cuenta local admin.
+      GF_AUTH_LDAP_ENABLED: "true"
+      GF_AUTH_LDAP_CONFIG_FILE: /etc/grafana/ldap.toml
+      GF_AUTH_LDAP_ALLOW_SIGN_UP: "true"
+      LDAP_BIND_PASSWORD: ${LDAP_BIND_PASSWORD:-}
     volumes:
       - grafana-data:/var/lib/grafana
       - ./provisioning/datasources:/etc/grafana/provisioning/datasources:ro
@@ -31,6 +37,9 @@ services:
       - ../lab-local/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ../lab-local/grafana/provisioning/plugins:/etc/grafana/provisioning/plugins:ro
       - ../../monitoreo/grafana:/etc/grafana/dashboards-ip2:ro
+      - ./ldap.toml:/etc/grafana/ldap.toml:ro
+      - ../ca/ip2-ca.crt:/etc/grafana/ip2-ca.crt:ro
+    extra_hosts: ["dc01.ip2.local:10.10.30.17"]
     ports:
       - "80:3000"
 
