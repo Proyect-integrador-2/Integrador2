@@ -30,9 +30,9 @@ install -m 644 /root/secretos-ip2/ca/ip2-ca.crt /usr/local/share/ca-certificates
 update-ca-certificates >/dev/null
 
 opciones=(--domain ip2.local --server1 dc01.ip2.local --port 636 --mode ldaps --verify 1
-  --bind-dn "CN=svc-ldap,OU=Servicios,$BASE" --base-dn "$BASE" --user-attr sAMAccountName
+  --bind_dn "CN=svc-ldap,OU=Servicios,$BASE" --base_dn "$BASE" --user_attr sAMAccountName
   --filter "(|(memberOf=$ADMINS)(memberOf=$OPERADORES))"
-  --group-dn "$BASE" --group-filter "(&(objectClass=group)(cn=GG-IP2-*))" --group-name-attr cn
+  --group_dn "$BASE" --group_filter "(&(objectClass=group)(cn=GG-IP2-*))" --group_name_attr cn
   --sync-defaults-options "scope=both,enable-new=1,remove-vanished=acl;entry;properties"
   --comment "Dominio ip2.local por LDAPS (IP2-81)")
 if pveum realm list --output-format json | grep -q "\"realm\":\"$REINO\""; then
@@ -45,6 +45,10 @@ printf '%s\n' "$clave" > "/etc/pve/priv/realm/$REINO.pw"
 unset clave
 
 pveum realm sync "$REINO"
+# Cada hora, para que quien entra o sale de un grupo del dominio se refleje aquí solo.
+pvesh get /cluster/jobs/realm-sync --output-format json | grep -q '"id":"ip2-cada-hora"' \
+  || pvesh create /cluster/jobs/realm-sync/ip2-cada-hora --realm "$REINO" --schedule hourly --scope both \
+       --enable-new 1 --remove-vanished "acl;entry;properties" --comment "Sincroniza los grupos del dominio (IP2-81)"
 pveum acl modify / --groups "GG-IP2-Administradores-$REINO" --roles Administrator
 pveum acl modify / --groups "GG-IP2-Operadores-$REINO" --roles PVEAuditor
 
