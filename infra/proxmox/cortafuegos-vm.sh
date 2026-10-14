@@ -26,7 +26,8 @@ CONTENEDORES="172.16.0.0/12"
 # Zabbix (solo desde vm-zabbix). Formato: puerto:orígenes separados por coma.
 case "$(hostname)" in
   vm-app)     PROPIOS="80:any 443:any";  DOCKER="" ;;                    # la aplicación, para todos
-  vm-zabbix)  PROPIOS="";                DOCKER="80:$SERVIDORES,$ADMINISTRACION 10051:$SERVIDORES" ;;
+  # El servidor de Zabbix corre en un contenedor: llega al agente de su VM desde 172.x.
+  vm-zabbix)  PROPIOS="10050:$CONTENEDORES"; DOCKER="80:$SERVIDORES,$ADMINISTRACION 10051:$SERVIDORES" ;;
   vm-grafana) PROPIOS="";                DOCKER="80:$SERVIDORES,$ADMINISTRACION" ;;
   vm-n8n)     PROPIOS="22:$CONTENEDORES"; DOCKER="5678:$SERVIDORES,$ADMINISTRACION" ;;  # n8n entra a su VM (red)
   vm-rpa)     PROPIOS="";                DOCKER="" ;;
