@@ -5,18 +5,19 @@
 #   1. Zona horaria, Python y el emisor de Zabbix.
 #   2. Trae el repositorio a /opt/integrador2 (o lo actualiza si ya está).
 #   3. Entorno de Python con Robot Framework, la librería Browser y Chromium.
-#   4. Crea rpa/.env con la cuenta del cliente sintético.
-#   5. Programa los dos recorridos con temporizadores de systemd.
+#   4. Crea el archivo de variables de cada instancia (Linux y Windows) con su cuenta.
+#   5. Programa los dos recorridos de cada instancia con temporizadores de systemd.
 #   6. Corre cada recorrido una vez para comprobar.
 #
 # Se corre en la VM con el usuario ip2 (usa sudo). Se puede repetir.
 #
 #   ./desplegar.sh
 #
-# La cuenta del cliente sintético la crea el despliegue de vm-app. Antes de correr este
-# script, sus dos líneas se dejan en ~/rpa.env como RPA_CORREO=... y RPA_CLAVE=...; el
-# script las pasa a rpa/.env y borra ese archivo. Antes también hay que haber corrido
-# configurar-zabbix.py en vm-zabbix, que crea el host que recibe los resultados.
+# La cuenta del cliente sintético la crea el despliegue de cada instancia de la aplicación.
+# Antes de correr este script, sus dos líneas (RPA_CORREO=... y RPA_CLAVE=...) se dejan en
+# ~/rpa.env para la instancia Linux y en ~/rpa-windows.env para la de Windows; el script
+# las guarda y borra esos archivos. Antes también hay que haber corrido configurar-zabbix.py
+# en vm-zabbix, que crea los hosts que reciben los resultados.
 set -euo pipefail
 umask 022
 
@@ -63,84 +64,102 @@ fi
 echo "  $("$BASE/venv/bin/robot" --version | head -1)"
 
 # ---------------------------------------------------------------------------
+# El robot mide las dos instancias de la aplicación. Cada una tiene su archivo de
+# variables, su host en Zabbix y sus temporizadores, con minutos distintos para que
+# los recorridos no coincidan.
+#   sufijo  variables      dirección            host en Zabbix        cuenta            consulta  agendar
+INSTANCIAS=(
+  "-      .env           http://10.10.30.11   msmotos-rpa-linux     rpa.env           *:0/5     *:13,43"
+  "-win   .env.windows   http://10.10.30.16   msmotos-rpa-windows   rpa-windows.env   *:2/5     *:28,58"
+)
+
 paso "4. Variables de entorno"
-if [[ ! -s $RPA/.env ]]; then
-  (
-    umask 077
-    cat > "$RPA/.env" <<EOF
+activas=()
+for fila in "${INSTANCIAS[@]}"; do
+  read -r sufijo variables url host cuenta _ <<<"$fila"
+  [[ $sufijo == - ]] && sufijo=""
+  archivo="$RPA/$variables"
+  if [[ ! -s $archivo && ( -n $sufijo && ! -s $HOME/$cuenta ) ]]; then
+    echo "  $host: sin cuenta todavía (dejar sus dos líneas en ~/$cuenta y repetir). Se omite."
+    continue
+  fi
+  if [[ ! -s $archivo ]]; then
+    (
+      umask 077
+      cat > "$archivo" <<EOF
 # Generado por desplegar.sh. No se sube a Git.
-RPA_URL=http://10.10.30.11
+RPA_URL=$url
 ZABBIX_SERVER=10.10.30.12
-ZABBIX_HOST=msmotos-rpa-linux
-RPA_SALIDAS=$BASE/salidas
+ZABBIX_HOST=$host
+RPA_SALIDAS=$BASE/salidas$sufijo
 EOF
-  )
-  echo "  creado $RPA/.env (permisos 600)."
-fi
-if [[ -s $HOME/rpa.env ]]; then
-  sed -i '/^RPA_CORREO=/d; /^RPA_CLAVE=/d' "$RPA/.env"
-  grep -E '^RPA_(CORREO|CLAVE)=' "$HOME/rpa.env" | tr -d '\r' >> "$RPA/.env"
-  rm -f "$HOME/rpa.env"
-  echo "  cuenta del cliente sintético guardada en .env."
-fi
-for variable in RPA_CORREO RPA_CLAVE; do
-  grep -q "^$variable=" "$RPA/.env" \
-    || { echo "Falta $variable: dejar las líneas de la cuenta en ~/rpa.env y repetir." >&2; exit 1; }
+    )
+    echo "  creado $archivo (permisos 600)."
+  fi
+  if [[ -s $HOME/$cuenta ]]; then
+    sed -i '/^RPA_CORREO=/d; /^RPA_CLAVE=/d' "$archivo"
+    grep -E '^RPA_(CORREO|CLAVE)=' "$HOME/$cuenta" | tr -d '\r' >> "$archivo"
+    rm -f "$HOME/$cuenta"
+    echo "  $host: cuenta del cliente sintético guardada."
+  fi
+  for variable in RPA_CORREO RPA_CLAVE; do
+    grep -q "^$variable=" "$archivo" \
+      || { echo "Falta $variable: dejar las líneas de la cuenta en ~/$cuenta y repetir." >&2; exit 1; }
+  done
+  sudo install -d -o "$USER" -g "$USER" "$BASE/salidas$sufijo"
+  activas+=("$fila")
 done
 
 # ---------------------------------------------------------------------------
 paso "5. Temporizadores"
-for recorrido in consulta agendar; do
-  sudo tee "/etc/systemd/system/rpa-$recorrido.service" >/dev/null <<EOF
+unidades=()
+for fila in "${activas[@]}"; do
+  read -r sufijo variables _ host _ cada_consulta cada_agendar <<<"$fila"
+  [[ $sufijo == - ]] && sufijo=""
+  for recorrido in consulta agendar; do
+    cuando=$cada_consulta
+    [[ $recorrido == agendar ]] && cuando=$cada_agendar
+    sudo tee "/etc/systemd/system/rpa-$recorrido$sufijo.service" >/dev/null <<EOF
 [Unit]
-Description=Cliente sintético de MS Motos: recorrido de $recorrido (IP2-57)
+Description=Cliente sintético de MS Motos: recorrido de $recorrido ($host)
 After=network-online.target
 
 [Service]
 Type=oneshot
 User=$USER
-EnvironmentFile=$RPA/.env
+EnvironmentFile=$RPA/$variables
 ExecStart=$BASE/venv/bin/python $RPA/ejecutar.py $recorrido
 TimeoutStartSec=120
 EOF
+    # Consulta cada 5 minutos y agendar cada 30.
+    sudo tee "/etc/systemd/system/rpa-$recorrido$sufijo.timer" >/dev/null <<EOF
+[Unit]
+Description=Recorrido de $recorrido del cliente sintético ($host)
+
+[Timer]
+OnCalendar=$cuando
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target
+EOF
+    unidades+=("rpa-$recorrido$sufijo")
+  done
 done
-# Consulta cada 5 minutos; agendar cada 30, a los minutos 13 y 43 para no coincidir.
-sudo tee /etc/systemd/system/rpa-consulta.timer >/dev/null <<'EOF'
-[Unit]
-Description=Cada 5 minutos: recorrido de consulta del cliente sintético
-
-[Timer]
-OnCalendar=*:0/5
-AccuracySec=1s
-
-[Install]
-WantedBy=timers.target
-EOF
-sudo tee /etc/systemd/system/rpa-agendar.timer >/dev/null <<'EOF'
-[Unit]
-Description=Cada 30 minutos: recorrido de agendar del cliente sintético
-
-[Timer]
-OnCalendar=*:13,43
-AccuracySec=1s
-
-[Install]
-WantedBy=timers.target
-EOF
 sudo systemctl daemon-reload
-sudo systemctl enable --now rpa-consulta.timer rpa-agendar.timer >/dev/null 2>&1
-systemctl list-timers 'rpa-*' --no-pager | head -4
+sudo systemctl enable --now "${unidades[@]/%/.timer}" >/dev/null 2>&1
+systemctl list-timers 'rpa-*' --no-pager | head -6
 
 # ---------------------------------------------------------------------------
 paso "6. Primera ejecución"
-for recorrido in consulta agendar; do
-  sudo systemctl start "rpa-$recorrido.service" || true
-  journalctl -u "rpa-$recorrido.service" -n 1 --no-pager -o cat
+for unidad in "${unidades[@]}"; do
+  sudo systemctl start "$unidad.service" || true
+  journalctl -u "$unidad.service" -n 1 --no-pager -o cat
 done
 
 cat <<EOF
 
-Listo. Los resultados llegan a Zabbix, host msmotos-rpa-linux.
+Listo. Los resultados llegan a Zabbix, hosts msmotos-rpa-linux y msmotos-rpa-windows.
 Ver las últimas ejecuciones:  journalctl -u 'rpa-*' -n 20 --no-pager -o short
-Capturas de los fallos:       $BASE/salidas
+Capturas de los fallos:       $BASE/salidas y $BASE/salidas-win
 EOF

@@ -64,6 +64,7 @@ RED = [
 # host, nombre visible, dirección desde la que se aceptan sus datos
 RPA_HOSTS = [
     ("msmotos-rpa-linux", "msmotos-rpa-linux (Cliente sintético · Linux)", "10.10.30.15"),
+    ("msmotos-rpa-windows", "msmotos-rpa-windows (Cliente sintético · Windows)", "10.10.30.15"),
 ]
 # recorrido: (pasos, segundos a partir de los cuales es lento, tiempo sin datos que alerta)
 RPA_RECORRIDOS = {
