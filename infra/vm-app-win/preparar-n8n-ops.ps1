@@ -38,7 +38,9 @@ $sid = (Get-LocalUser $Usuario).SID.Value
 New-Item -ItemType Directory -Force $Carpeta | Out-Null
 @'
 # Lo unico que n8n puede hacer en esta VM. Lo ejecuta sshd (ForceCommand).
-$pedido = "$env:SSH_ORIGINAL_COMMAND".Trim()
+# El nodo SSH de n8n antepone "cd <carpeta> ;" a todo lo que envia: se quita ese prefijo
+# y lo que queda tiene que ser exactamente uno de los dos pedidos.
+$pedido = "$env:SSH_ORIGINAL_COMMAND".Trim() -replace '^cd\s+\S+\s*(;|&&)\s*', ''
 switch ($pedido) {
   'start MSMotos' {
     sc.exe start MSMotos | Out-Null
@@ -54,7 +56,7 @@ switch ($pedido) {
     if ((sc.exe query MSMotos | Out-String) -match 'STATE\s+:\s+\d+\s+(\w+)') { Write-Output $Matches[1] }
     exit 0
   }
-  default { Write-Output 'Accion no permitida'; exit 2 }
+  default { Write-Output ('Accion no permitida: ' + ($pedido -replace '[^\w /;&.-]', '?')); exit 2 }
 }
 '@ | Set-Content "$Carpeta\accion.ps1" -Encoding ascii
 icacls $Carpeta /inheritance:r /grant '*S-1-5-32-544:(OI)(CI)F' '*S-1-5-18:(OI)(CI)F' "*${sid}:(OI)(CI)RX" | Out-Null
