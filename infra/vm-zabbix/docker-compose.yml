@@ -48,6 +48,11 @@ services:
     ports:
       - "10051:10051"
     networks: [zabbix]
+    # Cuentas del dominio (IP2-81): LDAPS hacia el controlador, confiando en la autoridad interna.
+    extra_hosts: ["dc01.ip2.local:10.10.30.17"]
+    volumes:
+      - ../ca/ip2-ca.crt:/etc/ssl/ip2-ca.crt:ro
+      - ./ldap.conf:/etc/openldap/ldap.conf:ro
 
   web:
     image: zabbix/zabbix-web-nginx-pgsql:alpine-7.0.30
@@ -64,6 +69,11 @@ services:
     ports:
       - "80:8080"
     networks: [zabbix]
+    # Cuentas del dominio (IP2-81): LDAPS hacia el controlador, confiando en la autoridad interna.
+    extra_hosts: ["dc01.ip2.local:10.10.30.17"]
+    volumes:
+      - ../ca/ip2-ca.crt:/etc/ssl/ip2-ca.crt:ro
+      - ./ldap.conf:/etc/openldap/ldap.conf:ro
 
 networks:
   zabbix:

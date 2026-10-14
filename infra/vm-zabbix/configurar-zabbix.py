@@ -693,6 +693,50 @@ def main():
                   opdata="quedan {ITEM.LASTVALUE1}")
     print("T20: certificado HTTPS vigilado")
 
+    # --- Active Directory (IP2-81): el personal entra con su cuenta del dominio ---
+    # El usuario se crea solo en su primer inicio de sesión (JIT), con los permisos de su
+    # grupo del dominio. Una cuenta que no está en ninguno de los dos grupos no entra.
+    # Admin sigue siendo una cuenta local: es la de emergencia si el dominio no responde.
+    if not env.get("LDAP_BIND_PASSWORD"):
+        print("AVISO: falta LDAP_BIND_PASSWORD en .env; no se configura el dominio")
+    else:
+        roles_z = {r["name"]: r["roleid"] for r in z.call("role.get", {"output": ["name"]})}
+        grupos_z = {}
+        for nombre, permiso in (("Dominio · administradores", 3), ("Dominio · operadores", 2)):
+            actual = z.uno("usergroup.get", {"name": [nombre]}, ["usrgrpid"])
+            # gui_access 2: sus miembros siempre se autentican contra el dominio.
+            datos = {"name": nombre, "gui_access": 2, "hostgroup_rights": [{"id": gid, "permission": permiso}]}
+            if actual:
+                z.call("usergroup.update", dict(datos, usrgrpid=actual["usrgrpid"]))
+                grupos_z[nombre] = actual["usrgrpid"]
+            else:
+                grupos_z[nombre] = z.call("usergroup.create", datos)["usrgrpids"][0]
+        base = "OU=IP2,DC=ip2,DC=local"
+        directorio = {
+            "idp_type": 1, "name": "ip2.local", "host": "ldaps://dc01.ip2.local", "port": 636,
+            "base_dn": base, "search_attribute": "sAMAccountName",
+            "bind_dn": f"CN=svc-ldap,OU=Servicios,{base}", "bind_password": env["LDAP_BIND_PASSWORD"],
+            "description": "Active Directory del laboratorio (IP2-81)",
+            "provision_status": 1, "group_basedn": base, "group_name": "cn", "group_member": "member",
+            "user_ref_attr": "distinguishedName", "group_filter": "(member=%{ref})",
+            "user_username": "givenName", "user_lastname": "sn",
+            "provision_groups": [
+                {"name": "GG-IP2-Administradores", "roleid": roles_z["Admin role"],
+                 "user_groups": [{"usrgrpid": grupos_z["Dominio · administradores"]}]},
+                {"name": "GG-IP2-Operadores", "roleid": roles_z["User role"],
+                 "user_groups": [{"usrgrpid": grupos_z["Dominio · operadores"]}]},
+            ],
+        }
+        actual = z.uno("userdirectory.get", {"name": ["ip2.local"]}, ["userdirectoryid"])
+        if actual:
+            z.call("userdirectory.update", dict(directorio, userdirectoryid=actual["userdirectoryid"]))
+            did = actual["userdirectoryid"]
+        else:
+            did = z.call("userdirectory.create", directorio)["userdirectoryids"][0]
+        z.call("authentication.update", {"ldap_auth_enabled": 1, "ldap_userdirectoryid": did,
+                                         "ldap_jit_status": 1, "jit_provision_interval": "1h"})
+        print("Dominio: inicio de sesión con cuentas de ip2.local por LDAPS, por grupos")
+
     # --- Usuario de solo lectura para Grafana ---
     rol = z.uno("role.get", {"name": ["Solo lectura Grafana"]}, ["roleid"])
     rid = rol["roleid"] if rol else z.call("role.create", {"name": "Solo lectura Grafana", "type": 1})["roleids"][0]
