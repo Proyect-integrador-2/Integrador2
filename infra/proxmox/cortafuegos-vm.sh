@@ -54,6 +54,11 @@ for regla in $PROPIOS; do
   puerto=${regla%%:*}; origen=${regla#*:}
   sudo ufw allow proto tcp from "$origen" to any port "$puerto" comment 'IP2' >/dev/null
 done
+# Con Docker, los contenedores resuelven nombres con el DNS de su propia VM (ver
+# infra/proxmox/dns-vm.sh): sin esta regla, n8n no llega a Telegram.
+if command -v docker >/dev/null; then
+  sudo ufw allow from "$CONTENEDORES" to any port 53 comment 'DNS para los contenedores' >/dev/null
+fi
 sudo ufw --force enable >/dev/null
 
 # 3. Puertos publicados por Docker: lista blanca en DOCKER-USER, como servicio que se
