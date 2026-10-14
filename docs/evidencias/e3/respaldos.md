@@ -41,7 +41,18 @@ La copia se arrancó **sin red** a propósito: dos controladores del mismo domin
 
 Durante el respaldo y la restauración de prueba (20:11 a 20:16), el servidor leyó y escribió disco a más de 500 MiB/s. En esos minutos un recorrido del robot que tarda unos 5 s tardó 9,9 s, y otro dio un fallo falso al cerrar el navegador, que abrió la alerta T12. El recorrido siguiente salió bien.
 
-Por eso los tres trabajos programados quedaron con un tope de lectura de 150 MiB/s. El tope está puesto, pero **todavía no se ha visto correr un respaldo nocturno con él**: hay que revisar el 14 de octubre si a las 02:00 hubo alertas del robot.
+Por eso los tres trabajos programados quedaron con un tope de lectura de 150 MiB/s.
+
+**Primera noche con el tope (14 de octubre):** los dos trabajos diarios corrieron y terminaron bien, y en esa ventana no se abrió ninguna alerta.
+
+| VM | Inicio | Tamaño de la copia |
+|---|---|---|
+| `vm-app` | 02:00:08 | 2,19 GB |
+| `vm-zabbix` | 02:05:01 | 1,50 GB |
+| `vm-dc` | 02:12:05 | 5,88 GB |
+| `vm-app-win` | 02:40:09 | 7,73 GB |
+
+Entre las 02:00 y las 13:00 el robot completó 315 recorridos y falló uno, a las 09:50, fuera de la ventana de respaldos: la página de la instancia Linux tardó más de 10 segundos en cargar una vez y la siguiente ejecución salió bien. El volumen de respaldos quedó con 22 GB usados de 295.
 
 ## 5. Límite conocido
 
@@ -55,6 +66,5 @@ Esto protege de borrar o dañar una VM, no de perder el servidor entero. Para es
 
 | Qué | Tarea |
 |---|---|
-| Revisar que los respaldos de las 02:00 se hagan y no disparen alertas | IP2-34 |
 | Copia fuera del servidor | IP2-34 |
 | Cuenta local de emergencia comprobada en cada herramienta (riesgo R-14) | IP2-79 |

@@ -99,7 +99,7 @@ Tailscale publica las cuatro redes del proyecto solo a los equipos de la cuenta 
 
 Proxmox respalda las VM en un volumen aparte de 300 GB, con la frecuencia del diseño: las críticas (`vm-app`, `vm-zabbix`, `vm-dc`) todos los días con 3 copias, `vm-app-win` todos los días con 2, y el resto una vez por semana.
 
-**Prueba:** se respaldó el controlador de dominio (1 minuto 55 segundos, 5,16 GB), se restauró en una VM aparte sin red (69 segundos) y Windows arrancó hasta la pantalla de inicio de sesión. Las copias quedan en los mismos discos del servidor: protegen de dañar una VM, no de perder el servidor.
+**Prueba:** se respaldó el controlador de dominio (1 minuto 55 segundos, 5,16 GB), se restauró en una VM aparte sin red (69 segundos) y Windows arrancó hasta la pantalla de inicio de sesión. La primera noche, 14 de octubre, los trabajos programados respaldaron `vm-app`, `vm-zabbix`, `vm-dc` y `vm-app-win` entre las 02:00 y las 02:45, sin errores. Las copias quedan en los mismos discos del servidor: protegen de dañar una VM, no de perder el servidor.
 
 ## 2. Red
 
@@ -581,7 +581,7 @@ Sí. El robot entra al portal con una cuenta de cliente, consulta su historial, 
 | Grafana arrancó sin tableros: el repositorio se había clonado con permisos que el contenedor no podía leer | Se corrigieron los permisos y los scripts fijan la máscara |
 | n8n no entregaba sus datos a Zabbix: los ítems solo aceptaban una dirección de origen que por la API no se ve | Se quitó esa lista; quien limita la escritura es el token de n8n |
 | La recuperación en Windows fallaba con "Accion no permitida": n8n antepone `cd / ;` a cada comando | La lista cerrada quita ese prefijo y compara el resto |
-| Durante un respaldo de prueba el robot dio un fallo falso por la carga de disco | Los respaldos programados tienen un tope de velocidad. Falta ver una corrida nocturna |
+| Durante un respaldo de prueba el robot dio un fallo falso por la carga de disco | Los respaldos programados tienen un tope de velocidad. La primera noche con el tope (14 de octubre) corrieron los cuatro respaldos diarios sin abrir ninguna alerta |
 | El router y el switch rechazaban SSH desde el servidor | Se agregó el servidor a sus listas de acceso |
 
 ### 13.2 Diferencias con el diseño
