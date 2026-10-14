@@ -438,6 +438,50 @@ def main():
                   {"remediation": "none", "capa": "aplicacion"})
     print("Windows: vm-app-win y vm-dc por agente, servicio MSMotos (T03-W) y escenario web (T04-W, T05-W)")
 
+    # --- Controlador de dominio (IP2-82): sus servicios y los eventos de seguridad ---
+    # Estas alertas solo avisan: ninguna acción automática toca cuentas de usuario.
+    dc = z.uno("host.get", {"host": ["vm-dc"]}, ["hostid"])["hostid"]
+    interfaz = z.call("hostinterface.get", {"output": ["interfaceid"], "hostids": dc})[0]["interfaceid"]
+    existentes = {i["key_"] for i in z.call("item.get", {"output": ["key_"], "hostids": dc})}
+    servicios = [("NTDS", "Active Directory"), ("DNS", "DNS"), ("Kdc", "Kerberos")]
+    for servicio, nombre in servicios:
+        clave = f"service.info[{servicio},state]"
+        if clave not in existentes:
+            z.call("item.create", {
+                "hostid": dc, "interfaceid": interfaz, "name": f"Servicio {nombre}: estado (0 = en ejecución)",
+                "key_": clave, "type": 0, "value_type": 3, "delay": "30s", "history": "31d",
+                "tags": [{"tag": "component", "value": "dominio"}]})
+    identidad = {"remediation": "none", "capa": "identidad"}
+    crear_trigger(z, "T15 Servicio del dominio caído en vm-dc",
+                  " or ".join(f"min(/vm-dc/service.info[{s},state],1m)<>0" for s, _ in servicios), 4, identidad,
+                  "Active Directory, DNS o Kerberos no están en ejecución: nadie puede validar su cuenta.")
+
+    # Eventos del registro de seguridad. El agente los envía él mismo (chequeo activo) y de
+    # cada evento se guarda solo el nombre de la cuenta, que es lo que hace falta en la alerta.
+    eventos = [
+        ("eventlog[Security,,,,4625,,skip]", "Seguridad: inicio de sesión fallido (cuenta)",
+         r"Account For Which Logon Failed:[\s\S]*?Account Name:\s+(\S+)"),
+        ("eventlog[Security,,,,4740,,skip]", "Seguridad: cuenta bloqueada (cuenta)",
+         r"Account That Was Locked Out:[\s\S]*?Account Name:\s+(\S+)"),
+    ]
+    for clave, nombre, patron in eventos:
+        if clave not in existentes:
+            z.call("item.create", {
+                "hostid": dc, "name": nombre, "key_": clave, "type": 7, "value_type": 2, "delay": "30s",
+                "history": "31d", "tags": [{"tag": "component", "value": "seguridad"}],
+                # type 5 = expresión regular; si no encuentra la cuenta, guarda "desconocida".
+                "preprocessing": [{"type": 5, "params": patron + "\n\\1", "error_handler": 2,
+                                   "error_handler_params": "desconocida"}]})
+    crear_trigger(z, "T16 Muchos inicios de sesión fallidos en el dominio (más de 10 en 5 min)",
+                  f"count(/vm-dc/{eventos[0][0]},5m)>10", 2, identidad,
+                  "Posible intento de adivinar contraseñas. Revisar el registro de seguridad de vm-dc.",
+                  opdata="última cuenta: {ITEM.LASTVALUE1}")
+    crear_trigger(z, "T17 Cuenta del dominio bloqueada",
+                  f"count(/vm-dc/{eventos[1][0]},15m)>0", 2, identidad,
+                  "El dominio bloqueó una cuenta por intentos fallidos (política de 5 intentos).",
+                  opdata="cuenta: {ITEM.LASTVALUE1}")
+    print("Dominio: servicios (T15) y eventos de seguridad (T16, T17) listos")
+
     # --- Usuario de solo lectura para Grafana ---
     rol = z.uno("role.get", {"name": ["Solo lectura Grafana"]}, ["roleid"])
     rid = rol["roleid"] if rol else z.call("role.create", {"name": "Solo lectura Grafana", "type": 1})["roleids"][0]
