@@ -111,6 +111,15 @@ sudo docker compose run --rm seed
 
 # ---------------------------------------------------------------------------
 paso "6. Nginx"
+# HTTPS (IP2-90): el certificado lo firma la autoridad interna con infra/proxmox/ca-interna.sh.
+# En una instalación nueva todavía no existe: se pone uno provisional para que Nginx arranque.
+if ! sudo test -s /etc/nginx/ssl/msmotos.key; then
+  sudo install -d -m 755 /etc/nginx/ssl
+  sudo openssl req -x509 -newkey rsa:2048 -nodes -days 30 -subj "/CN=msmotos-provisional" \
+    -keyout /etc/nginx/ssl/msmotos.key -out /etc/nginx/ssl/msmotos.crt 2>/dev/null
+  sudo chmod 600 /etc/nginx/ssl/msmotos.key
+  echo "  certificado provisional (30 días): correr infra/proxmox/ca-interna.sh en el servidor."
+fi
 sudo install -m 0644 "$APP/docker/nginx/msmotos.conf" /etc/nginx/sites-available/msmotos.conf
 sudo ln -sf /etc/nginx/sites-available/msmotos.conf /etc/nginx/sites-enabled/msmotos.conf
 sudo rm -f /etc/nginx/sites-enabled/default
@@ -123,16 +132,17 @@ ip=$(hostname -I | cut -d' ' -f1)
 # La recarga de Nginx no es inmediata: por unos instantes sigue respondiendo la
 # configuración anterior. Se espera a que el proxy ya esté atendiendo.
 for _ in $(seq 1 10); do
-  [[ $(curl -s -o /dev/null -w '%{http_code}' "http://$ip/api/health") == 200 ]] && break
+  [[ $(curl -sk -o /dev/null -w '%{http_code}' "https://$ip/api/health") == 200 ]] && break
   sleep 1
 done
 printf '  contenedor  (127.0.0.1:3000/api/health): HTTP %s\n' "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/health)"
-printf '  por Nginx   (%s/api/health):     HTTP %s\n' "$ip" "$(curl -s -o /dev/null -w '%{http_code}' "http://$ip/api/health")"
-printf '  portada     (%s/):               HTTP %s\n' "$ip" "$(curl -s -o /dev/null -w '%{http_code}' "http://$ip/")"
+printf '  por Nginx   (https://%s/api/health): HTTP %s\n' "$ip" "$(curl -sk -o /dev/null -w '%{http_code}' "https://$ip/api/health")"
+printf '  portada     (https://%s/):           HTTP %s\n' "$ip" "$(curl -sk -o /dev/null -w '%{http_code}' "https://$ip/")"
+printf '  puerto 80   (redirige a HTTPS):       HTTP %s\n' "$(curl -s -o /dev/null -w '%{http_code}' "http://$ip/")"
 
 cat <<EOF
 
-Listo. La aplicación responde en http://$ip
+Listo. La aplicación responde en https://$ip
 Cuentas: admin@taller.com, recepcion@taller.com y rpa@taller.local.
 Sus contraseñas:  grep SEED_ $APP/.env
 EOF

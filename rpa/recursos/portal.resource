@@ -6,7 +6,7 @@ Library           Browser    timeout=10s    run_on_failure=Take Screenshot \ fal
 
 *** Variables ***
 # Los tres valores llegan por variables de entorno desde ejecutar.py; nunca van en Git.
-${URL}            %{RPA_URL=http://10.10.30.11}
+${URL}            %{RPA_URL=https://10.10.30.11}
 ${CORREO}         %{RPA_CORREO}
 ${MOTO}           Honda CB190R
 # El portal está pensado para el celular: se mide con el tamaño de pantalla de un teléfono.

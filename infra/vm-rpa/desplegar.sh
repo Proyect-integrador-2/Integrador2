@@ -38,7 +38,7 @@ sudo timedatectl set-timezone "$ZONA"
 export DEBIAN_FRONTEND=noninteractive
 sudo apt-get update -q
 # zabbix-sender sale del repositorio de Zabbix que agregó instalar-agente.sh.
-sudo apt-get install -y -q python3-venv git zabbix-sender
+sudo apt-get install -y -q python3-venv git zabbix-sender libnss3-tools ca-certificates
 
 # ---------------------------------------------------------------------------
 paso "2. Repositorio"
@@ -64,12 +64,26 @@ fi
 echo "  $("$BASE/venv/bin/robot" --version | head -1)"
 
 # ---------------------------------------------------------------------------
+paso "3b. Confianza en la autoridad interna (HTTPS)"
+# La instancia Linux se publica por HTTPS con un certificado de la autoridad interna del
+# laboratorio (infra/proxmox/ca-interna.sh). El robot tiene que confiar en ella como
+# confiaría un cliente: Python y curl usan el almacén del sistema; Chromium, el suyo (NSS).
+CA="$DESTINO/infra/ca/ip2-ca.crt"
+sudo install -m 644 "$CA" /usr/local/share/ca-certificates/ip2-ca.crt
+sudo update-ca-certificates >/dev/null
+install -d -m 700 "$HOME/.pki/nssdb"
+[[ -s $HOME/.pki/nssdb/cert9.db ]] || certutil -d "sql:$HOME/.pki/nssdb" -N --empty-password
+certutil -d "sql:$HOME/.pki/nssdb" -D -n "IP2 CA interna" 2>/dev/null || true
+certutil -d "sql:$HOME/.pki/nssdb" -A -t "C,," -n "IP2 CA interna" -i "$CA"
+echo "  $(curl -s -o /dev/null -w 'https://10.10.30.11/api/health con el certificado verificado: HTTP %{http_code}' https://10.10.30.11/api/health)"
+
+# ---------------------------------------------------------------------------
 # El robot mide las dos instancias de la aplicación. Cada una tiene su archivo de
 # variables, su host en Zabbix y sus temporizadores, con minutos distintos para que
 # los recorridos no coincidan.
 #   sufijo  variables      dirección            host en Zabbix        cuenta            consulta  agendar
 INSTANCIAS=(
-  "-      .env           http://10.10.30.11   msmotos-rpa-linux     rpa.env           *:0/5     *:13,43"
+  "-      .env           https://10.10.30.11  msmotos-rpa-linux     rpa.env           *:0/5     *:13,43"
   "-win   .env.windows   http://10.10.30.16   msmotos-rpa-windows   rpa-windows.env   *:2/5     *:28,58"
 )
 
@@ -96,6 +110,8 @@ EOF
     )
     echo "  creado $archivo (permisos 600)."
   fi
+  # La instancia Linux pasó a HTTPS (IP2-90): se corrige un archivo de antes.
+  sed -i "s|^RPA_URL=http://10.10.30.11$|RPA_URL=$url|" "$archivo" 2>/dev/null || true
   if [[ -s $HOME/$cuenta ]]; then
     sed -i '/^RPA_CORREO=/d; /^RPA_CLAVE=/d' "$archivo"
     grep -E '^RPA_(CORREO|CLAVE)=' "$HOME/$cuenta" | tr -d '\r' >> "$archivo"

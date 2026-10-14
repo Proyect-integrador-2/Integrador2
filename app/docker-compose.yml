@@ -28,6 +28,8 @@ services:
       # empieza con DROP TABLE: por eso NUNCA se corre en arranques posteriores.
       - ./backend/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     networks: [backend]
+    # MySQL necesita cambiar de usuario al arrancar: solo se le impide ganar privilegios nuevos.
+    security_opt: ["no-new-privileges:true"]
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
       interval: 10s
@@ -60,10 +62,16 @@ services:
       DISABLE_CRON: ${DISABLE_CRON:-0}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       TZ: America/Costa_Rica
-    # Solo en loopback: el acceso desde la red entra por Nginx (puerto 80).
+    # Solo en loopback: el acceso desde la red entra por Nginx (puertos 80 y 443).
     ports:
       - "127.0.0.1:${APP_PORT:-3000}:3000"
     networks: [backend]
+    # Endurecimiento (IP2-90): sin ninguna capacidad especial de Linux, sin poder ganar
+    # privilegios y con el sistema de archivos de solo lectura (solo /tmp se escribe).
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs: [/tmp]
 
   # Tarea de una sola vez para crear las cuentas iniciales (no arranca con `up`).
   seed:

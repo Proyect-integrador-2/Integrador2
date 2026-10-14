@@ -36,7 +36,8 @@ URL = "http://127.0.0.1/api_jsonrpc.php"
 AQUI = Path(__file__).resolve().parent
 GRUPO = "Integrador II"
 CONTENEDOR = "msmotos-app"
-APP = "http://10.10.30.11"
+# Por HTTPS desde el 14 oct 2026 (IP2-90); el puerto 80 solo redirige.
+APP = "https://10.10.30.11"
 APP_WIN = "http://10.10.30.16"
 WEBHOOK_N8N = "http://10.10.30.14:5678/webhook/zabbix"
 
@@ -238,16 +239,19 @@ def main():
         "host": "msmotos-web", "name": "MS Motos (aplicación)",
         "groups": [{"groupid": gid}], "tags": [{"tag": "capa", "value": "aplicacion"}],
     })["hostids"][0]
-    if not z.call("httptest.get", {"output": ["httptestid"], "hostids": wid, "filter": {"name": "App MS Motos"}}):
-        z.call("httptest.create", {
-            "name": "App MS Motos", "hostid": wid, "delay": "30s", "retries": 1,
-            "steps": [
-                {"name": "health", "url": f"{APP}/api/health", "status_codes": "200",
-                 "required": "\"ok\":true", "no": 1, "timeout": "5s"},
-                {"name": "frontend", "url": f"{APP}/", "status_codes": "200",
-                 "required": "app-root", "no": 2, "timeout": "5s"},
-            ],
-        })
+    pasos = [
+        {"name": "health", "url": f"{APP}/api/health", "status_codes": "200",
+         "required": "\"ok\":true", "no": 1, "timeout": "5s"},
+        {"name": "frontend", "url": f"{APP}/", "status_codes": "200",
+         "required": "app-root", "no": 2, "timeout": "5s"},
+    ]
+    escenario = z.call("httptest.get", {"output": ["httptestid"], "hostids": wid, "filter": {"name": "App MS Motos"},
+                                        "selectSteps": ["url"]})
+    if not escenario:
+        z.call("httptest.create", {"name": "App MS Motos", "hostid": wid, "delay": "30s", "retries": 1, "steps": pasos})
+    elif escenario[0]["steps"][0]["url"] != pasos[0]["url"]:
+        # La dirección cambió (pasó a HTTPS): se actualizan los pasos.
+        z.call("httptest.update", {"httptestid": escenario[0]["httptestid"], "steps": pasos})
     t04 = crear_trigger(z, "T04 App MS Motos no disponible",
                         "count(/msmotos-web/web.test.fail[App MS Motos],#2,\"ne\",0)=2", 5,
                         {"remediation": "none", "capa": "aplicacion"})
@@ -659,6 +663,35 @@ def main():
                             "Posible intento de adivinar contraseñas por SSH. Revisar /var/log/auth.log.", host=host)
         z.call("trigger.update", {"triggerid": tid, "expression": expresion})
     print("Triggers T02, T10, T11, T11b, T18 y T19 listos")
+
+    # T20: el certificado HTTPS de la aplicación vence pronto. El agente 2 de vm-app lee el
+    # certificado que presenta Nginx; de ahí se calcula cuántos días le quedan.
+    hid_app = hostid_de("vm-app")
+    clave_cert = "web.certificate.get[10.10.30.11,443]"
+    existentes = {i["key_"]: i["itemid"] for i in z.call("item.get", {"output": ["key_"], "hostids": hid_app,
+                                                                       "search": {"key_": "certificate"}})}
+    existentes |= {i["key_"]: i["itemid"] for i in z.call("item.get", {"output": ["key_"], "hostids": hid_app,
+                                                                        "filter": {"key_": "ip2.cert.dias"}})}
+    if clave_cert not in existentes:
+        interfaz = z.call("hostinterface.get", {"output": ["interfaceid"], "hostids": hid_app})[0]["interfaceid"]
+        existentes[clave_cert] = z.call("item.create", {
+            "hostid": hid_app, "interfaceid": interfaz, "type": 0, "value_type": 4, "delay": "1h",
+            "name": "Certificado HTTPS de la aplicación", "key_": clave_cert, "history": "7d",
+            "tags": [{"tag": "component", "value": "certificado"}]})["itemids"][0]
+    if "ip2.cert.dias" not in existentes:
+        z.call("item.create", {
+            "hostid": hid_app, "type": 18, "master_itemid": existentes[clave_cert], "value_type": 3,
+            "name": "Certificado HTTPS de la aplicación: días para vencer", "key_": "ip2.cert.dias", "units": "días",
+            "history": "31d", "tags": [{"tag": "component", "value": "certificado"}],
+            "preprocessing": [
+                {"type": 12, "params": "$.x509.not_after.timestamp", "error_handler": 0, "error_handler_params": ""},
+                {"type": 21, "params": "return Math.floor((Number(value) - Date.now() / 1000) / 86400);",
+                 "error_handler": 0, "error_handler_params": ""}]})
+    crear_trigger(z, "T20 Certificado HTTPS de la aplicación por vencer (menos de 15 días)",
+                  "last(/vm-app/ip2.cert.dias)<15", 2, {"remediation": "none", "capa": "seguridad"},
+                  "Renovarlo con infra/proxmox/ca-interna.sh en el servidor Proxmox.", host="vm-app",
+                  opdata="quedan {ITEM.LASTVALUE1}")
+    print("T20: certificado HTTPS vigilado")
 
     # --- Usuario de solo lectura para Grafana ---
     rol = z.uno("role.get", {"name": ["Solo lectura Grafana"]}, ["roleid"])
