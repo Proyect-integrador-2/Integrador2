@@ -727,7 +727,8 @@ def main():
                  "user_groups": [{"usrgrpid": grupos_z["Dominio · operadores"]}]},
             ],
         }
-        actual = z.uno("userdirectory.get", {"name": ["ip2.local"]}, ["userdirectoryid"])
+        actual = next((d for d in z.call("userdirectory.get", {"output": ["userdirectoryid", "name"]})
+                       if d["name"] == "ip2.local"), None)
         if actual:
             z.call("userdirectory.update", dict(directorio, userdirectoryid=actual["userdirectoryid"]))
             did = actual["userdirectoryid"]
