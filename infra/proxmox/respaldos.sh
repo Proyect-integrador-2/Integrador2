@@ -23,6 +23,9 @@ ALMACEN="respaldos"
 VOLUMEN="respaldos"
 TAMANO="300G"
 PUNTO="/mnt/respaldos"
+# Tope de lectura en KiB/s (150 MiB/s). Sin tope, un respaldo lee a más de 500 MiB/s y
+# durante esos minutos las demás VMs responden lento: el robot llegó a dar un fallo falso.
+LIMITE=153600
 
 # id  horario (formato de Proxmox)  VMs  copias que se conservan  descripción
 TRABAJOS=(
@@ -55,11 +58,12 @@ existentes=$(pvesh get /cluster/backup --output-format json)
 for fila in "${TRABAJOS[@]}"; do
   read -r id horario vms copias descripcion <<<"$fila"
   if grep -q "\"$id\"" <<<"$existentes"; then
-    echo "  $id: ya existe, no se toca."
+    pvesh set "/cluster/backup/$id" --bwlimit "$LIMITE" >/dev/null
+    echo "  $id: ya existe; solo se asegura el tope de lectura."
     continue
   fi
   pvesh create /cluster/backup --id "$id" --schedule "${horario/_/ }" --vmid "$vms" \
     --storage "$ALMACEN" --mode snapshot --compress zstd --prune-backups "keep-last=$copias" \
-    --enabled 1 --comment "$descripcion" >/dev/null
+    --bwlimit "$LIMITE" --enabled 1 --comment "$descripcion" >/dev/null
   echo "  $id: $descripcion ($horario, $copias copias)."
 done

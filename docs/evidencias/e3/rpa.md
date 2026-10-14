@@ -69,9 +69,22 @@ El robot guardó la captura de pantalla y el registro del fallo en `/opt/rpa/sal
 
 Si el recorrido de agendar falla a medias, `ejecutar.py` cancela por la API cualquier cita que haya quedado abierta y lo anota en el error.
 
-## 6. Pendiente
+## 6. La instancia de Windows
+
+Desde el 13 de octubre el mismo robot recorre también la aplicación que corre en Windows Server (`http://10.10.30.16`). No cambió ningún recorrido: cada instancia tiene su archivo de variables, su cuenta de cliente sintético y su host en Zabbix.
+
+| | Linux | Windows |
+|---|---|---|
+| Host en Zabbix | `msmotos-rpa-linux` | `msmotos-rpa-windows` |
+| Consulta, cada 5 minutos | Minutos 0, 5, 10… | Minutos 2, 7, 12… |
+| Agendar, cada 30 minutos | Minutos 13 y 43 | Minutos 28 y 58 |
+| Primera consulta | 4,8 s | 5,2 s |
+| Primer agendar | 6,9 s | 7,0 s |
+
+Los minutos están corridos para que los recorridos de una instancia no coincidan con los de la otra. En Windows el robot inició sesión, reservó una cita y la canceló igual que en Linux, y los triggers T12 a T14 existen para las dos instancias.
+
+## 7. Pendiente
 
 | Qué | Tarea |
 |---|---|
-| El mismo robot contra la instancia de Windows Server (`msmotos-rpa-windows`) | IP2-57, cuando exista esa VM |
 | Repetir la prueba de fallo con testigos | IP2-61 |

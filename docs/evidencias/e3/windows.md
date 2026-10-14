@@ -1,6 +1,6 @@
 # Windows Server y Active Directory
 
-Tareas: IP2-73 (VM Windows de la aplicación), IP2-74 (MS Motos en Windows), IP2-75 (su monitoreo), IP2-79 (controlador de dominio), IP2-80 (política de contraseñas) y parte de IP2-42 (monitoreo del servidor). Hecho y probado el 13 de octubre de 2026, a distancia.
+Tareas: IP2-73 (VM Windows de la aplicación), IP2-74 (MS Motos en Windows), IP2-75 (su monitoreo), IP2-79 (controlador de dominio), IP2-80 (política de contraseñas), IP2-81 (unión al dominio), IP2-82 (seguridad del dominio) y parte de IP2-42 (monitoreo del servidor). Hecho y probado el 13 de octubre de 2026, a distancia.
 
 Estas dos VM no están en la rúbrica del E3: las pidió el profesor en sus observaciones al E1 (aplicación también en Windows Server, y Active Directory para validar usuarios).
 
@@ -183,7 +183,38 @@ n8n reportó a Zabbix la ejecución: resultado correcto, 5,2 s de duración y 30
 
 Las dos primeras corridas de esta prueba fallaron con "Accion no permitida": el nodo SSH de n8n antepone `cd / ;` a cada comando y la lista cerrada de Windows lo rechazaba. Se corrigió para que quite ese prefijo y compare el resto.
 
-## 9. Diferencias con el diseño
+## 9. `vm-app-win` unida al dominio
+
+[`unir-dominio.ps1`](../../../infra/vm-app-win/unir-dominio.ps1) unió la VM a `ip2.local` y la dejó en la unidad `OU=Equipos,OU=IP2`. La contraseña del administrador del dominio pasó del servidor Proxmox a la VM sin escribirse en ningún comando.
+
+| Comprobación | Resultado |
+|---|---|
+| Equipo en el directorio | `CN=VM-APP-WIN,OU=Equipos,OU=IP2,DC=ip2,DC=local` |
+| Administradores de la VM | `IP2\Domain Admins`, `IP2\GG-IP2-Administradores` y la cuenta local `Administrator` |
+| DNS de la VM | El controlador de dominio, con el DNS de la universidad de respaldo |
+| Después del reinicio | `MSMotos`, `MySQL84` y `sshd` en ejecución; `/api/health` responde 200 |
+
+La cuenta local `Administrator` se conserva: es la cuenta de emergencia de esta VM si el dominio no responde (riesgo R-14). De la integración con el dominio (IP2-81) falta Proxmox, Zabbix, Grafana y el SSH de las VM Linux.
+
+## 10. Seguridad del dominio en Zabbix
+
+| Qué | Cómo | Trigger |
+|---|---|---|
+| Servicios Active Directory, DNS y Kerberos | Estado de cada servicio cada 30 s | **T15**: alguno detenido 1 minuto → High |
+| Inicios de sesión fallidos | Evento 4625 del registro de seguridad | **T16**: más de 10 en 5 minutos → Warning |
+| Cuentas bloqueadas | Evento 4740 | **T17**: cualquier bloqueo → Warning |
+
+De cada evento Zabbix guarda solo el nombre de la cuenta, que es lo que aparece en la alerta. Estas alertas solo avisan: ninguna acción automática toca cuentas de usuario.
+
+**Prueba** del 13 de octubre a las 20:11: se corrió dos veces `probar-bloqueo.ps1` (14 inicios de sesión fallidos y dos bloqueos de la cuenta de prueba).
+
+| Hora | Qué pasó |
+|---|---|
+| 20:12:02 | Zabbix abre T16; en la alerta, "última cuenta: prueba.bloqueo" |
+| 20:12:03 | Zabbix abre T17; en la alerta, "cuenta: prueba.bloqueo" |
+| 20:12 | Los dos avisos llegan al grupo de Telegram |
+
+## 11. Diferencias con el diseño
 
 | Diseño | Lo que se hizo | Por qué |
 |---|---|---|
@@ -192,14 +223,12 @@ Las dos primeras corridas de esta prueba fallaron con "Accion no permitida": el 
 | El dominio reenvía a 8.8.8.8 | Reenvía a los DNS de la universidad y a 1.1.1.1 | 8.8.8.8 pierde consultas desde esta red (ver [alertas.md](alertas.md)) |
 | El servicio se recupera con n8n por WinRM | n8n entra por SSH con una cuenta restringida | Es el mismo mecanismo de Linux, con la misma llave y sin abrir otro servicio de administración |
 
-## 10. Pendiente
+## 12. Pendiente
 
 | Qué | Tarea |
 |---|---|
 | Abrir la aplicación de Windows desde PC-CLIENTE (hay que ir al laboratorio) | IP2-74 |
-| Recorridos del RPA contra la instancia Windows | IP2-57, IP2-76 |
-| Eventos de seguridad del controlador de dominio en Zabbix (4625, 4740) | IP2-82 |
-| Unir `vm-app-win` al dominio e integrar Proxmox, Zabbix, Grafana y el SSH de las VM Linux | IP2-81 |
-| Respaldo de `vm-dc` y cuenta local de emergencia en cada herramienta (riesgo R-14) | IP2-34, IP2-79 |
+| Integrar con el dominio Proxmox, Zabbix, Grafana y el SSH de las VM Linux | IP2-81 |
+| Cuenta local de emergencia comprobada en cada herramienta (el respaldo de `vm-dc` ya está: ver [respaldos.md](respaldos.md)) | IP2-79 |
 | Capturas por escritorio remoto: *Usuarios y equipos de Active Directory* y la política aplicada | IP2-79, IP2-80 |
 | Que cada integrante cambie su contraseña temporal | IP2-79 |
