@@ -46,6 +46,8 @@ ldap_uri = ldaps://dc01.ip2.local
 ldap_schema = ad
 ldap_id_mapping = true
 ldap_search_base = $BASE
+# Los grupos, en todo el dominio: el grupo principal de cada cuenta (Domain Users) está fuera de OU=IP2.
+ldap_group_search_base = DC=ip2,DC=local
 ldap_default_bind_dn = CN=svc-ldap,OU=Servicios,$BASE
 ldap_default_authtok_type = password
 ldap_default_authtok = $clave
