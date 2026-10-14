@@ -396,6 +396,24 @@ def main():
                 "interfaces": [{"type": 1, "main": 1, "useip": 1, "ip": ip, "dns": "", "port": "10050"}],
                 "templates": [{"templateid": plantillas[PLANTILLA_WINDOWS]}],
                 "tags": [{"tag": "capa", "value": "vm"}]})
+    # La plantilla alerta por cada servicio automático detenido, menos los de una lista.
+    # StateRepository arranca y se detiene solo según la demanda: se suma a esa lista.
+    macro = "{$SERVICE.NAME.NOT_MATCHES}"
+    base = z.call("usermacro.get", {"output": ["value"], "hostids": plantillas[PLANTILLA_WINDOWS],
+                                    "filter": {"macro": macro}})
+    if base and "(?:" in base[0]["value"]:
+        valor = base[0]["value"].replace("(?:", "(?:StateRepository|", 1)
+        for host, _, _ in WINDOWS:
+            hw = z.uno("host.get", {"host": [host]}, ["hostid"])["hostid"]
+            if not z.call("usermacro.get", {"output": ["hostmacroid"], "hostids": hw, "filter": {"macro": macro}}):
+                z.call("usermacro.create", {"hostid": hw, "macro": macro, "value": valor})
+                # Que el descubrimiento de servicios corra ya con la lista nueva.
+                for regla in z.call("discoveryrule.get", {"output": ["itemid"], "hostids": hw,
+                                                          "search": {"key_": "service.discovery"}}):
+                    try:
+                        z.call("task.create", [{"type": 6, "request": {"itemid": regla["itemid"]}}])
+                    except RuntimeError:
+                        pass
     wvm = z.uno("host.get", {"host": ["vm-app-win"]}, ["hostid"])["hostid"]
     # service.info devuelve 0 cuando el servicio está en ejecución y 6 cuando está detenido.
     clave_servicio = "service.info[MSMotos,state]"
