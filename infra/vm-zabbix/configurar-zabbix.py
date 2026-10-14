@@ -700,7 +700,7 @@ def main():
     if not env.get("LDAP_BIND_PASSWORD"):
         print("AVISO: falta LDAP_BIND_PASSWORD en .env; no se configura el dominio")
     else:
-        roles_z = {r["name"]: r["roleid"] for r in z.call("role.get", {"output": ["name"]})}
+        roles_z = {r["name"]: r["roleid"] for r in z.call("role.get", {"output": ["roleid", "name"]})}
         grupos_z = {}
         for nombre, permiso in (("Dominio · administradores", 3), ("Dominio · operadores", 2)):
             actual = z.uno("usergroup.get", {"name": [nombre]}, ["usrgrpid"])
