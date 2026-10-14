@@ -43,6 +43,8 @@ sudo sed -i \
 if getent group docker >/dev/null; then
   sudo usermod -aG docker zabbix
 fi
+# Para leer /var/log/auth.log y avisar de intentos de SSH fallidos (T19).
+sudo usermod -aG adm zabbix
 
 sudo systemctl enable zabbix-agent2 >/dev/null 2>&1
 sudo systemctl restart zabbix-agent2

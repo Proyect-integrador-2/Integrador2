@@ -561,6 +561,105 @@ def main():
                       "Se atiende a mano.", host=host)
     print("Red: T09 en los puertos de acceso de sw1 y T09-G en los enlaces de gestión listos")
 
+    # --- Triggers que completan el diseño (IP2-45, IP2-91) ---
+    def hostid_de(host):
+        return z.uno("host.get", {"host": [host]}, ["hostid"])["hostid"]
+
+    def item_por_nombre(host, inicio, clave_inicio):
+        items = z.call("item.get", {"output": ["key_", "name"], "hostids": hostid_de(host),
+                                    "search": {"key_": clave_inicio}})
+        return next((i["key_"] for i in items if i["name"].startswith(inicio)), None)
+
+    def apagar_de_plantilla(host, *textos):
+        """Apaga en un host los triggers de plantilla que un trigger propio reemplaza,
+        para que el mismo evento no avise dos veces."""
+        for t in z.call("trigger.get", {"output": ["triggerid", "description", "status"], "hostids": hostid_de(host),
+                                        "inherited": True}):
+            if t["status"] == "0" and any(x in t["description"] for x in textos):
+                z.call("trigger.update", {"triggerid": t["triggerid"], "status": 1})
+
+    # T02: el contenedor responde, pero su chequeo de salud falla (2 = unhealthy).
+    salud = f'docker.container_info.state.health["/{CONTENEDOR}"]'
+    crear_trigger(z, "T02 Contenedor msmotos-app con el chequeo de salud fallando",
+                  f"max(/vm-app/{salud},2m)=2 and min(/vm-app/{salud},2m)=2", 4,
+                  {"remediation": "none", "capa": "contenedor"},
+                  "Docker marca el contenedor como unhealthy: /api/health no responde bien. Solo alerta: "
+                  "reiniciarlo a ciegas puede ocultar un error de la aplicación.")
+    apagar_de_plantilla("vm-app", f"Container /{CONTENEDOR}: Health state container is unhealthy")
+
+    # T10: enlaces principales saturados, comparando el tráfico con la velocidad del enlace.
+    enlaces = [("sw1", "Gi0/1", "troncal hacia R1"), ("sw1", "Gi0/2", "troncal hacia el servidor"),
+               ("r1", "Gi0/0/0", "WAN"), ("r1", "Gi0/0/1", "troncal hacia SW1")]
+    for host, nombre, que in enlaces:
+        entrada = item_por_nombre(host, f"Interface {nombre}(", "net.if.in[")
+        salida = item_por_nombre(host, f"Interface {nombre}(", "net.if.out[")
+        velocidad = item_por_nombre(host, f"Interface {nombre}(", "net.if.speed[")
+        if not (entrada and salida and velocidad):
+            print(f"AVISO: faltan ítems de tráfico de {host} {nombre}; se omite T10")
+            continue
+        uso = (f"(avg(/{host}/{entrada},5m)>{{}}/100*last(/{host}/{velocidad}) or "
+               f"avg(/{host}/{salida},5m)>{{}}/100*last(/{host}/{velocidad})) and last(/{host}/{velocidad})>0")
+        etiquetas = {"remediation": "none", "capa": "red", "interfaz": nombre}
+        grave = crear_trigger(z, f"T10 Enlace saturado: {host} {nombre} ({que}) > 90 %, promedio de 5 min",
+                              uso.format(90, 90), 4, etiquetas, host=host)
+        leve = crear_trigger(z, f"T10 Enlace saturado: {host} {nombre} ({que}) > 70 %, promedio de 5 min",
+                             uso.format(70, 70), 2, etiquetas, host=host)
+        z.call("trigger.update", {"triggerid": leve, "dependencies": [{"triggerid": grave}]})
+
+    # T11 y T11b: el router o el switch saturados, o sin responder. Solo alertan: reiniciar
+    # el equipo (lo que proponía el diseño) cortaría la red de todo el laboratorio.
+    cpu = {"r1": "system.cpu.util[cpmCPUTotal5minRev.7]", "sw1": "system.cpu.util[cpmCPUTotal5minRev.1]"}
+    for host in ("r1", "sw1"):
+        memoria = "vm.memory.util[vm.memory.util.1]"
+        crear_trigger(z, f"T11 Equipo de red saturado: {host} (CPU o memoria > 90 % durante 10 min)",
+                      f"min(/{host}/{cpu[host]},10m)>90 or min(/{host}/{memoria},10m)>90", 4,
+                      {"remediation": "none", "capa": "red"},
+                      "Solo alerta. Reiniciar el equipo cortaría toda la red del laboratorio: se atiende a mano.",
+                      host=host, opdata="CPU {ITEM.LASTVALUE1} · memoria {ITEM.LASTVALUE2}")
+        t11b = crear_trigger(z, f"T11b Equipo de red sin respuesta: {host}", f"max(/{host}/icmpping,2m)=0", 5,
+                             {"remediation": "none", "capa": "red"},
+                             "No responde al ping desde Zabbix. Sin red no hay acción automática posible.", host=host)
+        apagar_de_plantilla(host, "High CPU utilization", "High memory utilization", "Unavailable by ICMP ping")
+        # Si el equipo no responde, los demás problemas de ese equipo son consecuencia.
+        for t in z.call("trigger.get", {"output": ["triggerid", "description"], "hostids": hostid_de(host),
+                                        "search": {"description": "T09-G"}}):
+            z.call("trigger.update", {"triggerid": t["triggerid"], "dependencies": [{"triggerid": t11b}]})
+
+    # T18: alguien cambió la configuración del router o del switch. El equipo publica por SNMP
+    # cuándo cambió por última vez su configuración en uso (ccmHistoryRunningLastChanged).
+    for host in ("r1", "sw1"):
+        hid_red = hostid_de(host)
+        clave = "ip2.config.running.changed"
+        if not z.call("item.get", {"output": ["itemid"], "hostids": hid_red, "filter": {"key_": clave}}):
+            interfaz = z.call("hostinterface.get", {"output": ["interfaceid"], "hostids": hid_red,
+                                                    "filter": {"type": 2}})[0]["interfaceid"]
+            z.call("item.create", {
+                "hostid": hid_red, "interfaceid": interfaz, "type": 20, "value_type": 3, "delay": "1m",
+                "name": "Configuración en uso: momento del último cambio", "key_": clave,
+                "snmp_oid": "get[1.3.6.1.4.1.9.9.43.1.1.1.0]", "history": "31d",
+                "tags": [{"tag": "component", "value": "configuracion"}]})
+        crear_trigger(z, f"T18 Configuración de {host} modificada", f"change(/{host}/{clave})<>0", 2,
+                      {"remediation": "none", "capa": "seguridad"},
+                      "Confirmar que el cambio fue autorizado. n8n también cambia la configuración en uso cuando "
+                      "reinicia un puerto de acceso.", host=host)
+
+    # T19: intentos de SSH fallidos en las VMs Linux. El agente lee el registro de
+    # autenticación por su cuenta (chequeo activo); necesita estar en el grupo adm.
+    patron_ssh = "sshd.*(Failed password|Invalid user|authentication failure|Connection closed by invalid user)"
+    clave_ssh = f'log[/var/log/auth.log,"{patron_ssh}",,,skip]'
+    for host, _, _, _ in VMS:
+        hid_vm = hostid_de(host)
+        if not z.call("item.get", {"output": ["itemid"], "hostids": hid_vm, "filter": {"key_": clave_ssh}}):
+            z.call("item.create", {"hostid": hid_vm, "type": 7, "value_type": 2, "delay": "30s",
+                                   "name": "SSH: intento fallido", "key_": clave_ssh, "history": "31d",
+                                   "tags": [{"tag": "component", "value": "seguridad"}]})
+        expresion = f"count(/{host}/{clave_ssh},5m)>10 and now()>0"
+        tid = crear_trigger(z, f"T19 Intentos de SSH fallidos en {host} (más de 10 en 5 min)", expresion, 2,
+                            {"remediation": "none", "capa": "seguridad"},
+                            "Posible intento de adivinar contraseñas por SSH. Revisar /var/log/auth.log.", host=host)
+        z.call("trigger.update", {"triggerid": tid, "expression": expresion})
+    print("Triggers T02, T10, T11, T11b, T18 y T19 listos")
+
     # --- Usuario de solo lectura para Grafana ---
     rol = z.uno("role.get", {"name": ["Solo lectura Grafana"]}, ["roleid"])
     rid = rol["roleid"] if rol else z.call("role.create", {"name": "Solo lectura Grafana", "type": 1})["roleids"][0]
