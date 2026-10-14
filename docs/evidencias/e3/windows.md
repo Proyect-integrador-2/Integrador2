@@ -158,7 +158,30 @@ Las dos VM tienen el agente 2 de Zabbix 7.0.31 ([`instalar-agente-windows.ps1`](
 
 ![Avisos del servicio de Windows en el grupo IP2 Alertas](windows/telegram-servicio-windows.png)
 
-Por ahora esta alerta solo avisa. La recuperación automática del servicio de Windows desde n8n queda pendiente.
+### Recuperación automática
+
+Después se agregó la recuperación: cuando T03-W se abre, n8n entra por SSH a `vm-app-win` e inicia el servicio, igual que hace con Nginx y con el contenedor en Linux.
+
+| Control | Cómo queda en Windows ([`preparar-n8n-ops.ps1`](../../../infra/vm-app-win/preparar-n8n-ops.ps1)) |
+|---|---|
+| Lista cerrada (C1) | La cuenta `n8n-ops` no es administradora. `sshd` ata su sesión a un script que solo acepta dos pedidos: iniciar `MSMotos` y consultar su estado. Cualquier otro comando responde "Accion no permitida" |
+| Mínimo privilegio (C4) | Sobre el servicio tiene permiso de iniciar y consultar, no de detener ni de cambiar su configuración. Entra solo con llave |
+| Tres intentos (C2, C3) | El mismo contador del flujo: tres intentos en diez minutos y después escala a una persona |
+
+**Prueba** del 13 de octubre a las 19:59:
+
+| Hora | Qué pasó |
+|---|---|
+| 19:59:46 | `Stop-Service MSMotos` |
+| 20:00:55 | Zabbix abre T03-W y avisa a n8n |
+| 20:01:01 | El servicio vuelve a estar en ejecución: 75 segundos después de detenerlo, sin intervención |
+| 20:01 | Llegan los "RESUELTO"; `/api/health` responde 200 |
+
+n8n reportó a Zabbix la ejecución: resultado correcto, 5,2 s de duración y 30 s de la detección al cierre.
+
+![Recuperación automática del servicio de Windows avisada en el grupo](windows/telegram-recuperacion-windows.png)
+
+Las dos primeras corridas de esta prueba fallaron con "Accion no permitida": el nodo SSH de n8n antepone `cd / ;` a cada comando y la lista cerrada de Windows lo rechazaba. Se corrigió para que quite ese prefijo y compare el resto.
 
 ## 9. Diferencias con el diseño
 
@@ -167,14 +190,13 @@ Por ahora esta alerta solo avisa. La recuperación automática del servicio de W
 | Windows se instala a mano desde la consola | Instalación desatendida | El laboratorio se administra a distancia; además queda repetible |
 | Escritorio remoto solo desde la VLAN 40 | Desde la VLAN 40 y la VLAN 30 | La administración remota entra por el servidor Proxmox, que está en la VLAN 30 (IP2-93) |
 | El dominio reenvía a 8.8.8.8 | Reenvía a los DNS de la universidad y a 1.1.1.1 | 8.8.8.8 pierde consultas desde esta red (ver [alertas.md](alertas.md)) |
-| El servicio se recupera solo con n8n por WinRM | Por ahora solo alerta | El flujo de recuperación para Windows no está hecho todavía |
+| El servicio se recupera con n8n por WinRM | n8n entra por SSH con una cuenta restringida | Es el mismo mecanismo de Linux, con la misma llave y sin abrir otro servicio de administración |
 
 ## 10. Pendiente
 
 | Qué | Tarea |
 |---|---|
 | Abrir la aplicación de Windows desde PC-CLIENTE (hay que ir al laboratorio) | IP2-74 |
-| Recuperación automática del servicio `MSMotos` desde n8n | IP2-74 |
 | Recorridos del RPA contra la instancia Windows | IP2-57, IP2-76 |
 | Eventos de seguridad del controlador de dominio en Zabbix (4625, 4740) | IP2-82 |
 | Unir `vm-app-win` al dominio e integrar Proxmox, Zabbix, Grafana y el SSH de las VM Linux | IP2-81 |
