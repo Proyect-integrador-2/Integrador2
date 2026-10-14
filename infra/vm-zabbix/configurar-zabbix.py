@@ -71,7 +71,7 @@ RPA_RECORRIDOS = {
     "agendar": (["abrir", "login", "elegir", "reservar", "verificar", "cancelar", "logout"], 20, "75m"),
 }
 # Lo que n8n reporta de sus ejecuciones: un juego de ítems por tipo de recuperación.
-N8N_TIPOS = ["servicio", "contenedor"]
+N8N_TIPOS = ["servicio", "contenedor", "servicio-win"]
 PLANTILLA_RED = "Cisco IOS by SNMP"
 PLANTILLA_PING = "ICMP Ping"
 PLANTILLA_PVE = "Proxmox VE by HTTP"
@@ -404,10 +404,13 @@ def main():
             "hostid": wvm, "interfaceid": interfaz, "name": "Servicio MSMotos: estado (0 = en ejecución)",
             "key_": clave_servicio, "type": 0, "value_type": 3, "delay": "30s", "history": "31d",
             "tags": [{"tag": "component", "value": "servicio"}]})
-    # Por ahora solo avisa: la recuperación automática del servicio de Windows es un flujo aparte.
-    crear_trigger(z, "T03-W Servicio MSMotos detenido (Windows)", f"min(/vm-app-win/{clave_servicio},1m)<>0", 4,
-                  {"remediation": "none", "target": "MSMotos", "capa": "servicio"},
-                  "El servicio de Windows de la aplicación no está en ejecución.", opdata="estado {ITEM.LASTVALUE1}")
+    etiquetas_w = {"remediation": "restart-service-win", "target": "MSMotos", "capa": "servicio"}
+    t03w = crear_trigger(z, "T03-W Servicio MSMotos detenido (Windows)", f"min(/vm-app-win/{clave_servicio},1m)<>0", 4,
+                         etiquetas_w, "Recuperación automática: n8n inicia el servicio de Windows (IP2-74).",
+                         opdata="estado {ITEM.LASTVALUE1}")
+    # crear_trigger no toca uno que ya existe: las etiquetas se fijan siempre.
+    z.call("trigger.update", {"triggerid": t03w, "tags": [{"tag": k, "value": v} for k, v in etiquetas_w.items()],
+                              "comments": "Recuperación automática: n8n inicia el servicio de Windows (IP2-74)."})
 
     web = z.uno("host.get", {"host": ["msmotos-web-win"]}, ["hostid"])
     wwid = web["hostid"] if web else z.call("host.create", {
@@ -424,9 +427,11 @@ def main():
                  "required": "app-root", "no": 2, "timeout": "5s"},
             ],
         })
-    crear_trigger(z, "T04-W App MS Motos no disponible (Windows)",
-                  "count(/msmotos-web-win/web.test.fail[App MS Motos Windows],#2,\"ne\",0)=2", 5,
-                  {"remediation": "none", "capa": "aplicacion"})
+    t04w = crear_trigger(z, "T04-W App MS Motos no disponible (Windows)",
+                         "count(/msmotos-web-win/web.test.fail[App MS Motos Windows],#2,\"ne\",0)=2", 5,
+                         {"remediation": "none", "capa": "aplicacion"})
+    # Si el servicio está detenido, que la aplicación no responda es su consecuencia.
+    z.call("trigger.update", {"triggerid": t04w, "dependencies": [{"triggerid": t03w}]})
     crear_trigger(z, "T05-W App MS Motos lenta en Windows (health > 2 s)",
                   "avg(/msmotos-web-win/web.test.time[App MS Motos Windows,health,resp],5m)>2", 2,
                   {"remediation": "none", "capa": "aplicacion"})
