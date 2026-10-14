@@ -72,7 +72,7 @@ RPA_RECORRIDOS = {
     "agendar": (["abrir", "login", "elegir", "reservar", "verificar", "cancelar", "logout"], 20, "75m"),
 }
 # Lo que n8n reporta de sus ejecuciones: un juego de ítems por tipo de recuperación.
-N8N_TIPOS = ["servicio", "contenedor", "servicio-win"]
+N8N_TIPOS = ["servicio", "contenedor", "servicio-win", "interfaz"]
 PLANTILLA_RED = "Cisco IOS by SNMP"
 PLANTILLA_PING = "ICMP Ping"
 PLANTILLA_PVE = "Proxmox VE by HTTP"
@@ -508,6 +508,58 @@ def main():
         # crear_trigger no toca uno que ya existe: la expresión se fija siempre.
         z.call("trigger.update", {"triggerid": tid, "expression": expresion})
     print("Dominio: servicios (T15) y eventos de seguridad (T16, T17) listos")
+
+    # --- Red (IP2-86): puertos de acceso que n8n reinicia y enlaces de gestión que solo alertan ---
+    def estado_interfaz(host, nombre):
+        """Clave del ítem "Operational status" que la plantilla descubrió para esa interfaz."""
+        hid_red = z.uno("host.get", {"host": [host]}, ["hostid"])["hostid"]
+        items = z.call("item.get", {"output": ["key_", "name"], "hostids": hid_red,
+                                    "search": {"key_": "net.if.status[ifOperStatus."}})
+        return next((i["key_"] for i in items if i["name"].startswith(f"Interface {nombre}(")), None), hid_red
+
+    def sin_alerta_de_plantilla(hid_red, nombre):
+        # La plantilla también avisa "Link down"; el trigger propio la reemplaza.
+        macro = f'{{$IFCONTROL:"{nombre}"}}'
+        if not z.call("usermacro.get", {"output": ["hostmacroid"], "hostids": hid_red, "filter": {"macro": macro}}):
+            z.call("usermacro.create", {"hostid": hid_red, "macro": macro, "value": "0"})
+
+    # T09: un puerto de acceso que estaba conectado y lleva 2 minutos caído (o bloqueado,
+    # err-disabled). "Estaba conectado en los últimos 15 minutos" evita actuar sobre los
+    # puertos que no tienen nada enchufado. Se cierra cuando el puerto vuelve.
+    roles = {**{n: "Administración" for n in range(1, 5)}, **{n: "Usuarios" for n in range(5, 13)},
+             **{n: "Servidores" for n in range(13, 21)}}
+    for numero, rol in roles.items():
+        nombre = f"Fa0/{numero}"
+        clave, hid_red = estado_interfaz("sw1", nombre)
+        if not clave:
+            print(f"AVISO: sw1 no tiene el ítem de estado de {nombre}; se omite")
+            continue
+        sin_alerta_de_plantilla(hid_red, nombre)
+        descripcion = f"T09 Puerto de acceso caído: sw1 {nombre} ({rol})"
+        if not z.call("trigger.get", {"output": ["triggerid"], "hostids": hid_red, "filter": {"description": [descripcion]}}):
+            z.call("trigger.create", {
+                "description": descripcion, "priority": 4,
+                "expression": f"max(/sw1/{clave},2m)=2 and min(/sw1/{clave},15m)=1",
+                "recovery_mode": 1, "recovery_expression": f"last(/sw1/{clave})=1",
+                "comments": "Recuperación automática: n8n reinicia el puerto (shutdown y no shutdown) por la "
+                            "cuenta n8n-net. Si sigue caído, requiere una persona (IP2-86).",
+                "tags": [{"tag": "remediation", "value": "restart-interface"}, {"tag": "target", "value": f"sw1:{nombre}"},
+                         {"tag": "capa", "value": "red"}, {"tag": "interfaz", "value": nombre}]})
+
+    # T09-G: enlaces de gestión. Solo alerta: reiniciarlos dejaría a n8n sin camino.
+    gestion = [("sw1", "Gi0/1", "troncal hacia R1"), ("sw1", "Gi0/2", "troncal hacia el servidor"),
+               ("r1", "Gi0/0/0", "WAN, salida a Internet"), ("r1", "Gi0/0/1", "troncal hacia SW1")]
+    for host, nombre, que in gestion:
+        clave, hid_red = estado_interfaz(host, nombre)
+        if not clave:
+            print(f"AVISO: {host} no tiene el ítem de estado de {nombre}; se omite")
+            continue
+        sin_alerta_de_plantilla(hid_red, nombre)
+        crear_trigger(z, f"T09-G Enlace de gestión caído: {host} {nombre} ({que})", f"max(/{host}/{clave},1m)=2", 5,
+                      {"remediation": "none", "capa": "red", "interfaz": nombre},
+                      "Solo alerta: si la automatización lo reiniciara, perdería el camino para volver a encenderlo. "
+                      "Se atiende a mano.", host=host)
+    print("Red: T09 en los puertos de acceso de sw1 y T09-G en los enlaces de gestión listos")
 
     # --- Usuario de solo lectura para Grafana ---
     rol = z.uno("role.get", {"name": ["Solo lectura Grafana"]}, ["roleid"])

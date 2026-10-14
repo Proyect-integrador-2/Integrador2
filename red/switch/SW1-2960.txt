@@ -100,6 +100,21 @@ access-list 40 remark SSH solo desde Administracion
 access-list 40 permit 10.10.40.0 0.0.0.255
 access-list 40 remark Servidor Proxmox: origen de la administracion remota (IP2-93)
 access-list 40 permit host 10.10.30.10
+access-list 40 remark VM de automatizacion (n8n): reinicio de puertos de acceso (IP2-85)
+access-list 40 permit host 10.10.30.14
+!
+! ---------------- Cuenta de la automatizacion de red (IP2-85) ----------------
+! n8n reinicia puertos de acceso caidos o bloqueados (err-disabled). Nivel 5: solo
+! puede entrar a una interfaz, shutdown, no shutdown y ver interfaces. Que nunca toque
+! los enlaces de gestion (Gi0/1, Gi0/2, Vlan99) lo controla la lista blanca de
+! infra/vm-n8n/red-accion.py. La contrasena real la genera infra/vm-n8n/preparar-red.sh
+! y la imprime mostrar-config-sw1.sh.
+privilege exec level 5 configure terminal
+privilege configure level 5 interface
+privilege interface level 5 shutdown
+privilege interface level 5 no shutdown
+privilege exec level 5 show interfaces
+username n8n-net privilege 5 secret CAMBIAR-N8N-NET-SECRET
 crypto key generate rsa general-keys modulus 2048
 ip ssh version 2
 line console 0

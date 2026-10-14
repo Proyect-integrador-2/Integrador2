@@ -30,6 +30,7 @@ FLUJOS="$DESTINO/automatizacion/n8n"
 LLAVE="$AQUI/secrets/n8n_ops_ed25519"
 VM_APP="10.10.30.11"
 VM_APP_WIN="10.10.30.16"
+VM_N8N="10.10.30.14"
 ZONA="America/Costa_Rica"
 
 paso() { printf '\n== %s ==\n' "$*"; }
@@ -123,7 +124,7 @@ done
 # La credencial se arma en un archivo temporal de la VM y se borra: la llave privada
 # no pasa por ningún otro equipo. n8n la guarda cifrada con N8N_ENCRYPTION_KEY.
 temporal=$(mktemp)
-python3 - "$LLAVE" "$VM_APP" "$VM_APP_WIN" > "$temporal" <<'PY'
+python3 - "$LLAVE" "$VM_APP" "$VM_APP_WIN" "$VM_N8N" > "$temporal" <<'PY'
 import json, sys
 llave = open(sys.argv[1]).read()
 # La misma llave para las dos VMs de la aplicación; en cada una la cuenta n8n-ops
@@ -133,6 +134,9 @@ print(json.dumps([
      "data": {"host": sys.argv[2], "port": 22, "username": "n8n-ops", "privateKey": llave}},
     {"id": "IP2sshN8nOpsWin01", "name": "SSH vm-app-win (n8n-ops)", "type": "sshPrivateKey",
      "data": {"host": sys.argv[3], "port": 22, "username": "n8n-ops", "privateKey": llave}},
+    # La red: n8n entra a esta misma VM, que habla con el switch (ver preparar-red.sh).
+    {"id": "IP2sshN8nRed01", "name": "SSH red (n8n-red en vm-n8n)", "type": "sshPrivateKey",
+     "data": {"host": sys.argv[4], "port": 22, "username": "n8n-red", "privateKey": llave}},
 ]))
 PY
 sudo docker cp "$temporal" n8n:/tmp/credencial.json

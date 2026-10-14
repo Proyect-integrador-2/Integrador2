@@ -25,7 +25,7 @@
       "typeVersion": 2,
       "position": [240, 300],
       "parameters": {
-        "jsCode": "// C5: solo se aceptan avisos con el token de Zabbix.\nconst entrada = $input.first().json;\nconst cab = entrada.headers || {};\nconst b = entrada.body || {};\nconst inicio = Date.now();   // para medir cuánto tarda la ejecución\nif (!cab['x-zabbix-token'] || cab['x-zabbix-token'] !== $env.WEBHOOK_TOKEN) {\n  return [{ json: { accion: 'rechazar', motivo: 'token inválido: aviso descartado', event_id: null, rechazada: true, inicio } }];\n}\n\nlet tags = [];\ntry { tags = typeof b.tags === 'string' ? JSON.parse(b.tags) : (b.tags || []); } catch (e) { tags = []; }\nconst tag = (n) => (tags.find((t) => t.tag === n) || {}).value;\nconst remediation = tag('remediation') || 'none';\nconst target = tag('target') || '';\n\n// C1: lista cerrada. El comando sale de esta tabla, NUNCA del texto recibido.\nconst PERMITIDOS = {\n  'restart-container': { 'msmotos-app': 'sudo /usr/bin/docker start msmotos-app' },\n  'restart-service': { 'nginx': 'sudo /usr/bin/systemctl restart nginx' },\n  // En Windows la cuenta de n8n solo acepta este pedido (infra/vm-app-win/preparar-n8n-ops.ps1).\n  'restart-service-win': { 'MSMotos': 'start MSMotos' },\n};\n// Acciones que se ejecutan en vm-app-win; el resto va a vm-app.\nconst EN_WINDOWS = ['restart-service-win'];\n\nconst esProblema = String(b.event_value) === '1';\nlet accion = 'notificar';\nlet comando = null;\nlet motivo = '';\nlet rechazada = false;\n\nif (esProblema && remediation !== 'none') {\n  comando = (PERMITIDOS[remediation] || {})[target] || null;\n  if (!comando) {\n    motivo = `acción rechazada: ${remediation}/${target} no está en la lista permitida`;\n    rechazada = true;\n  } else {\n    // C2 y C3: máximo 3 intentos por objetivo cada 10 minutos; luego se escala a una persona.\n    const estado = $getWorkflowStaticData('global');\n    const clave = `${remediation}:${target}`;\n    const ahora = Date.now();\n    const recientes = (estado[clave] || []).filter((t) => ahora - t < 10 * 60 * 1000);\n    if (recientes.length >= 3) {\n      accion = 'escalar';\n      comando = null;\n      motivo = 'recuperación automática agotada (3 intentos en 10 min): requiere intervención humana';\n    } else {\n      recientes.push(ahora);\n      estado[clave] = recientes;\n      accion = 'recuperar';\n      motivo = `intento ${recientes.length} de 3`;\n    }\n  }\n}\n\nreturn [{ json: {\n  accion, motivo, comando, remediation, target,\n  event_id: b.event_id, event_value: String(b.event_value), severity: b.severity,\n  host: b.host, trigger: b.trigger, time: b.time, opdata: b.opdata,\n  duration: b.duration, rechazada, inicio,\n  windows: EN_WINDOWS.includes(remediation),\n} }];\n"
+        "jsCode": "// C5: solo se aceptan avisos con el token de Zabbix.\nconst entrada = $input.first().json;\nconst cab = entrada.headers || {};\nconst b = entrada.body || {};\nconst inicio = Date.now();   // para medir cuánto tarda la ejecución\nif (!cab['x-zabbix-token'] || cab['x-zabbix-token'] !== $env.WEBHOOK_TOKEN) {\n  return [{ json: { accion: 'rechazar', motivo: 'token inválido: aviso descartado', event_id: null, rechazada: true, inicio } }];\n}\n\nlet tags = [];\ntry { tags = typeof b.tags === 'string' ? JSON.parse(b.tags) : (b.tags || []); } catch (e) { tags = []; }\nconst tag = (n) => (tags.find((t) => t.tag === n) || {}).value;\nconst remediation = tag('remediation') || 'none';\nconst target = tag('target') || '';\n\n// C1: lista cerrada. El comando sale de esta tabla, NUNCA del texto recibido.\nconst PERMITIDOS = {\n  'restart-container': { 'msmotos-app': 'sudo /usr/bin/docker start msmotos-app' },\n  'restart-service': { 'nginx': 'sudo /usr/bin/systemctl restart nginx' },\n  // En Windows la cuenta de n8n solo acepta este pedido (infra/vm-app-win/preparar-n8n-ops.ps1).\n  'restart-service-win': { 'MSMotos': 'start MSMotos' },\n};\n// Red (IP2-86): solo los puertos de acceso de SW1, Fa0/1 a Fa0/20. Los enlaces de gestión\n// (Gi0/1, Gi0/2, la WAN del router) nunca traen una acción: solo alertan (control C8).\nconst PUERTO = /^sw1:(Fa0\\/(?:[1-9]|1[0-9]|20))$/;\n// Acciones que se ejecutan en vm-app-win; el resto va a vm-app.\nconst EN_WINDOWS = ['restart-service-win'];\n\nconst esProblema = String(b.event_value) === '1';\nlet accion = 'notificar';\nlet comando = null;\nlet motivo = '';\nlet rechazada = false;\n\nif (esProblema && remediation !== 'none') {\n  const puerto = PUERTO.exec(target);\n  comando = remediation === 'restart-interface'\n    ? (puerto ? `reiniciar ${puerto[1]}` : null)\n    : (PERMITIDOS[remediation] || {})[target] || null;\n  if (!comando) {\n    motivo = `acción rechazada: ${remediation}/${target} no está en la lista permitida`;\n    rechazada = true;\n  } else {\n    // C2 y C3: máximo 3 intentos por objetivo cada 10 minutos; luego se escala a una persona.\n    const estado = $getWorkflowStaticData('global');\n    const clave = `${remediation}:${target}`;\n    const ahora = Date.now();\n    const recientes = (estado[clave] || []).filter((t) => ahora - t < 10 * 60 * 1000);\n    if (recientes.length >= 3) {\n      accion = 'escalar';\n      comando = null;\n      motivo = 'recuperación automática agotada (3 intentos en 10 min): requiere intervención humana';\n    } else {\n      recientes.push(ahora);\n      estado[clave] = recientes;\n      accion = 'recuperar';\n      motivo = `intento ${recientes.length} de 3`;\n    }\n  }\n}\n\nreturn [{ json: {\n  accion, motivo, comando, remediation, target,\n  event_id: b.event_id, event_value: String(b.event_value), severity: b.severity,\n  host: b.host, trigger: b.trigger, time: b.time, opdata: b.opdata,\n  duration: b.duration, rechazada, inicio,\n  windows: EN_WINDOWS.includes(remediation),\n  red: remediation === 'restart-interface',\n} }];\n"
       }
     },
     {
@@ -48,6 +48,43 @@
           "combinator": "and"
         },
         "options": {}
+      }
+    },
+    {
+      "id": "b1a1f0c2-0016-4a00-9000-000000000016",
+      "name": "¿Es de red?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [560, -100],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "c0a80001-0000-4000-8000-000000000005",
+              "leftValue": "={{ $json.red }}",
+              "rightValue": "",
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b1a1f0c2-0017-4a00-9000-000000000017",
+      "name": "SSH a la red",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [720, -140],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "={{ $json.comando }}"
+      },
+      "credentials": {
+        "sshPrivateKey": { "id": "IP2sshN8nRed01", "name": "SSH red (n8n-red en vm-n8n)" }
       }
     },
     {
@@ -109,7 +146,7 @@
       "typeVersion": 2,
       "position": [960, 180],
       "parameters": {
-        "jsCode": "const d = $('Validar y decidir').first().json;\nconst r = $input.first().json;\nconst ok = r.code === 0 && !r.error;\nconst detalle = ok ? 'comando ejecutado' : `falló: ${(r.stderr || r.error?.message || r.error || 'sin detalle')}`;\nreturn [{ json: {\n  ...d,\n  resultado: ok ? 'OK' : 'FALLO',\n  mensaje: `🔧 [${d.severity}] ${d.trigger} · ${d.host} · recuperación automática (${d.motivo}): ${detalle}`,\n} }];\n"
+        "jsCode": "const d = $('Validar y decidir').first().json;\nconst r = $input.first().json;\nconst ok = r.code === 0 && !r.error;\n// Lo que respondió el equipo (por ejemplo, en qué estado quedó el puerto).\nconst salida = String(r.stdout || '').trim();\nconst detalle = ok ? (salida || 'comando ejecutado') : `falló: ${(salida || r.stderr || r.error?.message || r.error || 'sin detalle')}`;\nreturn [{ json: {\n  ...d,\n  resultado: ok ? 'OK' : 'FALLO',\n  salida,\n  mensaje: `🔧 [${d.severity}] ${d.trigger} · ${d.host} · recuperación automática (${d.motivo}): ${detalle}`,\n} }];\n"
       }
     },
     {
@@ -173,7 +210,7 @@
       "typeVersion": 2,
       "position": [1200, 540],
       "parameters": {
-        "jsCode": "// Arma el aviso para una persona (IP2-51). No envía nada: solo decide si corresponde\n// avisar y con qué texto. Sin bot configurado, o si el evento es de poca importancia,\n// deja avisar = false y el flujo termina ahí.\nconst d = $input.first().json;\nconst configurado = Boolean($env.TELEGRAM_BOT_TOKEN && $env.TELEGRAM_CHAT_ID);\n\n// Se avisa de los triggers del proyecto (T01, T06...) y de todo lo que sea Average o más.\nconst graves = ['Average', 'High', 'Disaster'];\nconst delProyecto = /^T[0-9]{2}/.test(String(d.trigger || ''));\nconst importante = delProyecto || graves.includes(d.severity);\n\nconst resuelto = d.event_value === '0';\nconst titulo = resuelto ? '✅ RESUELTO'\n  : d.accion === 'escalar' ? '🚨 REQUIERE UNA PERSONA'\n  : d.accion === 'recuperar' ? '🔧 RECUPERACIÓN AUTOMÁTICA'\n  : '🔴 PROBLEMA';\n\nconst lineas = [\n  `${titulo} [${d.severity || '-'}]`,\n  String(d.trigger || ''),\n  `Host: ${d.host || '-'}`,\n  `Hora: ${d.time || '-'}`,\n];\nif (d.opdata) lineas.push(`Valor: ${d.opdata}`);\nif (d.accion === 'recuperar') {\n  lineas.push(`Acción: ${d.comando} (${d.motivo})`);\n  lineas.push(`Resultado: ${d.resultado || '-'}`);\n} else if (d.motivo) {\n  lineas.push(`Detalle: ${d.motivo}`);\n} else if (!resuelto) {\n  lineas.push('Acción automática: ninguna, requiere revisión');\n}\nlineas.push(`Evento Zabbix: #${d.event_id}`);\n\nreturn [{ json: {\n  ...d,\n  avisar: configurado && importante,\n  motivo_aviso: !configurado ? 'Telegram sin configurar' : importante ? 'se avisa' : 'severidad baja: no se avisa',\n  aviso: lineas.join(String.fromCharCode(10)),\n} }];\n"
+        "jsCode": "// Arma el aviso para una persona (IP2-51). No envía nada: solo decide si corresponde\n// avisar y con qué texto. Sin bot configurado, o si el evento es de poca importancia,\n// deja avisar = false y el flujo termina ahí.\nconst d = $input.first().json;\nconst configurado = Boolean($env.TELEGRAM_BOT_TOKEN && $env.TELEGRAM_CHAT_ID);\n\n// Se avisa de los triggers del proyecto (T01, T06...) y de todo lo que sea Average o más.\nconst graves = ['Average', 'High', 'Disaster'];\nconst delProyecto = /^T[0-9]{2}/.test(String(d.trigger || ''));\nconst importante = delProyecto || graves.includes(d.severity);\n\nconst resuelto = d.event_value === '0';\nconst titulo = resuelto ? '✅ RESUELTO'\n  : d.accion === 'escalar' ? '🚨 REQUIERE UNA PERSONA'\n  : d.accion === 'recuperar' && d.resultado === 'FALLO' ? '🚨 LA RECUPERACIÓN FALLÓ: REQUIERE UNA PERSONA'\n  : d.accion === 'recuperar' ? '🔧 RECUPERACIÓN AUTOMÁTICA'\n  : '🔴 PROBLEMA';\n\nconst lineas = [\n  `${titulo} [${d.severity || '-'}]`,\n  String(d.trigger || ''),\n  `Host: ${d.host || '-'}`,\n  `Hora: ${d.time || '-'}`,\n];\nif (d.opdata) lineas.push(`Valor: ${d.opdata}`);\nif (d.accion === 'recuperar') {\n  lineas.push(`Acción: ${d.comando} (${d.motivo})`);\n  lineas.push(`Resultado: ${d.resultado || '-'}`);\n  if (d.salida) lineas.push(`Detalle: ${d.salida}`);\n} else if (d.motivo) {\n  lineas.push(`Detalle: ${d.motivo}`);\n} else if (!resuelto) {\n  lineas.push('Acción automática: ninguna, requiere revisión');\n}\nlineas.push(`Evento Zabbix: #${d.event_id}`);\n\nreturn [{ json: {\n  ...d,\n  avisar: configurado && importante,\n  motivo_aviso: !configurado ? 'Telegram sin configurar' : importante ? 'se avisa' : 'severidad baja: no se avisa',\n  aviso: lineas.join(String.fromCharCode(10)),\n} }];\n"
       }
     },
     {
@@ -224,7 +261,7 @@
       "typeVersion": 2,
       "position": [1200, 60],
       "parameters": {
-        "jsCode": "// Arma lo que n8n reporta a Zabbix de esta ejecución (IP2-77). Alimenta el tablero de\n// Automatización. Cada dato es un evento: el tablero los suma en el periodo elegido.\nconst d = $input.first().json;\nconst TIPOS = { 'restart-service': 'servicio', 'restart-container': 'contenedor', 'restart-service-win': 'servicio-win' };\nconst tipo = TIPOS[d.remediation];\nconst ahora = Math.floor(Date.now() / 1000);\nconst valores = [];\nconst agregar = (key, value) => valores.push({ host: 'automatizacion', key, value: String(value), clock: ahora });\n\nif (d.rechazada) agregar('n8n.rejected', 1);\nif (d.accion === 'escalar') agregar('n8n.escalated', 1);\nif (d.accion === 'recuperar' && tipo) {\n  const ok = d.resultado === 'OK';\n  agregar(`n8n.exec.status[${tipo}]`, ok ? 1 : 0);\n  agregar(`n8n.exec.duration[${tipo}]`, ((Date.now() - d.inicio) / 1000).toFixed(1));\n  agregar(`n8n.exec.action[${tipo}]`, `${d.comando} (${ok ? 'OK' : 'falló'}, ${d.motivo})`);\n  if (ok) agregar(`n8n.recovery.count[${tipo}]`, 1);\n}\n// Al cerrarse un problema que tiene recuperación automática: cuánto duró, de la\n// detección al cierre. Zabbix lo manda como texto, por ejemplo \"1m 23s\".\nif (d.event_value === '0' && tipo) {\n  const UNIDAD = { d: 86400, h: 3600, m: 60, s: 1 };\n  let segundos = 0;\n  for (const [, n, u] of String(d.duration || '').matchAll(/(\\d+)\\s*([dhms])/g)) segundos += Number(n) * UNIDAD[u];\n  if (segundos > 0) agregar(`n8n.recovery.seconds[${tipo}]`, segundos);\n}\n// Sin nada que reportar, el flujo termina aquí.\nreturn valores.length ? [{ json: { valores } }] : [];\n"
+        "jsCode": "// Arma lo que n8n reporta a Zabbix de esta ejecución (IP2-77). Alimenta el tablero de\n// Automatización. Cada dato es un evento: el tablero los suma en el periodo elegido.\nconst d = $input.first().json;\nconst TIPOS = { 'restart-service': 'servicio', 'restart-container': 'contenedor', 'restart-service-win': 'servicio-win', 'restart-interface': 'interfaz' };\nconst tipo = TIPOS[d.remediation];\nconst ahora = Math.floor(Date.now() / 1000);\nconst valores = [];\nconst agregar = (key, value) => valores.push({ host: 'automatizacion', key, value: String(value), clock: ahora });\n\nif (d.rechazada) agregar('n8n.rejected', 1);\nif (d.accion === 'escalar') agregar('n8n.escalated', 1);\nif (d.accion === 'recuperar' && tipo) {\n  const ok = d.resultado === 'OK';\n  agregar(`n8n.exec.status[${tipo}]`, ok ? 1 : 0);\n  agregar(`n8n.exec.duration[${tipo}]`, ((Date.now() - d.inicio) / 1000).toFixed(1));\n  agregar(`n8n.exec.action[${tipo}]`, `${d.comando} (${ok ? 'OK' : 'falló'}, ${d.motivo})`);\n  if (ok) agregar(`n8n.recovery.count[${tipo}]`, 1);\n}\n// Al cerrarse un problema que tiene recuperación automática: cuánto duró, de la\n// detección al cierre. Zabbix lo manda como texto, por ejemplo \"1m 23s\".\nif (d.event_value === '0' && tipo) {\n  const UNIDAD = { d: 86400, h: 3600, m: 60, s: 1 };\n  let segundos = 0;\n  for (const [, n, u] of String(d.duration || '').matchAll(/(\\d+)\\s*([dhms])/g)) segundos += Number(n) * UNIDAD[u];\n  if (segundos > 0) agregar(`n8n.recovery.seconds[${tipo}]`, segundos);\n}\n// Sin nada que reportar, el flujo termina aquí.\nreturn valores.length ? [{ json: { valores } }] : [];\n"
       }
     },
     {
@@ -258,10 +295,17 @@
     "Validar y decidir": { "main": [[{ "node": "¿Recuperar?", "type": "main", "index": 0 }]] },
     "¿Recuperar?": {
       "main": [
-        [{ "node": "¿Es en Windows?", "type": "main", "index": 0 }],
+        [{ "node": "¿Es de red?", "type": "main", "index": 0 }],
         [{ "node": "Armar mensaje", "type": "main", "index": 0 }]
       ]
     },
+    "¿Es de red?": {
+      "main": [
+        [{ "node": "SSH a la red", "type": "main", "index": 0 }],
+        [{ "node": "¿Es en Windows?", "type": "main", "index": 0 }]
+      ]
+    },
+    "SSH a la red": { "main": [[{ "node": "Resultado de la recuperación", "type": "main", "index": 0 }]] },
     "¿Es en Windows?": {
       "main": [
         [{ "node": "SSH a vm-app-win", "type": "main", "index": 0 }],
