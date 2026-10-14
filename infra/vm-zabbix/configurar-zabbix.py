@@ -734,8 +734,11 @@ def main():
             did = actual["userdirectoryid"]
         else:
             did = z.call("userdirectory.create", directorio)["userdirectoryids"][0]
+        # Quien sale de los grupos del dominio pasa al grupo "Disabled" de Zabbix: ya no entra.
+        deshabilitados = z.uno("usergroup.get", {"name": ["Disabled"]}, ["usrgrpid"])["usrgrpid"]
         z.call("authentication.update", {"ldap_auth_enabled": 1, "ldap_userdirectoryid": did,
-                                         "ldap_jit_status": 1, "jit_provision_interval": "1h"})
+                                         "ldap_jit_status": 1, "jit_provision_interval": "1h",
+                                         "disabled_usrgrpid": deshabilitados})
         print("Dominio: inicio de sesión con cuentas de ip2.local por LDAPS, por grupos")
 
     # --- Usuario de solo lectura para Grafana ---
