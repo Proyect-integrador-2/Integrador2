@@ -490,14 +490,23 @@ def main():
                 # type 5 = expresión regular; si no encuentra la cuenta, guarda "desconocida".
                 "preprocessing": [{"type": 5, "params": patron + "\n\\1", "error_handler": 2,
                                    "error_handler_params": "desconocida"}]})
-    crear_trigger(z, "T16 Muchos inicios de sesión fallidos en el dominio (más de 10 en 5 min)",
-                  f"count(/vm-dc/{eventos[0][0]},5m)>10", 2, identidad,
-                  "Posible intento de adivinar contraseñas. Revisar el registro de seguridad de vm-dc.",
-                  opdata="última cuenta: {ITEM.LASTVALUE1}")
-    crear_trigger(z, "T17 Cuenta del dominio bloqueada",
-                  f"count(/vm-dc/{eventos[1][0]},15m)>0", 2, identidad,
-                  "El dominio bloqueó una cuenta por intentos fallidos (política de 5 intentos).",
-                  opdata="cuenta: {ITEM.LASTVALUE1}")
+    # "and now()>0" no cambia la condición: obliga a Zabbix a recalcular el trigger cada
+    # 30 segundos. Sin eso solo lo recalcula cuando llega un evento nuevo, y una alerta
+    # de este tipo se quedaría abierta hasta el siguiente inicio de sesión fallido.
+    seguridad = [
+        ("T16 Muchos inicios de sesión fallidos en el dominio (más de 10 en 5 min)",
+         f"count(/vm-dc/{eventos[0][0]},5m)>10 and now()>0",
+         "Posible intento de adivinar contraseñas. Revisar el registro de seguridad de vm-dc.",
+         "última cuenta: {ITEM.LASTVALUE1}"),
+        ("T17 Cuenta del dominio bloqueada",
+         f"count(/vm-dc/{eventos[1][0]},15m)>0 and now()>0",
+         "El dominio bloqueó una cuenta por intentos fallidos (política de 5 intentos).",
+         "cuenta: {ITEM.LASTVALUE1}"),
+    ]
+    for nombre, expresion, comentario, dato in seguridad:
+        tid = crear_trigger(z, nombre, expresion, 2, identidad, comentario, opdata=dato)
+        # crear_trigger no toca uno que ya existe: la expresión se fija siempre.
+        z.call("trigger.update", {"triggerid": tid, "expression": expresion})
     print("Dominio: servicios (T15) y eventos de seguridad (T16, T17) listos")
 
     # --- Usuario de solo lectura para Grafana ---
