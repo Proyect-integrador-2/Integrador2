@@ -66,12 +66,18 @@ async function enviarCorreo({ to, subject, html, devLog }) {
   if (!to) return false;
 
   if (brevoKey) {
-    try {
-      return await enviarPorBrevo({ apiKey: brevoKey, from, to, subject, html });
-    } catch (err) {
-      console.error(`⚠️  Error enviando correo a ${to}:`, err.message);
-      return false;
+    // Hasta 3 intentos si no se logra conectar (la red del laboratorio pierde consultas
+    // DNS a ratos). Un rechazo de Brevo no se reintenta: enviarPorBrevo devuelve false.
+    for (let intento = 1; intento <= 3; intento++) {
+      try {
+        return await enviarPorBrevo({ apiKey: brevoKey, from, to, subject, html });
+      } catch (err) {
+        const causa = err.cause ? `${err.cause.code || ''} ${err.cause.message || ''}`.trim() : err.message;
+        console.error(`⚠️  Error enviando correo a ${to} (intento ${intento} de 3):`, causa);
+        if (intento < 3) await new Promise((r) => setTimeout(r, 2000 * intento));
+      }
     }
+    return false;
   }
 
   if (!apiKey) {
