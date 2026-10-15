@@ -6,7 +6,7 @@ Entrega del **lunes 2 de noviembre de 2026** (25 % del curso). Sigue la *Guía d
 
 | Archivo | Para qué |
 |---|---|
-| **[E3-Implementacion-tecnica.pdf](E3-Implementacion-tecnica.pdf)** | El PDF: portada, 14 secciones y el anexo de evidencias (30 páginas) |
+| **[E3-Implementacion-tecnica.pdf](E3-Implementacion-tecnica.pdf)** | El PDF: portada, 14 secciones y el anexo de evidencias (32 páginas) |
 | [E3-documento-completo.md](E3-documento-completo.md) | Fuente del PDF. Consolida las actas de `docs/evidencias/e3/` |
 | [portada.json](portada.json) | Datos de la portada |
 

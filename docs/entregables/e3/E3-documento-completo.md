@@ -29,8 +29,8 @@ La plataforma está en pie sobre el router, el switch y el servidor que presta l
 | VLAN | 4 en uso (20, 30, 40, 99) y la nativa 999 |
 | Máquinas virtuales | 7 encendidas: cinco Ubuntu 24.04 y dos Windows Server 2022 |
 | Ambientes de MS Motos | 2: Linux en contenedores, por HTTPS, y Windows como servicio |
-| Hosts en Zabbix | 15, con 1 271 ítems |
-| Triggers propios del proyecto | 25: T01 a T20 del diseño y sus variantes |
+| Hosts en Zabbix | 15, con 1 273 ítems |
+| Triggers propios del proyecto | 26: T01 a T20 del diseño, sus variantes y T21 |
 | Tableros de Grafana | 5; los 34 paneles con consulta traen datos |
 | Fallas que se recuperan solas | 4: contenedor detenido, Nginx detenido, servicio de Windows detenido y puerto del switch caído |
 | Recorridos del robot | 2, cada uno contra las dos instancias |
@@ -239,7 +239,11 @@ Zabbix 7.0.30 corre en `vm-zabbix`, con PostgreSQL 16, en contenedores. Toda su 
 | Experiencia del cliente | `msmotos-rpa-linux`, `msmotos-rpa-windows` | Resultados que envía el robot | 21 cada uno |
 | Automatización | `automatizacion` | Resultados que envía n8n | 17 |
 
-Son 15 hosts y 1 271 ítems. Por SNMP Zabbix descubrió las 30 interfaces del router y del switch, con su estado, tráfico, errores y descartes. El router y el switch solo responden SNMP a `vm-zabbix` y con la comunidad correcta.
+Son 15 hosts y 1 273 ítems. Por SNMP Zabbix descubrió las 30 interfaces del router y del switch, con su estado, tráfico, errores y descartes. El router y el switch solo responden SNMP a `vm-zabbix` y con la comunidad correcta.
+
+![Hosts en Zabbix](../../evidencias/e3/zabbix/zabbix-hosts.png)
+
+*Los 15 hosts del proyecto en Zabbix, con su interfaz y disponibilidad (14 de octubre). Las capturas de los últimos datos de un host por capa están en `docs/evidencias/e3/zabbix/`; en las del router y el switch se taparon los números de serie.*
 
 Una limitación conocida: en R1, los contadores de errores y descartes de las subinterfaces no tienen dato, porque IOS XE no los publica por subinterfaz. Los de la interfaz física sí llegan.
 
@@ -247,7 +251,7 @@ Del servidor, Zabbix ve el nodo (CPU, memoria, disco, tiempo encendido), cada un
 
 ### 4.2 Triggers del proyecto
 
-Además de los que traen las plantillas, se crearon los triggers del diseño, T01 a T20, con sus variantes: 25 en total. La etiqueta `remediation` le dice a n8n si hay algo que hacer.
+Además de los que traen las plantillas, se crearon los triggers del diseño, T01 a T20, con sus variantes, más T21: 26 en total. La etiqueta `remediation` le dice a n8n si hay algo que hacer.
 
 | Trigger | Condición | Severidad | Acción automática |
 |---|---|---|---|
@@ -255,7 +259,7 @@ Además de los que traen las plantillas, se crearon los triggers del diseño, T0
 | T02 Contenedor con el chequeo de salud fallando | Estado *unhealthy* durante 2 minutos | Alta | Ninguna |
 | T03 Servicio Nginx detenido | Sin estado `active` durante 1 minuto | Alta | Reiniciar Nginx |
 | T03-W Servicio `MSMotos` detenido (Windows) | Fuera de ejecución durante 1 minuto | Alta | Iniciar el servicio |
-| T04 y T04-W La aplicación no está disponible | El chequeo web falla 2 veces seguidas | Desastre | Ninguna |
+| T04 y T04-W La aplicación no está disponible | El chequeo web falla durante 90 s seguidos | Desastre | Ninguna |
 | T05 y T05-W La aplicación responde lento | Promedio mayor a 2 s en 5 minutos | Advertencia | Ninguna |
 | T06 CPU alta, en las cinco VM Linux | Más de 85 % y más de 95 %, promedio de 5 minutos | Advertencia y alta | Ninguna |
 | T07 Memoria alta, en las cinco VM Linux | Más de 85 % y más de 95 %, promedio de 5 minutos | Advertencia y alta | Ninguna |
@@ -273,6 +277,7 @@ Además de los que traen las plantillas, se crearon los triggers del diseño, T0
 | T18 Configuración del router o del switch modificada | Cambió la hora de la última modificación que publica el equipo por SNMP | Advertencia | Ninguna |
 | T19 Intentos de SSH fallidos en una VM Linux | Más de 10 en 5 minutos | Advertencia | Ninguna |
 | T20 Certificado HTTPS por vencer | Menos de 15 días | Advertencia | Ninguna |
+| T21 Sin datos del servidor Proxmox | 10 minutos sin métricas por la API | Alta | Ninguna |
 
 Donde un trigger propio reemplaza a uno de plantilla (salud del contenedor, CPU, memoria y ping del router y del switch, enlace caído), el de la plantilla se apagó en ese host para que el mismo evento no avise dos veces. T09b del diseño (puerto bloqueado) lo cubre T09, porque un puerto bloqueado aparece como caído.
 
@@ -572,8 +577,8 @@ El acta completa está en `docs/evidencias/e3/dominio.md`.
 |---|---|
 | Red | Segmentación en VLAN, listas de acceso en el router, seguridad de puerto, DHCP snooping e inspección de ARP en el switch |
 | Administración | Solo desde la VLAN 40 y, a distancia, por una red privada (Tailscale) |
-| Máquinas virtuales | Cortafuegos con lista blanca en cada una (abajo). Las cuentas locales de Linux entran solo con llave |
-| Aplicación | HTTPS con certificado de la autoridad interna; contenedor sin capacidades, sin escalar privilegios y de solo lectura; base de datos sin puerto publicado; secretos generados en cada VM |
+| Máquinas virtuales | Cortafuegos con lista blanca en cada una (abajo); `fail2ban` bloquea 15 minutos a quien falle 5 inicios de sesión de SSH. Las cuentas locales de Linux entran solo con llave |
+| Aplicación | HTTPS con certificado de la autoridad interna y cabeceras de seguridad; contenedores sin capacidades, sin escalar privilegios, de solo lectura y con límites de memoria y CPU; imagen escaneada con Trivy, sin vulnerabilidades con arreglo pendiente; base de datos sin puerto publicado; secretos generados en cada VM |
 | Automatización | Cuentas restringidas, lista cerrada de acciones y de puertos, y máximo tres intentos |
 | Identidad | Dominio con política de contraseñas, bloqueo y auditoría; las herramientas validan contra él por LDAPS |
 | Detección | T16 y T17 (dominio), T18 (cambio de configuración de red), T19 (SSH fallido) y T20 (certificado por vencer) |
@@ -605,7 +610,7 @@ Verificar en el router y el switch cada control de endurecimiento (IP2-88) está
 Sí. Cada red alcanza solo lo que le corresponde (sección 2.2) y se probó en los dos sentidos: lo permitido responde y lo prohibido lo rechaza el router. Dentro de la red de servidores, cada VM tiene su cortafuegos con lista blanca, la base de datos no publica puerto, el router y el switch solo responden SNMP a Zabbix, y la cuenta de la automatización solo se acepta desde `vm-n8n`.
 
 **¿Zabbix permite distinguir una falla de red de una falla de aplicación?**
-Sí, porque cada capa tiene su propio chequeo. Una falla de red se ve en los hosts `r1` y `sw1` (interfaz caída, pérdida de ping). Una falla de aplicación se ve en el escenario web con la red en buen estado. Y dentro de la aplicación se distingue la causa: en la prueba de Nginx detenido el contenedor siguió reportándose en ejecución. Queda un detalle por afinar: cuando la causa es el contenedor o Nginx, la alerta general "aplicación no disponible" se abre unos segundos antes y no queda oculta.
+Sí, porque cada capa tiene su propio chequeo. Una falla de red se ve en los hosts `r1` y `sw1` (interfaz caída, pérdida de ping). Una falla de aplicación se ve en el escenario web con la red en buen estado. Y dentro de la aplicación se distingue la causa: en la prueba de Nginx detenido el contenedor siguió reportándose en ejecución. Cuando la causa es el contenedor o Nginx, la alerta general "aplicación no disponible" (T04) depende de ella y no se abre: espera 90 segundos de fallos, y para entonces la causa ya está identificada. En la prueba del 14 de octubre, al detener el contenedor llegó un solo aviso, el de T01.
 
 **¿La automatización valida que el servicio realmente se recuperó?**
 Sí, de dos formas. n8n revisa el código de salida del comando y lo anota. Y la confirmación la da Zabbix, que es independiente: el problema solo se cierra cuando su propio chequeo vuelve a ver el servicio arriba, y n8n anota ese "RESUELTO" con el tiempo transcurrido. Si la recuperación falla tres veces, deja de intentarlo y pide una persona.
@@ -629,6 +634,8 @@ Sí. El robot entra al portal con una cuenta de cliente, consulta su historial, 
 | La recuperación en Windows fallaba con "Accion no permitida": n8n antepone `cd / ;` a cada comando | La lista cerrada quita ese prefijo y compara el resto |
 | Durante un respaldo de prueba el robot dio un fallo falso por la carga de disco | Los respaldos programados tienen un tope de velocidad. La primera noche con el tope (14 de octubre) corrieron los cuatro respaldos diarios sin abrir ninguna alerta |
 | El router y el switch rechazaban SSH desde el servidor | Se agregó el servidor a sus listas de acceso |
+| Después de activar el cortafuegos de `vm-zabbix`, el servidor de Zabbix dejó de consultar la API de Proxmox durante casi 2 horas, sin ningún aviso | Se recuperó al reiniciar el servidor de Zabbix. Se agregó T21, que avisa si pasan 10 minutos sin datos de Proxmox |
+| El tablero General llegó a mostrar "Disponibilidad 100,16 %": se calculaba con el código HTTP, y un error 502 la subía | Ahora se calcula con un ítem de Zabbix que vale 100 si la aplicación responde y 0 si no |
 | Al activar los cortafuegos, los contenedores dejaron de resolver nombres (n8n no habría podido avisar por Telegram) y `vm-zabbix` dejó de monitorearse a sí misma | Se detectó antes de confirmar las reglas. Se permitió el DNS desde la red de Docker y, en `vm-zabbix`, el agente desde la dirección interna de su contenedor |
 
 ### 13.2 Diferencias con el diseño
@@ -653,14 +660,14 @@ Sí. El robot entra al portal con una cuenta de cliente, consulta su historial, 
 |---|---|---|
 | **A-01**: abrir la aplicación desde PC-CLIENTE, en sus dos instancias | Próxima visita, antes del 2 de noviembre | IP2-29 |
 | Foto del rack con los equipos del grupo | Próxima visita | — |
-| Capturas de Zabbix (*Últimos datos* por host) y de Active Directory | Antes del 2 de noviembre | IP2-42, IP2-79 |
+| Capturas de Active Directory (usuarios, grupos y política) | Antes del 2 de noviembre | IP2-79 |
 | Prueba de la recuperación de red con un equipo conectado al switch (PR-12) | Próxima visita | IP2-87 |
 | Verificar en el router y el switch cada control de endurecimiento | Antes del 2 de noviembre | IP2-88 |
 | Capturas de los inicios de sesión con el dominio en el navegador | Antes del 2 de noviembre | IP2-81 |
-| Que la alerta general de la aplicación quede oculta cuando la causa ya está identificada | Entregable #4 | IP2-45 |
 | Provocar T02, T10 y T11 | Entregable #4 | IP2-59, IP2-60 |
 | HTTPS en la instancia de Windows | Si el tiempo alcanza | IP2-90 |
 | Que cada integrante cambie su contraseña temporal del dominio; borrar las cuentas de prueba al cierre | Antes del 2 de noviembre; 30 de noviembre | IP2-79, IP2-83 |
+| Cortafuegos de Proxmox y segundo factor para sus administradores, con alguien en el laboratorio | Próxima visita | IP2-89 |
 | Copia de los respaldos fuera del servidor | Entregable #4 | IP2-34 |
 | Cambiar el DNS que el router entrega a los usuarios por DHCP | Próxima visita | IP2-28 |
 
@@ -684,7 +691,7 @@ Repositorio del equipo: **github.com/Proyect-integrador-2/Integrador2**.
 | Qué despliega | Archivo |
 |---|---|
 | Servidor: red, acceso remoto, VM, respaldos y token de monitoreo | `infra/acceso-remoto/preparar-proxmox.sh`, `infra/proxmox/crear-vms.sh`, `crear-vms-windows.sh`, `respaldos.sh`, `token-zabbix.sh` |
-| Autoridad interna, certificados y cortafuegos de las VM | `infra/proxmox/ca-interna.sh`, `cortafuegos-vm.sh`, `infra/ca/ip2-ca.crt` |
+| Autoridad interna, certificados, cortafuegos y `fail2ban` de las VM | `infra/proxmox/ca-interna.sh`, `cortafuegos-vm.sh`, `fail2ban-vm.sh`, `infra/ca/ip2-ca.crt` |
 | Inicio de sesión con el dominio | `infra/proxmox/dominio-proxmox.sh`, `dominio-linux.sh`, `infra/vm-grafana/ldap.toml`, `infra/vm-zabbix/ldap.conf` |
 | Aplicación en Linux y su cuenta de automatización | `infra/vm-app/desplegar.sh`, `preparar-n8n-ops.sh` |
 | Zabbix, sus agentes y toda su configuración | `infra/vm-zabbix/desplegar.sh`, `instalar-agente.sh`, `instalar-agente-windows.ps1`, `configurar-zabbix.py` |
@@ -706,7 +713,8 @@ Repositorio del equipo: **github.com/Proyect-integrador-2/Integrador2**.
 | Recuperación automática de la red | `docs/evidencias/e3/recuperacion-red.md` | `docs/evidencias/e3/alertas/` |
 | Inicio de sesión con el dominio y PR-13 | `docs/evidencias/e3/dominio.md` | — |
 | HTTPS, cortafuegos y triggers T02, T09 a T11 y T18 a T20 | `docs/evidencias/e3/endurecimiento.md` | — |
-| Tableros de Grafana | — | `docs/evidencias/e3/grafana/` |
+| Tableros de Grafana | — | `docs/evidencias/e3/grafana/` (robot `monitoreo/grafana/capturas.robot`) |
+| Zabbix: hosts, problemas, monitoreo web y últimos datos por capa | — | `docs/evidencias/e3/zabbix/` (robot `monitoreo/zabbix/capturas.robot`) |
 
 ### A.4 Gestión del proyecto
 
