@@ -2,11 +2,11 @@
 
 Entrega del **lunes 2 de noviembre de 2026** (25 % del curso). Sigue la *Guía de contenido, rúbrica y criterios de aceptación* del E3 (`Documentos de entregas/Entregable_3_Guia_Rubrica_Aceptacion.pdf`): las secciones 1 a 9 son los nueve puntos de contenido obligatorio, la 10 es lo que el profesor pidió además de la guía (Windows Server, Active Directory y seguridad), la 11 trae la tabla A-01 a A-09 y la 12 responde las cinco preguntas orientadoras.
 
-**Es un borrador del 13 de octubre.** Está escrito con lo que se construyó y probó el 12 y el 13 de octubre; hay que actualizarlo con lo que se haga antes de la entrega.
+**Es un borrador actualizado al 14 de octubre.** Está escrito con lo que se construyó y probó entre el 12 y el 14 de octubre; hay que actualizarlo con lo que se haga antes de la entrega.
 
 | Archivo | Para qué |
 |---|---|
-| **[E3-Implementacion-tecnica.pdf](E3-Implementacion-tecnica.pdf)** | El PDF: portada, 14 secciones y el anexo de evidencias (27 páginas) |
+| **[E3-Implementacion-tecnica.pdf](E3-Implementacion-tecnica.pdf)** | El PDF: portada, 14 secciones y el anexo de evidencias (30 páginas) |
 | [E3-documento-completo.md](E3-documento-completo.md) | Fuente del PDF. Consolida las actas de `docs/evidencias/e3/` |
 | [portada.json](portada.json) | Datos de la portada |
 

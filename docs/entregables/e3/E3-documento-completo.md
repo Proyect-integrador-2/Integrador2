@@ -18,22 +18,23 @@ El documento sigue el orden del contenido obligatorio de la *Guía de contenido,
 
 Después vienen lo que el profesor pidió además de la guía (sección 10), los criterios y pruebas de aceptación A-01 a A-09 (sección 11), las respuestas a las preguntas orientadoras (12), las incidencias y las diferencias con el diseño (13) y lo que queda pendiente (14).
 
-Todo lo que aquí se describe está construido sobre el equipo real del laboratorio y probado entre el 12 y el 13 de octubre de 2026. Cada afirmación indica cómo se comprobó; lo que no se ha probado se dice.
+Todo lo que aquí se describe está construido sobre el equipo real del laboratorio y probado entre el 12 y el 14 de octubre de 2026. Cada afirmación indica cómo se comprobó; lo que no se ha probado se dice.
 
 ## Resumen del estado
 
 La plataforma está en pie sobre el router, el switch y el servidor que presta la universidad. En el servidor corren **siete máquinas virtuales**. MS Motos atiende en dos ambientes, Zabbix vigila todas las capas, Grafana muestra cinco tableros con esos datos, n8n recupera solo lo que tiene una causa conocida y avisa por Telegram, y un robot recorre la aplicación como un cliente cada cinco minutos.
 
-| Elemento | Estado al 13 de octubre de 2026 |
+| Elemento | Estado al 14 de octubre de 2026 |
 |---|---|
 | VLAN | 4 en uso (20, 30, 40, 99) y la nativa 999 |
 | Máquinas virtuales | 7 encendidas: cinco Ubuntu 24.04 y dos Windows Server 2022 |
-| Ambientes de MS Motos | 2: Linux en contenedores y Windows como servicio |
-| Hosts en Zabbix | 15, con 1 258 ítems |
-| Triggers propios del proyecto | 16 (T01, T03 a T08, T12 a T17 y las variantes de Windows) |
+| Ambientes de MS Motos | 2: Linux en contenedores, por HTTPS, y Windows como servicio |
+| Hosts en Zabbix | 15, con 1 271 ítems |
+| Triggers propios del proyecto | 25: T01 a T20 del diseño y sus variantes |
 | Tableros de Grafana | 5; los 34 paneles con consulta traen datos |
-| Fallas que se recuperan solas | 3: contenedor detenido, Nginx detenido y servicio de Windows detenido |
+| Fallas que se recuperan solas | 4: contenedor detenido, Nginx detenido, servicio de Windows detenido y puerto del switch caído |
 | Recorridos del robot | 2, cada uno contra las dos instancias |
+| Inicio de sesión con el dominio | Proxmox, Zabbix, Grafana, el SSH de las VM Linux y el servidor Windows |
 
 | Prueba de aceptación | Estado |
 |---|---|
@@ -76,7 +77,7 @@ Las siete están en la VLAN 30 y arrancan solas con el servidor. Ninguna se cre�
 | Las cinco Linux | `infra/proxmox/crear-vms.sh`: imagen oficial de Ubuntu para la nube, configurada por cloud-init (nombre, dirección, usuario y llave SSH) | Minutos |
 | Las dos Windows | `infra/proxmox/crear-vms-windows.sh`: instalación desatendida con un archivo de respuestas | 14 y 13 minutos, sin tocar la consola |
 
-A las VM Linux solo se entra con llave SSH; no tienen contraseña. Las VM Windows aceptan SSH con llave y escritorio remoto, solo desde las VLAN 30 y 40.
+A las VM Linux se entra con llave SSH; la única excepción son los administradores del dominio, que entran con su contraseña del dominio (sección 10.2). Las VM Windows aceptan SSH con llave y escritorio remoto, solo desde las VLAN 30 y 40. Cada VM tiene su cortafuegos con lista blanca (sección 10.3).
 
 <div class="figura-h">
 <figure><img src="../../diagramas/arquitectura-fisica.png" alt="Arquitectura física"><figcaption>Figura 1 · Arquitectura física construida: el router, el switch, el servidor y las siete máquinas virtuales. Es el diagrama del Entregable #2; lo implementado lo respeta.</figcaption></figure>
@@ -187,9 +188,11 @@ MS Motos es la aplicación de Integrador I: un taller de motos con portal de cli
 |---|---|---|
 | `msmotos-app` | Contenedor. Una sola imagen sirve la API y el portal web, sin privilegios de root | Solo en `127.0.0.1:3000` |
 | `msmotos-db` | Contenedor con MySQL 8.4 | Sin puerto publicado: solo lo alcanza la aplicación |
-| Nginx | Servicio del sistema en la VM, no contenedor | Puerto 80, hacia la red |
+| Nginx | Servicio del sistema en la VM, no contenedor | Puerto 443 (HTTPS) hacia la red; el 80 solo redirige a HTTPS |
 
 Nginx va fuera de los contenedores a propósito: así la demostración tiene un **servicio detenido** (Nginx) y un **contenedor detenido** (`msmotos-app`) como fallas distintas.
+
+Desde el 14 de octubre la aplicación se publica por HTTPS, con un certificado de `msmotos.ip2.local` firmado por la autoridad interna del laboratorio. El contenedor de la aplicación corre sin capacidades de Linux, sin poder ganar privilegios y con el sistema de archivos de solo lectura (sección 10.3).
 
 La imagen se construye en la propia VM desde el `Dockerfile` del repositorio, en tres etapas, para que la imagen final no cargue las herramientas de compilación. `infra/vm-app/desplegar.sh` instala Docker, construye, levanta y comprueba. Los secretos se generan al azar en la VM y viven solo en su archivo `.env`.
 
@@ -198,8 +201,9 @@ La imagen se construye en la propia VM desde el `Dockerfile` del repositorio, en
 | Prueba | Resultado |
 |---|---|
 | Estado de los dos contenedores | En ejecución y `healthy` |
-| `http://10.10.30.11/api/health` por Nginx | HTTP 200, `{"ok":true}` |
-| `http://10.10.30.11/` | HTTP 200, portal "MS Motos · Taller" |
+| `https://10.10.30.11/api/health` por Nginx | HTTP 200, `{"ok":true}` |
+| `https://10.10.30.11/` | HTTP 200, portal "MS Motos · Taller"; el certificado se verifica sin errores desde una VM que confía en la autoridad interna |
+| `http://10.10.30.11/` | HTTP 301 hacia HTTPS |
 | Inicio de sesión de las cuentas del taller | HTTP 200, con su rol |
 | Inicio de sesión con contraseña incorrecta | HTTP 401 |
 
@@ -235,7 +239,7 @@ Zabbix 7.0.30 corre en `vm-zabbix`, con PostgreSQL 16, en contenedores. Toda su 
 | Experiencia del cliente | `msmotos-rpa-linux`, `msmotos-rpa-windows` | Resultados que envía el robot | 21 cada uno |
 | Automatización | `automatizacion` | Resultados que envía n8n | 17 |
 
-Son 15 hosts y 1 258 ítems. Por SNMP Zabbix descubrió las 30 interfaces del router y del switch, con su estado, tráfico, errores y descartes. El router y el switch solo responden SNMP a `vm-zabbix` y con la comunidad correcta.
+Son 15 hosts y 1 271 ítems. Por SNMP Zabbix descubrió las 30 interfaces del router y del switch, con su estado, tráfico, errores y descartes. El router y el switch solo responden SNMP a `vm-zabbix` y con la comunidad correcta.
 
 Una limitación conocida: en R1, los contadores de errores y descartes de las subinterfaces no tienen dato, porque IOS XE no los publica por subinterfaz. Los de la interfaz física sí llegan.
 
@@ -243,11 +247,12 @@ Del servidor, Zabbix ve el nodo (CPU, memoria, disco, tiempo encendido), cada un
 
 ### 4.2 Triggers del proyecto
 
-Además de los que traen las plantillas, se crearon 16 triggers propios. La etiqueta `remediation` le dice a n8n si hay algo que hacer.
+Además de los que traen las plantillas, se crearon los triggers del diseño, T01 a T20, con sus variantes: 25 en total. La etiqueta `remediation` le dice a n8n si hay algo que hacer.
 
 | Trigger | Condición | Severidad | Acción automática |
 |---|---|---|---|
 | T01 Contenedor `msmotos-app` detenido | Sin estado *running* durante 1 minuto | Alta | Iniciar el contenedor |
+| T02 Contenedor con el chequeo de salud fallando | Estado *unhealthy* durante 2 minutos | Alta | Ninguna |
 | T03 Servicio Nginx detenido | Sin estado `active` durante 1 minuto | Alta | Reiniciar Nginx |
 | T03-W Servicio `MSMotos` detenido (Windows) | Fuera de ejecución durante 1 minuto | Alta | Iniciar el servicio |
 | T04 y T04-W La aplicación no está disponible | El chequeo web falla 2 veces seguidas | Desastre | Ninguna |
@@ -255,14 +260,23 @@ Además de los que traen las plantillas, se crearon 16 triggers propios. La etiq
 | T06 CPU alta, en las cinco VM Linux | Más de 85 % y más de 95 %, promedio de 5 minutos | Advertencia y alta | Ninguna |
 | T07 Memoria alta, en las cinco VM Linux | Más de 85 % y más de 95 %, promedio de 5 minutos | Advertencia y alta | Ninguna |
 | T08 Disco lleno, en las cinco VM Linux | Más de 80 % y más de 90 % | Advertencia y alta | Ninguna |
+| T09 Puerto de acceso de SW1 caído | Caído 2 minutos, habiendo estado conectado en los últimos 15. Cubre también el puerto bloqueado (*err-disabled*) | Alta | Reiniciar el puerto |
+| T09-G Enlace de gestión caído | Troncales de SW1 y WAN o troncal de R1 caídos 1 minuto | Desastre | Ninguna: solo alerta |
+| T10 Enlace saturado (troncales y WAN) | Más de 70 % y más de 90 % de la velocidad, promedio de 5 minutos | Advertencia y alta | Ninguna |
+| T11 y T11b Router o switch saturado o sin respuesta | CPU o memoria sobre 90 % durante 10 minutos; sin ping 2 minutos | Alta y desastre | Ninguna |
 | T12 El cliente no pudo completar un recorrido | Resultado del robot = 0; dice en qué paso | Alta | Ninguna |
 | T13 Recorrido lento | Consulta mayor a 10 s o agendar mayor a 20 s | Advertencia | Ninguna |
 | T14 El robot dejó de reportar | Sin datos en 15 o 75 minutos | Advertencia | Ninguna |
 | T15 Servicio del dominio caído | Active Directory, DNS o Kerberos detenido 1 minuto | Alta | Ninguna |
 | T16 Muchos inicios de sesión fallidos | Más de 10 en 5 minutos | Advertencia | Ninguna |
 | T17 Cuenta del dominio bloqueada | Cualquier bloqueo | Advertencia | Ninguna |
+| T18 Configuración del router o del switch modificada | Cambió la hora de la última modificación que publica el equipo por SNMP | Advertencia | Ninguna |
+| T19 Intentos de SSH fallidos en una VM Linux | Más de 10 en 5 minutos | Advertencia | Ninguna |
+| T20 Certificado HTTPS por vencer | Menos de 15 días | Advertencia | Ninguna |
 
-El diseño del Entregable #2 numeraba 24 triggers. Están hechos los 16 de esta tabla; faltan los de la recuperación de red (interfaz y puerto caídos) y algunos de capacidad de red, que van con el flujo de recuperación de red (sección 14).
+Donde un trigger propio reemplaza a uno de plantilla (salud del contenedor, CPU, memoria y ping del router y del switch, enlace caído), el de la plantilla se apagó en ese host para que el mismo evento no avise dos veces. T09b del diseño (puerto bloqueado) lo cubre T09, porque un puerto bloqueado aparece como caído.
+
+De los nuevos se provocaron T18 (dos reinicios de un puerto la abrieron y se cerró sola) y T19 (12 intentos con un usuario inexistente contra `vm-rpa`). T20 lee el certificado: le quedan 396 días. T02, T10 y T11 se provocan en las pruebas del Entregable #4.
 
 ### 4.3 Prueba de detección
 
@@ -322,13 +336,17 @@ n8n 2.40.2 corre en `vm-n8n`. Zabbix le avisa cada problema del proyecto por un 
 
 ![Flujo de recuperación publicado en n8n](../../evidencias/e3/automatizacion/n8n-flujo-publicado.png)
 
-*El flujo en n8n, publicado. Esta captura es del 12 de octubre; después se le agregaron el aviso por Telegram, el reporte a Zabbix y la rama de Windows (15 nodos en total).*
+*El flujo en n8n, publicado. Esta captura es del 12 de octubre; después se le agregaron el aviso por Telegram, el reporte a Zabbix y las ramas de Windows y de red (17 nodos en total).*
 
 | Falla | Trigger | Qué hace n8n |
 |---|---|---|
 | Contenedor de la aplicación detenido | T01 | `docker start msmotos-app` en `vm-app` |
 | Nginx detenido | T03 | `systemctl restart nginx` en `vm-app` |
 | Servicio de Windows detenido | T03-W | Inicia el servicio `MSMotos` en `vm-app-win` |
+| Puerto de acceso de SW1 caído o bloqueado | T09 | Apaga y enciende el puerto y comprueba si volvió |
+| Enlace de gestión caído | T09-G | Nada: solo alerta, porque reiniciarlo cortaría el laboratorio |
+
+Para la red, n8n no entra directo al switch: el 2960 solo ofrece algoritmos de SSH antiguos que n8n no soporta. Entra a su propia VM con una cuenta que solo puede ejecutar `infra/vm-n8n/red-accion.py`, y ese programa habla con el switch con la cuenta `n8n-net`, de nivel de privilegio 5: puede entrar a una interfaz, apagarla, encenderla y ver su estado, nada más. Solo actúa sobre los puertos de acceso Fa0/1 a Fa0/20, y no enciende un puerto que una persona apagó a propósito.
 
 ### 6.2 Controles
 
@@ -375,6 +393,8 @@ La automatización tiene límites para que no se convierta en un riesgo.
 
 En las tres pruebas la detección tomó menos de 2 minutos (RNF-01) y la recuperación menos de 5 (RNF-02), sin intervención de una persona. Durante la prueba de Nginx el contenedor siguió en ejecución: Zabbix distinguió el servicio caído del contenedor caído.
 
+**Puerto del switch (14 de octubre, a distancia):** sobre Fa0/12, sin nada conectado, n8n reinició el puerto en 40 segundos. Como el puerto siguió sin enlace, avisó "LA RECUPERACIÓN FALLÓ: REQUIERE UNA PERSONA" con la indicación de revisar el cable. Un aviso sobre Gi0/1, el troncal hacia R1, fue rechazado sin tocar el switch. La prueba completa con un equipo conectado (cable desconectado y puerto bloqueado) necesita estar en el laboratorio; el procedimiento está en `docs/evidencias/e3/recuperacion-red.md`.
+
 ### 6.4 Lo que la automatización reporta de sí misma
 
 Al terminar cada ejecución n8n envía a Zabbix su resultado, cuánto tardó, qué comando corrió y cuánto pasó de la detección al cierre. Con eso se llena el tablero de Automatización (sección 5).
@@ -409,7 +429,8 @@ El correo como segundo canal no se implementó. La guía pide "Telegram y/o corr
 | CPU (T06) | Más de 85 %, promedio de 5 minutos | Más de 95 % | Las cinco VM Linux |
 | Memoria (T07) | Más de 85 %, promedio de 5 minutos | Más de 95 % | Las cinco VM Linux |
 | Disco (T08) | Más de 80 % | Más de 90 % | Las cinco VM Linux |
-| Red | Enlace caído, errores y uso alto de ancho de banda | — | R1 y SW1, con los triggers de la plantilla de Cisco |
+| Enlaces (T10) | Más de 70 % de la velocidad, promedio de 5 minutos | Más de 90 % | Troncales de SW1 y WAN y troncal de R1 |
+| CPU y memoria del router y del switch (T11) | — | Más de 90 % durante 10 minutos | R1 y SW1 |
 
 Estas alertas solo avisan: nadie amplía recursos en automático.
 
@@ -502,7 +523,7 @@ MS Motos corre en `vm-app-win` instalada de forma nativa, sin contenedores: Node
 | Tema | Linux (`vm-app`) | Windows (`vm-app-win`) |
 |---|---|---|
 | Ejecución | Docker Compose | Servicio de Windows y MySQL instalado |
-| Publicación | Nginx en el puerto 80 | Node en el puerto 80 |
+| Publicación | Nginx, HTTPS en el 443 | Node, HTTP en el 80 |
 | Falla que se recupera sola | Contenedor o Nginx detenido | Servicio detenido |
 | Monitoreo | Agente con plugin de Docker | Agente con el estado del servicio |
 | Medición del robot | Los dos recorridos | Los mismos dos recorridos |
@@ -521,7 +542,29 @@ MS Motos corre en `vm-app-win` instalada de forma nativa, sin contenedores: Node
 
 **Prueba:** con una cuenta de prueba, una contraseña de 8 caracteres fue rechazada y la cuenta se bloqueó en el quinto intento fallido. Zabbix abrió las alertas T16 y T17 con el nombre de la cuenta y los avisos llegaron a Telegram.
 
-`vm-app-win` ya está unida al dominio. La integración de Proxmox, Zabbix, Grafana y el SSH de las VM Linux con el dominio está pendiente.
+**Inicio de sesión con el dominio (14 de octubre).** El personal de TI entra a las herramientas con su cuenta del dominio, y lo que puede hacer depende de su grupo. Todas consultan el dominio por LDAPS (puerto 636), con un certificado del controlador firmado por la autoridad interna, así que las contraseñas no viajan en claro.
+
+| Herramienta | Mecanismo | Administradores | Operadores | Cuenta de emergencia |
+|---|---|---|---|---|
+| Proxmox | Dominio de autenticación de tipo Active Directory; los grupos se sincronizan cada hora | Administrator | PVEAuditor (solo ver) | `root@pam` |
+| Zabbix | LDAP con alta automática en el primer inicio de sesión | Admin, con escritura | User, solo lectura | `Admin` |
+| Grafana | LDAP con roles por grupo | Admin | Viewer | `admin` |
+| SSH de las 5 VM Linux | SSSD contra el dominio | Entran con su contraseña y tienen `sudo` | No entran | `ip2`, solo con llave |
+| `vm-app-win` | Unida al dominio | Administradores locales | No administran | `Administrator` |
+
+n8n queda con cuenta local: su validación por LDAP es de la edición de pago, como ya decía el diseño.
+
+**Prueba PR-13: cumple.** Con tres cuentas de prueba, una en cada grupo y otra en ninguno:
+
+| Herramienta | Administrador | Operador | Sin grupo |
+|---|---|---|---|
+| Proxmox | Entra; puede encender y apagar VM | Entra; solo ve | Rechazada |
+| Zabbix | Entra; modifica un host | Entra; "No permissions" al modificar | Rechazada |
+| Grafana | Entra como Admin | Entra como Viewer | Rechazada |
+| SSH de las 5 VM Linux | Entra; `sudo` da root | Rechazada | Rechazada |
+| `vm-app-win` (WinRM) | Ejecuta comandos | Rechazada | Rechazada |
+
+El acta completa está en `docs/evidencias/e3/dominio.md`.
 
 ### 10.3 Seguridad
 
@@ -529,13 +572,16 @@ MS Motos corre en `vm-app-win` instalada de forma nativa, sin contenedores: Node
 |---|---|
 | Red | Segmentación en VLAN, listas de acceso en el router, seguridad de puerto, DHCP snooping e inspección de ARP en el switch |
 | Administración | Solo desde la VLAN 40 y, a distancia, por una red privada (Tailscale) |
-| Máquinas virtuales | Sin contraseñas en Linux: solo llave SSH |
-| Aplicación | Base de datos sin puerto publicado; contenedor sin root; secretos generados en cada VM |
-| Automatización | Cuenta restringida, lista cerrada de acciones y máximo tres intentos |
-| Identidad | Dominio con política de contraseñas, bloqueo y auditoría |
+| Máquinas virtuales | Cortafuegos con lista blanca en cada una (abajo). Las cuentas locales de Linux entran solo con llave |
+| Aplicación | HTTPS con certificado de la autoridad interna; contenedor sin capacidades, sin escalar privilegios y de solo lectura; base de datos sin puerto publicado; secretos generados en cada VM |
+| Automatización | Cuentas restringidas, lista cerrada de acciones y de puertos, y máximo tres intentos |
+| Identidad | Dominio con política de contraseñas, bloqueo y auditoría; las herramientas validan contra él por LDAPS |
+| Detección | T16 y T17 (dominio), T18 (cambio de configuración de red), T19 (SSH fallido) y T20 (certificado por vencer) |
 | Secretos | Ninguno en el repositorio ni en Confluence |
 
-Verificar en los equipos reales cada control de endurecimiento del router y del switch (tarea IP2-88) y poner un cortafuegos en cada VM (IP2-89) están pendientes.
+**Cortafuegos de las VM Linux (14 de octubre).** `infra/proxmox/cortafuegos-vm.sh` deja entrar solo SSH desde las VLAN 30 y 40, el agente de Zabbix solo desde `vm-zabbix` y el servicio de cada VM solo desde quien lo usa. Docker publica sus puertos por fuera de ufw, así que esos puertos tienen su propia lista blanca. Se activó VM por VM, con una desactivación automática a los 3 minutos que solo se cancelaba después de comprobar desde fuera el SSH, el agente y los servicios. Después se comprobó que la aplicación, Grafana, n8n, Telegram, el robot y las recuperaciones automáticas siguen funcionando, y que el agente de una VM queda cerrado para quien no es Zabbix. Las VM Windows ya tenían el Firewall de Windows activo con su lista.
+
+Verificar en el router y el switch cada control de endurecimiento (IP2-88) está pendiente, y la instancia de Windows sigue en HTTP: el diseño dejaba su HTTPS "si el tiempo alcanza". Las actas están en `docs/evidencias/e3/endurecimiento.md`.
 
 ## 11. Criterios y pruebas de aceptación
 
@@ -556,7 +602,7 @@ Verificar en los equipos reales cada control de endurecimiento del router y del 
 ## 12. Respuestas a las preguntas orientadoras
 
 **¿Existe conectividad controlada entre todos los componentes?**
-Sí. Cada red alcanza solo lo que le corresponde (sección 2.2) y se probó en los dos sentidos: lo permitido responde y lo prohibido lo rechaza el router. Dentro de la red de servidores, la base de datos no publica puerto, el router y el switch solo responden SNMP a Zabbix, y la cuenta de la automatización solo se acepta desde `vm-n8n`.
+Sí. Cada red alcanza solo lo que le corresponde (sección 2.2) y se probó en los dos sentidos: lo permitido responde y lo prohibido lo rechaza el router. Dentro de la red de servidores, cada VM tiene su cortafuegos con lista blanca, la base de datos no publica puerto, el router y el switch solo responden SNMP a Zabbix, y la cuenta de la automatización solo se acepta desde `vm-n8n`.
 
 **¿Zabbix permite distinguir una falla de red de una falla de aplicación?**
 Sí, porque cada capa tiene su propio chequeo. Una falla de red se ve en los hosts `r1` y `sw1` (interfaz caída, pérdida de ping). Una falla de aplicación se ve en el escenario web con la red en buen estado. Y dentro de la aplicación se distingue la causa: en la prueba de Nginx detenido el contenedor siguió reportándose en ejecución. Queda un detalle por afinar: cuando la causa es el contenedor o Nginx, la alerta general "aplicación no disponible" se abre unos segundos antes y no queda oculta.
@@ -583,6 +629,7 @@ Sí. El robot entra al portal con una cuenta de cliente, consulta su historial, 
 | La recuperación en Windows fallaba con "Accion no permitida": n8n antepone `cd / ;` a cada comando | La lista cerrada quita ese prefijo y compara el resto |
 | Durante un respaldo de prueba el robot dio un fallo falso por la carga de disco | Los respaldos programados tienen un tope de velocidad. La primera noche con el tope (14 de octubre) corrieron los cuatro respaldos diarios sin abrir ninguna alerta |
 | El router y el switch rechazaban SSH desde el servidor | Se agregó el servidor a sus listas de acceso |
+| Al activar los cortafuegos, los contenedores dejaron de resolver nombres (n8n no habría podido avisar por Telegram) y `vm-zabbix` dejó de monitorearse a sí misma | Se detectó antes de confirmar las reglas. Se permitió el DNS desde la red de Docker y, en `vm-zabbix`, el agente desde la dirección interna de su contenedor |
 
 ### 13.2 Diferencias con el diseño
 
@@ -595,6 +642,10 @@ Sí. El robot entra al portal con una cuenta de cliente, consulta su historial, 
 | Respaldos en un disco externo | En un volumen propio del mismo servidor | No hay un disco externo conectado |
 | Avisos por Telegram y correo | Solo Telegram | La guía pide uno de los dos |
 | El dominio reenvía DNS a 8.8.8.8 | A los DNS de la universidad | 8.8.8.8 pierde consultas desde esta red |
+| n8n entra por SSH al router y al switch | Entra a `vm-n8n` y desde ahí un programa habla con el switch | El nodo SSH de n8n no soporta los algoritmos del 2960 |
+| Equipo de red saturado (T11): `reload` automático | Solo alerta | Reiniciar el router o el switch corta todo el laboratorio |
+| VM Linux unidas al dominio con `realm join` | SSSD consulta el dominio por LDAPS, sin unir la VM | No necesita Kerberos ni el DNS del controlador; si el dominio cae, la VM sigue funcionando |
+| LDAP en el puerto 389 | LDAPS en el 636 | Que las contraseñas no viajen en claro |
 
 ## 14. Qué queda pendiente
 
@@ -603,11 +654,13 @@ Sí. El robot entra al portal con una cuenta de cliente, consulta su historial, 
 | **A-01**: abrir la aplicación desde PC-CLIENTE, en sus dos instancias | Próxima visita, antes del 2 de noviembre | IP2-29 |
 | Foto del rack con los equipos del grupo | Próxima visita | — |
 | Capturas de Zabbix (*Últimos datos* por host) y de Active Directory | Antes del 2 de noviembre | IP2-42, IP2-79 |
-| Verificar en los equipos cada control de endurecimiento | Entregable #4 | IP2-88 |
+| Prueba de la recuperación de red con un equipo conectado al switch (PR-12) | Próxima visita | IP2-87 |
+| Verificar en el router y el switch cada control de endurecimiento | Antes del 2 de noviembre | IP2-88 |
+| Capturas de los inicios de sesión con el dominio en el navegador | Antes del 2 de noviembre | IP2-81 |
 | Que la alerta general de la aplicación quede oculta cuando la causa ya está identificada | Entregable #4 | IP2-45 |
-| Recuperación automática de interfaces de red | Entregable #4 | IP2-85, IP2-86 |
-| Integrar Proxmox, Zabbix, Grafana y el SSH de Linux con el dominio | Entregable #4 | IP2-81 |
-| Cortafuegos en cada VM y HTTPS en la aplicación | Entregable #4 | IP2-89, IP2-90 |
+| Provocar T02, T10 y T11 | Entregable #4 | IP2-59, IP2-60 |
+| HTTPS en la instancia de Windows | Si el tiempo alcanza | IP2-90 |
+| Que cada integrante cambie su contraseña temporal del dominio; borrar las cuentas de prueba al cierre | Antes del 2 de noviembre; 30 de noviembre | IP2-79, IP2-83 |
 | Copia de los respaldos fuera del servidor | Entregable #4 | IP2-34 |
 | Cambiar el DNS que el router entrega a los usuarios por DHCP | Próxima visita | IP2-28 |
 
@@ -631,13 +684,15 @@ Repositorio del equipo: **github.com/Proyect-integrador-2/Integrador2**.
 | Qué despliega | Archivo |
 |---|---|
 | Servidor: red, acceso remoto, VM, respaldos y token de monitoreo | `infra/acceso-remoto/preparar-proxmox.sh`, `infra/proxmox/crear-vms.sh`, `crear-vms-windows.sh`, `respaldos.sh`, `token-zabbix.sh` |
+| Autoridad interna, certificados y cortafuegos de las VM | `infra/proxmox/ca-interna.sh`, `cortafuegos-vm.sh`, `infra/ca/ip2-ca.crt` |
+| Inicio de sesión con el dominio | `infra/proxmox/dominio-proxmox.sh`, `dominio-linux.sh`, `infra/vm-grafana/ldap.toml`, `infra/vm-zabbix/ldap.conf` |
 | Aplicación en Linux y su cuenta de automatización | `infra/vm-app/desplegar.sh`, `preparar-n8n-ops.sh` |
 | Zabbix, sus agentes y toda su configuración | `infra/vm-zabbix/desplegar.sh`, `instalar-agente.sh`, `instalar-agente-windows.ps1`, `configurar-zabbix.py` |
 | Grafana | `infra/vm-grafana/desplegar.sh`, `verificar-tableros.py` |
-| n8n y Telegram | `infra/vm-n8n/desplegar.sh`, `configurar-telegram.sh` |
+| n8n, Telegram y la recuperación de red | `infra/vm-n8n/desplegar.sh`, `configurar-telegram.sh`, `preparar-red.sh`, `red-accion.py` |
 | Robot | `infra/vm-rpa/desplegar.sh` |
 | Aplicación en Windows, su cuenta de automatización y la unión al dominio | `infra/vm-app-win/desplegar.ps1`, `preparar-n8n-ops.ps1`, `unir-dominio.ps1` |
-| Dominio | `infra/vm-dc/promover-dominio.ps1`, `configurar-dominio.ps1`, `probar-bloqueo.ps1` |
+| Dominio | `infra/vm-dc/promover-dominio.ps1`, `configurar-dominio.ps1`, `probar-bloqueo.ps1`, `certificado-ldaps.ps1`, `cuentas-prueba.ps1` |
 
 ### A.3 Actas de prueba y capturas
 
@@ -648,6 +703,9 @@ Repositorio del equipo: **github.com/Proyect-integrador-2/Integrador2**.
 | Robot | `docs/evidencias/e3/rpa.md` | `docs/evidencias/e3/rpa/` |
 | Windows Server y Active Directory | `docs/evidencias/e3/windows.md` | `docs/evidencias/e3/windows/` |
 | Respaldos | `docs/evidencias/e3/respaldos.md` | `docs/evidencias/e3/respaldos/` |
+| Recuperación automática de la red | `docs/evidencias/e3/recuperacion-red.md` | `docs/evidencias/e3/alertas/` |
+| Inicio de sesión con el dominio y PR-13 | `docs/evidencias/e3/dominio.md` | — |
+| HTTPS, cortafuegos y triggers T02, T09 a T11 y T18 a T20 | `docs/evidencias/e3/endurecimiento.md` | — |
 | Tableros de Grafana | — | `docs/evidencias/e3/grafana/` |
 
 ### A.4 Gestión del proyecto

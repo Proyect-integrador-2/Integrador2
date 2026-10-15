@@ -18,6 +18,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 
 import markdown
 
@@ -145,12 +146,27 @@ def main():
     if not navegador:
         sys.exit("No se encontró Edge ni Chrome para imprimir el PDF.")
     salida = pathlib.Path(a.salida).resolve()
-    with tempfile.TemporaryDirectory() as tmp:
+    salida.unlink(missing_ok=True)
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         fuente = pathlib.Path(tmp) / "entregable.html"
         fuente.write_text(doc, encoding="utf-8")
+        # Perfil propio: sin él, si el navegador ya está abierto le pasa el trabajo a esa
+        # ventana y el PDF no se escribe.
         subprocess.run([navegador, "--headless=new", "--disable-gpu", "--no-pdf-header-footer",
+                        f"--user-data-dir={pathlib.Path(tmp) / 'perfil'}",
                         f"--print-to-pdf={salida}", fuente.as_uri()],
                        check=True, capture_output=True, timeout=120)
+        # Edge puede devolver el control antes de terminar de imprimir: se espera a que el
+        # PDF aparezca y deje de crecer, sin borrar todavía el HTML que está leyendo.
+        tamano, limite = -1, time.monotonic() + 120
+        while time.monotonic() < limite:
+            actual = salida.stat().st_size if salida.exists() else -1
+            if actual > 0 and actual == tamano:
+                break
+            tamano = actual
+            time.sleep(2)
+        else:
+            sys.exit("El navegador no escribió el PDF.")
     print(f"PDF generado: {salida} ({salida.stat().st_size // 1024} KB)")
 
 
