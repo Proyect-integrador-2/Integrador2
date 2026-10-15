@@ -27,6 +27,14 @@ RUN npm ci --omit=dev --no-audit --no-fund
 FROM node:22-bookworm-slim
 ENV NODE_ENV=production \
     PORT=3000
+# Parches de seguridad de Debian que la imagen base todavía no trae, y fuera npm, npx y
+# corepack: en producción solo corre node, y npm arrastraba casi todas las alertas de
+# Trivy (IP2-90).
+RUN apt-get update \
+ && apt-get upgrade -y --no-install-recommends \
+ && rm -rf /var/lib/apt/lists/* \
+ && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+           /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 WORKDIR /app
 COPY --from=backend-deps --chown=node:node /app/backend/node_modules ./backend/node_modules
 COPY --chown=node:node backend/ ./backend/
