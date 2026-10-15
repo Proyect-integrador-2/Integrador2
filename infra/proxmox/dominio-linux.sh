@@ -9,7 +9,8 @@
 #     y tienen sudo (pidiendo esa contraseña).
 #   - Los operadores y cualquier otra cuenta del dominio son rechazados.
 #   - La cuenta local ip2 (solo con llave) sigue siendo la de emergencia (riesgo R-14).
-#   - Si la contraseña del dominio es temporal, se cambia en el primer inicio de sesión.
+#   - Una cuenta marcada "cambiar la contraseña en el primer inicio de sesión" no entra:
+#     el dominio rechaza su validación por LDAP. Ver infra/vm-dc/nueva-clave.ps1.
 #
 # Se corre en la VM con el usuario ip2. La contraseña de svc-ldap llega por la entrada
 # estándar y queda solo en /etc/sssd/sssd.conf (permisos 600). Se puede repetir.

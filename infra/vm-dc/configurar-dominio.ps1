@@ -8,9 +8,11 @@
 # Se corre en vm-dc como Administrator, despues de promover-dominio.ps1. Se puede repetir:
 # lo que ya existe no se toca.
 #
-# Las cuentas nacen con una contrasena temporal aleatoria que hay que cambiar en el
-# primer inicio de sesion. Quedan en C:\ip2\secretos\cuentas-iniciales.txt, que solo
-# leen los administradores; ese archivo se borra cuando cada persona cambio la suya.
+# Las cuentas nacen con una contrasena aleatoria, sin "cambiar en el primer inicio de
+# sesion": con esa marca el dominio rechaza la validacion por LDAP que usan Proxmox,
+# Zabbix, Grafana y el SSH de las VM Linux, y la persona no puede entrar a ninguna.
+# Quedan en C:\ip2\secretos\cuentas-iniciales.txt, que solo leen los administradores.
+# Para cambiar o reponer una contrasena: nueva-clave.ps1.
 $ErrorActionPreference = 'Stop'
 Import-Module ActiveDirectory
 
@@ -80,7 +82,7 @@ foreach ($persona in $Personas) {
     $clave = Nueva-Clave
     New-ADUser -Name ($persona.Nombre + ' ' + $persona.Apellido) -GivenName $persona.Nombre -Surname $persona.Apellido `
       -SamAccountName $cuenta -UserPrincipalName "$cuenta@ip2.local" -Path "OU=Usuarios,$Raiz" `
-      -AccountPassword (ConvertTo-SecureString $clave -AsPlainText -Force) -Enabled $true -ChangePasswordAtLogon $true
+      -AccountPassword (ConvertTo-SecureString $clave -AsPlainText -Force) -Enabled $true -ChangePasswordAtLogon $false
     Guardar-Clave $cuenta $clave
     Write-Output "  creada $cuenta"
   }

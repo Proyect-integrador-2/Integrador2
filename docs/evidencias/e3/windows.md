@@ -76,7 +76,7 @@ ip2.local
     └── OU=Equipos               para las máquinas que se unan al dominio
 ```
 
-Cada cuenta personal nació con una contraseña temporal aleatoria que **hay que cambiar en el primer inicio de sesión**. Están en `C:\ip2\secretos\cuentas-iniciales.txt` de `vm-dc`, que solo leen los administradores; el archivo se borra cuando todos cambiaron la suya.
+Cada cuenta personal nació con una contraseña temporal aleatoria marcada para cambiarse en el primer inicio de sesión. Esa marca resultó incompatible con la validación por LDAP de las herramientas (ver [dominio.md](dominio.md), sección 4), así que el 14 de octubre se quitó: cada integrante tiene una contraseña aleatoria de 16 caracteres que puso [`nueva-clave.ps1`](../../../infra/vm-dc/nueva-clave.ps1) o que eligió por su cuenta.
 
 ## 5. Política de contraseñas y bloqueo (RNF-09)
 
@@ -231,4 +231,4 @@ De cada evento Zabbix guarda solo el nombre de la cuenta, que es lo que aparece 
 | Integrar con el dominio Proxmox, Zabbix, Grafana y el SSH de las VM Linux | IP2-81 |
 | Cuenta local de emergencia comprobada en cada herramienta (el respaldo de `vm-dc` ya está: ver [respaldos.md](respaldos.md)) | IP2-79 |
 | Capturas por escritorio remoto: *Usuarios y equipos de Active Directory* y la política aplicada | IP2-79, IP2-80 |
-| Que cada integrante cambie su contraseña temporal | IP2-79 |
+| Que cada integrante reciba su contraseña y entre con ella | IP2-79 |

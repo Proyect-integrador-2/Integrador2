@@ -54,10 +54,23 @@ Tres cuentas de prueba creadas con [`cuentas-prueba.ps1`](../../../infra/vm-dc/c
 | Zabbix con autenticación LDAP | Además, el dominio pasó a ser el método por defecto | Zabbix solo da de alta a un usuario nuevo en ese caso. `Admin` y la cuenta con la que Grafana lee Zabbix quedaron fijadas como locales |
 | LDAP (puerto 389) | LDAPS (puerto 636) con certificado de la autoridad interna | Que las contraseñas no viajen en claro |
 
-## 4. Pendiente
+## 4. Contraseñas de los integrantes
+
+Las cuentas personales nacieron con una contraseña temporal marcada como "cambiar en el primer inicio de sesión". El 14 de octubre, al entrar con la primera cuenta real, se vio que esa marca no funciona con este diseño: mientras está puesta, el dominio rechaza la validación por LDAP, que es la que usan Proxmox, Zabbix, Grafana y el SSH de las VM Linux. La persona no puede entrar a ninguna herramienta ni, por tanto, llegar a cambiar la contraseña.
+
+Se resolvió así:
+
+| Integrante | Qué se hizo |
+|---|---|
+| Quien administra | Puso su propia contraseña desde una sesión en el controlador, escribiéndola sin que se mostrara (`Read-Host -AsSecureString` y `Set-ADAccountPassword`) |
+| Los otros cuatro | [`nueva-clave.ps1`](../../../infra/vm-dc/nueva-clave.ps1) les puso una contraseña aleatoria de 16 caracteres, sin la marca, y las guardó en un archivo del controlador que solo leen los administradores. Se comprobó que las cuatro validan por LDAPS. Cada una se entrega por privado |
+
+`configurar-dominio.ps1` ya crea las cuentas sin esa marca. Las contraseñas vencen a los 90 días, después del cierre del proyecto.
+
+## 5. Pendiente
 
 | Qué | Tarea |
 |---|---|
-| Que cada integrante cambie su contraseña temporal. Debería poder hacerlo en su primer inicio de sesión por SSH en una VM Linux, pero no se ha probado | IP2-79 |
+| Entregar a cada integrante su contraseña y que entre a las herramientas de su grupo | IP2-79 |
 | Borrar las tres cuentas de prueba al terminar el proyecto | IP2-83 |
 | Capturas de los inicios de sesión en el navegador (Proxmox, Zabbix, Grafana) | IP2-81 |
