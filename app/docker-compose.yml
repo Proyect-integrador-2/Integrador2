@@ -64,6 +64,8 @@ services:
       DB_POOL_TOTAL: ${DB_POOL_TOTAL:-20}
       DISABLE_CRON: ${DISABLE_CRON:-0}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-}
       TZ: America/Costa_Rica
     # Solo en loopback: el acceso desde la red entra por Nginx (puertos 80 y 443).
     ports:

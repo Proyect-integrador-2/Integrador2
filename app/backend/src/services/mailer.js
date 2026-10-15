@@ -1,7 +1,37 @@
-// Envío de correos vía Resend (API HTTP, sin SMTP).
-// Degradación segura: sin RESEND_API_KEY solo loguea (modo desarrollo), nunca lanza.
+// Envío de correos por API HTTP (sin SMTP): Brevo si hay BREVO_API_KEY, si no Resend.
+// Degradación segura: sin ninguna clave solo loguea (modo desarrollo), nunca lanza.
+//
+// Brevo (Integrador II): envía a cualquier destinatario sin dominio propio; basta con
+// verificar en Brevo la dirección de MAIL_FROM. Resend sin dominio verificado solo
+// entrega al dueño de la cuenta.
 
 const RESEND_API_URL = 'https://api.resend.com/emails';
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
+
+// "Taller MS <taller@ejemplo.com>" -> { name: 'Taller MS', email: 'taller@ejemplo.com' }
+function remitente(from) {
+  const m = /^\s*(.*?)\s*<([^>]+)>\s*$/.exec(from);
+  return m ? { name: m[1] || 'Taller MS', email: m[2] } : { name: 'Taller MS', email: from.trim() };
+}
+
+async function enviarPorBrevo({ apiKey, from, to, subject, html }) {
+  const resp = await fetch(BREVO_API_URL, {
+    method: 'POST',
+    headers: { 'api-key': apiKey, 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ sender: remitente(from), to: [{ email: to }], subject, htmlContent: html }),
+  });
+  if (!resp.ok) {
+    const detalle = await resp.text().catch(() => '');
+    console.error(`⚠️  Brevo rechazó el envío a ${to}:`, resp.status, detalle);
+    if (resp.status === 401 && /ip/i.test(detalle)) {
+      console.error('   → Brevo bloquea la clave desde una IP no autorizada: autorizala en Brevo → Seguridad → IP autorizadas.');
+    } else if (/sender/i.test(detalle)) {
+      console.error('   → El remitente de MAIL_FROM no está verificado en Brevo (Remitentes y dominios).');
+    }
+    return false;
+  }
+  return true;
+}
 
 // Logo de la cabecera. En un correo no sirve incrustar la imagen (Gmail y compañía
 // descartan las data: URI), así que se enlaza desde el mismo dominio que sirve la app.
@@ -30,9 +60,19 @@ function logoUrl() {
 // ─────────────────────────────────────────────────────────────
 async function enviarCorreo({ to, subject, html, devLog }) {
   const apiKey = process.env.RESEND_API_KEY;
+  const brevoKey = process.env.BREVO_API_KEY;
   const from = process.env.MAIL_FROM || 'Taller MS <onboarding@resend.dev>';
 
   if (!to) return false;
+
+  if (brevoKey) {
+    try {
+      return await enviarPorBrevo({ apiKey: brevoKey, from, to, subject, html });
+    } catch (err) {
+      console.error(`⚠️  Error enviando correo a ${to}:`, err.message);
+      return false;
+    }
+  }
 
   if (!apiKey) {
     console.log(`📧 [DEV] ${devLog || `Email a ${to}: ${subject}`}`);
