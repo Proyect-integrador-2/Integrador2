@@ -30,6 +30,9 @@ services:
     networks: [backend]
     # MySQL necesita cambiar de usuario al arrancar: solo se le impide ganar privilegios nuevos.
     security_opt: ["no-new-privileges:true"]
+    # Límites (IP2-90): una consulta desbocada no deja sin memoria a la VM. Usa ~450 MB.
+    mem_limit: 1g
+    cpus: 1.0
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
       interval: 10s
@@ -72,6 +75,11 @@ services:
     security_opt: ["no-new-privileges:true"]
     read_only: true
     tmpfs: [/tmp]
+    # Límites: usa ~90 MB; con 512 MB y un núcleo, una fuga o un bucle no tumban la VM,
+    # y pids_limit frena una bomba de procesos.
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 200
 
   # Tarea de una sola vez para crear las cuentas iniciales (no arranca con `up`).
   seed:
