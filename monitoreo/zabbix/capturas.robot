@@ -23,23 +23,24 @@ ${ESPERA}         6s
 *** Test Cases ***
 Capturar Zabbix
     New Browser    chromium    headless=True
-    New Context    viewport={'width': 1600, 'height': 1000}    locale=es-CR
+    New Context    viewport={'width': 1600, 'height': 1300}    locale=es-CR
     New Page    ${ZABBIX}/index.php
     Fill Text    id=name    %{ZBX_USER}
     Fill Secret    id=password    %ZBX_PASS
     Click    id=enter
     Wait For Elements State    css=.sidebar    visible    timeout=20s
-    Capturar    zabbix-hosts    zabbix.php?action=host.view&filter_groupids[]=${GRUPO}&filter_set=1
+    Capturar    zabbix-hosts    zabbix.php?action=host.view&groupids[]=${GRUPO}&filter_set=1
     Capturar    zabbix-problemas-24h
-    ...    zabbix.php?action=problem.view&filter_show=2&from=now-24h&to=now&filter_groupids[]=${GRUPO}&filter_set=1
-    Capturar    zabbix-web    zabbix.php?action=web.view&filter_groupids[]=${GRUPO}&filter_set=1
+    ...    zabbix.php?action=problem.view&show=2&from=now-24h&to=now&groupids[]=${GRUPO}&filter_set=1
+    Capturar    zabbix-web    zabbix.php?action=web.view&groupids[]=${GRUPO}&filter_set=1
     FOR    ${host}    ${id}    IN    &{HOSTS}
-        Capturar    zabbix-datos-${host}    zabbix.php?action=latest.view&filter_hostids[]=${id}&filter_set=1
+        # Solo lo que cabe en pantalla: el switch tiene más de 240 ítems.
+        Capturar    zabbix-datos-${host}    zabbix.php?action=latest.view&hostids[]=${id}&filter_set=1    completa=False
     END
 
 *** Keywords ***
 Capturar
-    [Arguments]    ${nombre}    ${ruta}
+    [Arguments]    ${nombre}    ${ruta}    ${completa}=True
     Go To    ${ZABBIX}/${ruta}
     Sleep    ${ESPERA}
-    Take Screenshot    filename=${OUTPUT DIR}/${nombre}    fullPage=True
+    Take Screenshot    filename=${OUTPUT DIR}/${nombre}    fullPage=${completa}
