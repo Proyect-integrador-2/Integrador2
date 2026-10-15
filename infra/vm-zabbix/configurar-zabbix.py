@@ -135,17 +135,36 @@ def entrar(z, env):
     print("Contraseña de fábrica de Admin reemplazada por la del .env")
 
 
-def crear_trigger(z, nombre, expresion, severidad, etiquetas, comentario="", host=None, opdata=""):
-    """Crea el trigger si no existe. Con `host`, el mismo nombre puede repetirse en cada host."""
+def crear_trigger(z, nombre, expresion, severidad, etiquetas, comentario="", host=None, opdata="", forzar=False):
+    """Crea el trigger si no existe. Con `host`, el mismo nombre puede repetirse en cada host.
+    Con `forzar`, si ya existe le pone la expresión de aquí (para cambios de condición)."""
     busqueda = {"output": ["triggerid"], "filter": {"description": [nombre]}}
     if host:
         busqueda["host"] = host
     existente = z.call("trigger.get", busqueda)
     if existente:
+        if forzar:
+            z.call("trigger.update", {"triggerid": existente[0]["triggerid"], "expression": expresion})
         return existente[0]["triggerid"]
     return z.call("trigger.create", {
         "description": nombre, "expression": expresion, "priority": severidad, "comments": comentario,
         "opdata": opdata, "tags": [{"tag": k, "value": v} for k, v in etiquetas.items()]})["triggerids"][0]
+
+
+def disponibilidad(z, hostid, escenario):
+    """Ítem calculado: 100 si el escenario web pasó todos sus pasos, 0 si falló alguno.
+
+    El tablero General promedia este ítem. Antes tomaba el código HTTP por 0,5, y un 502
+    durante una caída daba más de 100 %.
+    """
+    clave = "app.disponibilidad"
+    if z.call("item.get", {"output": ["itemid"], "hostids": hostid, "filter": {"key_": clave}}):
+        return
+    z.call("item.create", {
+        "hostid": hostid, "name": "Disponibilidad de la app", "key_": clave, "type": 15, "value_type": 0,
+        "units": "%", "delay": "30s", "history": "31d", "trends": "365d",
+        "params": f"100*(last(//web.test.fail[{escenario}])=0)",
+        "tags": [{"tag": "component", "value": "aplicacion"}]})
 
 
 def main():
@@ -232,6 +251,17 @@ def main():
         z.call("host.update", {"hostid": pid, "templates": [
             {"templateid": plantillas[PLANTILLA_PING]}, {"templateid": plantillas[PLANTILLA_PVE]}]})
         print("Servidor: proxmox por ping y por la API (nodo, VMs y almacenamiento)")
+        # T21: el servidor deja de mandar datos por la API. Sin esto, si Zabbix pierde la API
+        # (el 14-oct pasó casi 2 horas) no avisa nada: la plantilla no lo ve como problema.
+        cpu = "proxmox.node.cpu[pve]"
+        if z.call("item.get", {"output": ["itemid"], "hostids": pid, "filter": {"key_": cpu}}):
+            crear_trigger(z, "T21 Sin datos del servidor Proxmox por la API", f"nodata(/proxmox/{cpu},10m)=1", 4,
+                          {"remediation": "none", "capa": "servidor"},
+                          "Zabbix no recibe métricas de Proxmox hace 10 minutos. Revisar que el servidor "
+                          "responda en el 8006 y el token; si responde, reiniciar el contenedor zabbix-server.")
+            print("T21 listo (sin datos de Proxmox)")
+        else:
+            print("T21 pendiente: la plantilla aún no descubrió el nodo; volver a correr el script")
 
     # --- Aplicación: escenario web a través de Nginx, como la ve un usuario ---
     web = z.uno("host.get", {"host": ["msmotos-web"]}, ["hostid"])
@@ -252,9 +282,13 @@ def main():
     elif escenario[0]["steps"][0]["url"] != pasos[0]["url"]:
         # La dirección cambió (pasó a HTTPS): se actualizan los pasos.
         z.call("httptest.update", {"httptestid": escenario[0]["httptestid"], "steps": pasos})
+    # T04 espera 90 s de fallos seguidos: así T01 (contenedor, ~75 s) o T03 (Nginx, ~65 s) ya
+    # están abiertos cuando se evalúa, y la dependencia lo oculta. Con dos fallos (~45 s) se
+    # abría antes que la causa. Una caída sin causa conocida se ve igual en menos de 2 minutos.
+    disponibilidad(z, wid, "App MS Motos")
     t04 = crear_trigger(z, "T04 App MS Motos no disponible",
-                        "count(/msmotos-web/web.test.fail[App MS Motos],#2,\"ne\",0)=2", 5,
-                        {"remediation": "none", "capa": "aplicacion"})
+                        "min(/msmotos-web/web.test.fail[App MS Motos],90s)>0", 5,
+                        {"remediation": "none", "capa": "aplicacion"}, forzar=True)
     crear_trigger(z, "T05 App MS Motos lenta (health > 2 s)",
                   "avg(/msmotos-web/web.test.time[App MS Motos,health,resp],5m)>2", 2,
                   {"remediation": "none", "capa": "aplicacion"})
@@ -450,9 +484,10 @@ def main():
                  "required": "app-root", "no": 2, "timeout": "5s"},
             ],
         })
+    disponibilidad(z, wwid, "App MS Motos Windows")
     t04w = crear_trigger(z, "T04-W App MS Motos no disponible (Windows)",
-                         "count(/msmotos-web-win/web.test.fail[App MS Motos Windows],#2,\"ne\",0)=2", 5,
-                         {"remediation": "none", "capa": "aplicacion"})
+                         "min(/msmotos-web-win/web.test.fail[App MS Motos Windows],90s)>0", 5,
+                         {"remediation": "none", "capa": "aplicacion"}, forzar=True)
     # Si el servicio está detenido, que la aplicación no responda es su consecuencia.
     z.call("trigger.update", {"triggerid": t04w, "dependencies": [{"triggerid": t03w}]})
     crear_trigger(z, "T05-W App MS Motos lenta en Windows (health > 2 s)",

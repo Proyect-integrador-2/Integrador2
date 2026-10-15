@@ -111,25 +111,6 @@
           "functions": [
             {
               "def": {
-                "category": "Transform",
-                "defaultParams": [
-                  "100"
-                ],
-                "name": "scale",
-                "params": [
-                  {
-                    "name": "factor",
-                    "type": "float"
-                  }
-                ]
-              },
-              "params": [
-                "0.5"
-              ],
-              "text": "scale(0.5)"
-            },
-            {
-              "def": {
                 "category": "Alias",
                 "defaultParams": [
                   ""
@@ -155,7 +136,7 @@
             "filter": "/^MS Motos/"
           },
           "item": {
-            "filter": "/Response code for step .health./"
+            "filter": "Disponibilidad de la app"
           },
           "itemTag": {
             "filter": ""
@@ -339,9 +320,9 @@
                 ]
               },
               "params": [
-                "0.005"
+                "0.01"
               ],
-              "text": "scale(0.005)"
+              "text": "scale(0.01)"
             },
             {
               "def": {
@@ -370,7 +351,7 @@
             "filter": "/^MS Motos/"
           },
           "item": {
-            "filter": "/Response code for step .health./"
+            "filter": "Disponibilidad de la app"
           },
           "itemTag": {
             "filter": ""
