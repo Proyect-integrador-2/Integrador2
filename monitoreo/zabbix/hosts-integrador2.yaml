@@ -1,0 +1,1614 @@
+zabbix_export:
+  version: '7.0'
+  host_groups:
+    - uuid: 112824a6225a43e79bacf49ad6d95490
+      name: 'Integrador II'
+  hosts:
+    - host: automatizacion
+      name: 'Automatización (n8n)'
+      groups:
+        - name: 'Integrador II'
+      items:
+        - name: 'n8n: escalamientos a una persona'
+          type: TRAP
+          key: n8n.escalated
+          delay: '0'
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: última acción · contenedor'
+          type: TRAP
+          key: 'n8n.exec.action[contenedor]'
+          delay: '0'
+          value_type: TEXT
+          trends: '0'
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: última acción · interfaz'
+          type: TRAP
+          key: 'n8n.exec.action[interfaz]'
+          delay: '0'
+          value_type: TEXT
+          trends: '0'
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: última acción · servicio-win'
+          type: TRAP
+          key: 'n8n.exec.action[servicio-win]'
+          delay: '0'
+          value_type: TEXT
+          trends: '0'
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: última acción · servicio'
+          type: TRAP
+          key: 'n8n.exec.action[servicio]'
+          delay: '0'
+          value_type: TEXT
+          trends: '0'
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: duración · contenedor'
+          type: TRAP
+          key: 'n8n.exec.duration[contenedor]'
+          delay: '0'
+          value_type: FLOAT
+          units: s
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: duración · interfaz'
+          type: TRAP
+          key: 'n8n.exec.duration[interfaz]'
+          delay: '0'
+          value_type: FLOAT
+          units: s
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: duración · servicio-win'
+          type: TRAP
+          key: 'n8n.exec.duration[servicio-win]'
+          delay: '0'
+          value_type: FLOAT
+          units: s
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: duración · servicio'
+          type: TRAP
+          key: 'n8n.exec.duration[servicio]'
+          delay: '0'
+          value_type: FLOAT
+          units: s
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: resultado · contenedor'
+          type: TRAP
+          key: 'n8n.exec.status[contenedor]'
+          delay: '0'
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: resultado · interfaz'
+          type: TRAP
+          key: 'n8n.exec.status[interfaz]'
+          delay: '0'
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: resultado · servicio-win'
+          type: TRAP
+          key: 'n8n.exec.status[servicio-win]'
+          delay: '0'
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: resultado · servicio'
+          type: TRAP
+          key: 'n8n.exec.status[servicio]'
+          delay: '0'
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: recuperaciones · contenedor'
+          type: TRAP
+          key: 'n8n.recovery.count[contenedor]'
+          delay: '0'
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: recuperaciones · interfaz'
+          type: TRAP
+          key: 'n8n.recovery.count[interfaz]'
+          delay: '0'
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: recuperaciones · servicio-win'
+          type: TRAP
+          key: 'n8n.recovery.count[servicio-win]'
+          delay: '0'
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: recuperaciones · servicio'
+          type: TRAP
+          key: 'n8n.recovery.count[servicio]'
+          delay: '0'
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: tiempo hasta la recuperación · contenedor'
+          type: TRAP
+          key: 'n8n.recovery.seconds[contenedor]'
+          delay: '0'
+          value_type: FLOAT
+          units: s
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: tiempo hasta la recuperación · interfaz'
+          type: TRAP
+          key: 'n8n.recovery.seconds[interfaz]'
+          delay: '0'
+          value_type: FLOAT
+          units: s
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: tiempo hasta la recuperación · servicio-win'
+          type: TRAP
+          key: 'n8n.recovery.seconds[servicio-win]'
+          delay: '0'
+          value_type: FLOAT
+          units: s
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: tiempo hasta la recuperación · servicio'
+          type: TRAP
+          key: 'n8n.recovery.seconds[servicio]'
+          delay: '0'
+          value_type: FLOAT
+          units: s
+          tags:
+            - tag: component
+              value: n8n
+        - name: 'n8n: acciones rechazadas'
+          type: TRAP
+          key: n8n.rejected
+          delay: '0'
+          tags:
+            - tag: component
+              value: n8n
+      tags:
+        - tag: capa
+          value: automatizacion
+      inventory_mode: DISABLED
+    - host: msmotos-rpa-linux
+      name: 'msmotos-rpa-linux (Cliente sintético · Linux)'
+      groups:
+        - name: 'Integrador II'
+      items:
+        - name: 'RPA: duración total · agendar'
+          type: TRAP
+          key: 'rpa.duration.total[agendar]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+          triggers:
+            - expression: 'last(/msmotos-rpa-linux/rpa.duration.total[agendar])>20'
+              name: 'T13 Recorrido lento: agendar > 20 s (msmotos-rpa-linux)'
+              priority: WARNING
+              tags:
+                - tag: capa
+                  value: experiencia
+                - tag: recorrido
+                  value: agendar
+                - tag: remediation
+                  value: none
+        - name: 'RPA: duración total · consulta'
+          type: TRAP
+          key: 'rpa.duration.total[consulta]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+          triggers:
+            - expression: 'last(/msmotos-rpa-linux/rpa.duration.total[consulta])>10'
+              name: 'T13 Recorrido lento: consulta > 10 s (msmotos-rpa-linux)'
+              priority: WARNING
+              tags:
+                - tag: capa
+                  value: experiencia
+                - tag: recorrido
+                  value: consulta
+                - tag: remediation
+                  value: none
+        - name: 'RPA: último error · agendar'
+          type: TRAP
+          key: 'rpa.error[agendar]'
+          delay: '0'
+          value_type: TEXT
+          trends: '0'
+          allowed_hosts: 10.10.30.15
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: último error · consulta'
+          type: TRAP
+          key: 'rpa.error[consulta]'
+          delay: '0'
+          value_type: TEXT
+          trends: '0'
+          allowed_hosts: 10.10.30.15
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: paso fallido · agendar'
+          type: TRAP
+          key: 'rpa.failed_step[agendar]'
+          delay: '0'
+          value_type: CHAR
+          trends: '0'
+          allowed_hosts: 10.10.30.15
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: paso fallido · consulta'
+          type: TRAP
+          key: 'rpa.failed_step[consulta]'
+          delay: '0'
+          value_type: CHAR
+          trends: '0'
+          allowed_hosts: 10.10.30.15
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: resultado · agendar'
+          type: TRAP
+          key: 'rpa.status[agendar]'
+          delay: '0'
+          allowed_hosts: 10.10.30.15
+          tags:
+            - tag: component
+              value: rpa
+          triggers:
+            - expression: 'nodata(/msmotos-rpa-linux/rpa.status[agendar],75m)=1'
+              name: 'T14 El robot dejó de reportar: agendar (msmotos-rpa-linux)'
+              priority: WARNING
+              description: 'El recorrido no envió resultados: revisar los temporizadores en vm-rpa.'
+              tags:
+                - tag: capa
+                  value: experiencia
+                - tag: recorrido
+                  value: agendar
+                - tag: remediation
+                  value: none
+        - name: 'RPA: resultado · consulta'
+          type: TRAP
+          key: 'rpa.status[consulta]'
+          delay: '0'
+          allowed_hosts: 10.10.30.15
+          tags:
+            - tag: component
+              value: rpa
+          triggers:
+            - expression: 'nodata(/msmotos-rpa-linux/rpa.status[consulta],15m)=1'
+              name: 'T14 El robot dejó de reportar: consulta (msmotos-rpa-linux)'
+              priority: WARNING
+              description: 'El recorrido no envió resultados: revisar los temporizadores en vm-rpa.'
+              tags:
+                - tag: capa
+                  value: experiencia
+                - tag: recorrido
+                  value: consulta
+                - tag: remediation
+                  value: none
+        - name: 'RPA: duración del paso abrir · agendar'
+          type: TRAP
+          key: 'rpa.step[agendar,abrir]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso cancelar · agendar'
+          type: TRAP
+          key: 'rpa.step[agendar,cancelar]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso elegir · agendar'
+          type: TRAP
+          key: 'rpa.step[agendar,elegir]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso login · agendar'
+          type: TRAP
+          key: 'rpa.step[agendar,login]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso logout · agendar'
+          type: TRAP
+          key: 'rpa.step[agendar,logout]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso reservar · agendar'
+          type: TRAP
+          key: 'rpa.step[agendar,reservar]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso verificar · agendar'
+          type: TRAP
+          key: 'rpa.step[agendar,verificar]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso abrir · consulta'
+          type: TRAP
+          key: 'rpa.step[consulta,abrir]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso citas · consulta'
+          type: TRAP
+          key: 'rpa.step[consulta,citas]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso inicio · consulta'
+          type: TRAP
+          key: 'rpa.step[consulta,inicio]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso login · consulta'
+          type: TRAP
+          key: 'rpa.step[consulta,login]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso logout · consulta'
+          type: TRAP
+          key: 'rpa.step[consulta,logout]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso motos · consulta'
+          type: TRAP
+          key: 'rpa.step[consulta,motos]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+      tags:
+        - tag: capa
+          value: experiencia
+      inventory_mode: DISABLED
+    - host: msmotos-rpa-windows
+      name: 'msmotos-rpa-windows (Cliente sintético · Windows)'
+      groups:
+        - name: 'Integrador II'
+      items:
+        - name: 'RPA: duración total · agendar'
+          type: TRAP
+          key: 'rpa.duration.total[agendar]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+          triggers:
+            - expression: 'last(/msmotos-rpa-windows/rpa.duration.total[agendar])>20'
+              name: 'T13 Recorrido lento: agendar > 20 s (msmotos-rpa-windows)'
+              priority: WARNING
+              tags:
+                - tag: capa
+                  value: experiencia
+                - tag: recorrido
+                  value: agendar
+                - tag: remediation
+                  value: none
+        - name: 'RPA: duración total · consulta'
+          type: TRAP
+          key: 'rpa.duration.total[consulta]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+          triggers:
+            - expression: 'last(/msmotos-rpa-windows/rpa.duration.total[consulta])>10'
+              name: 'T13 Recorrido lento: consulta > 10 s (msmotos-rpa-windows)'
+              priority: WARNING
+              tags:
+                - tag: capa
+                  value: experiencia
+                - tag: recorrido
+                  value: consulta
+                - tag: remediation
+                  value: none
+        - name: 'RPA: último error · agendar'
+          type: TRAP
+          key: 'rpa.error[agendar]'
+          delay: '0'
+          value_type: TEXT
+          trends: '0'
+          allowed_hosts: 10.10.30.15
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: último error · consulta'
+          type: TRAP
+          key: 'rpa.error[consulta]'
+          delay: '0'
+          value_type: TEXT
+          trends: '0'
+          allowed_hosts: 10.10.30.15
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: paso fallido · agendar'
+          type: TRAP
+          key: 'rpa.failed_step[agendar]'
+          delay: '0'
+          value_type: CHAR
+          trends: '0'
+          allowed_hosts: 10.10.30.15
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: paso fallido · consulta'
+          type: TRAP
+          key: 'rpa.failed_step[consulta]'
+          delay: '0'
+          value_type: CHAR
+          trends: '0'
+          allowed_hosts: 10.10.30.15
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: resultado · agendar'
+          type: TRAP
+          key: 'rpa.status[agendar]'
+          delay: '0'
+          allowed_hosts: 10.10.30.15
+          tags:
+            - tag: component
+              value: rpa
+          triggers:
+            - expression: 'nodata(/msmotos-rpa-windows/rpa.status[agendar],75m)=1'
+              name: 'T14 El robot dejó de reportar: agendar (msmotos-rpa-windows)'
+              priority: WARNING
+              description: 'El recorrido no envió resultados: revisar los temporizadores en vm-rpa.'
+              tags:
+                - tag: capa
+                  value: experiencia
+                - tag: recorrido
+                  value: agendar
+                - tag: remediation
+                  value: none
+        - name: 'RPA: resultado · consulta'
+          type: TRAP
+          key: 'rpa.status[consulta]'
+          delay: '0'
+          allowed_hosts: 10.10.30.15
+          tags:
+            - tag: component
+              value: rpa
+          triggers:
+            - expression: 'nodata(/msmotos-rpa-windows/rpa.status[consulta],15m)=1'
+              name: 'T14 El robot dejó de reportar: consulta (msmotos-rpa-windows)'
+              priority: WARNING
+              description: 'El recorrido no envió resultados: revisar los temporizadores en vm-rpa.'
+              tags:
+                - tag: capa
+                  value: experiencia
+                - tag: recorrido
+                  value: consulta
+                - tag: remediation
+                  value: none
+        - name: 'RPA: duración del paso abrir · agendar'
+          type: TRAP
+          key: 'rpa.step[agendar,abrir]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso cancelar · agendar'
+          type: TRAP
+          key: 'rpa.step[agendar,cancelar]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso elegir · agendar'
+          type: TRAP
+          key: 'rpa.step[agendar,elegir]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso login · agendar'
+          type: TRAP
+          key: 'rpa.step[agendar,login]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso logout · agendar'
+          type: TRAP
+          key: 'rpa.step[agendar,logout]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso reservar · agendar'
+          type: TRAP
+          key: 'rpa.step[agendar,reservar]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso verificar · agendar'
+          type: TRAP
+          key: 'rpa.step[agendar,verificar]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso abrir · consulta'
+          type: TRAP
+          key: 'rpa.step[consulta,abrir]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso citas · consulta'
+          type: TRAP
+          key: 'rpa.step[consulta,citas]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso inicio · consulta'
+          type: TRAP
+          key: 'rpa.step[consulta,inicio]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso login · consulta'
+          type: TRAP
+          key: 'rpa.step[consulta,login]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso logout · consulta'
+          type: TRAP
+          key: 'rpa.step[consulta,logout]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+        - name: 'RPA: duración del paso motos · consulta'
+          type: TRAP
+          key: 'rpa.step[consulta,motos]'
+          delay: '0'
+          value_type: FLOAT
+          allowed_hosts: 10.10.30.15
+          units: s
+          tags:
+            - tag: component
+              value: rpa
+      tags:
+        - tag: capa
+          value: experiencia
+      inventory_mode: DISABLED
+    - host: msmotos-web
+      name: 'MS Motos (aplicación)'
+      groups:
+        - name: 'Integrador II'
+      items:
+        - name: 'Disponibilidad de la app'
+          type: CALCULATED
+          key: app.disponibilidad
+          delay: 30s
+          value_type: FLOAT
+          units: '%'
+          params: '100*(last(//web.test.fail[App MS Motos])=0)'
+          tags:
+            - tag: component
+              value: aplicacion
+      httptests:
+        - name: 'App MS Motos'
+          delay: 30s
+          steps:
+            - name: health
+              url: 'https://10.10.30.11/api/health'
+              timeout: 5s
+              required: '"ok":true'
+              status_codes: '200'
+            - name: frontend
+              url: 'https://10.10.30.11/'
+              timeout: 5s
+              required: app-root
+              status_codes: '200'
+      tags:
+        - tag: capa
+          value: aplicacion
+      inventory_mode: DISABLED
+    - host: msmotos-web-win
+      name: 'MS Motos (aplicación · Windows)'
+      groups:
+        - name: 'Integrador II'
+      items:
+        - name: 'Disponibilidad de la app'
+          type: CALCULATED
+          key: app.disponibilidad
+          delay: 30s
+          value_type: FLOAT
+          units: '%'
+          params: '100*(last(//web.test.fail[App MS Motos Windows])=0)'
+          tags:
+            - tag: component
+              value: aplicacion
+      httptests:
+        - name: 'App MS Motos Windows'
+          delay: 30s
+          steps:
+            - name: health
+              url: 'http://10.10.30.16/api/health'
+              timeout: 5s
+              required: '"ok":true'
+              status_codes: '200'
+            - name: frontend
+              url: 'http://10.10.30.16/'
+              timeout: 5s
+              required: app-root
+              status_codes: '200'
+      tags:
+        - tag: capa
+          value: aplicacion
+      inventory_mode: DISABLED
+    - host: proxmox
+      name: 'proxmox (Servidor R450)'
+      templates:
+        - name: 'ICMP Ping'
+        - name: 'Proxmox VE by HTTP'
+      groups:
+        - name: 'Integrador II'
+      interfaces:
+        - ip: 10.10.30.10
+          interface_ref: if1
+      tags:
+        - tag: capa
+          value: servidor
+      macros:
+        - macro: '{$PVE.TOKEN.ID}'
+          value: zabbix@pve!monitoreo
+        - macro: '{$PVE.TOKEN.SECRET}'
+          type: SECRET_TEXT
+        - macro: '{$PVE.URL.HOST}'
+          value: 10.10.30.10
+        - macro: '{$PVE.VM.MEMORY.PUSE.MAX.WARN}'
+          value: '200'
+      inventory_mode: DISABLED
+    - host: r1
+      name: 'r1 (Router ISR 4221)'
+      templates:
+        - name: 'Cisco IOS by SNMP'
+      groups:
+        - name: 'Integrador II'
+      interfaces:
+        - type: SNMP
+          ip: 10.10.30.1
+          port: '161'
+          details:
+            community: '{$SNMP_COMMUNITY}'
+          interface_ref: if1
+      items:
+        - name: 'Configuración en uso: momento del último cambio'
+          type: SNMP_AGENT
+          snmp_oid: 'get[1.3.6.1.4.1.9.9.43.1.1.1.0]'
+          key: ip2.config.running.changed
+          interface_ref: if1
+          tags:
+            - tag: component
+              value: configuracion
+          triggers:
+            - expression: change(/r1/ip2.config.running.changed)<>0
+              name: 'T18 Configuración de r1 modificada'
+              priority: WARNING
+              description: 'Confirmar que el cambio fue autorizado. n8n también cambia la configuración en uso cuando reinicia un puerto de acceso.'
+              tags:
+                - tag: capa
+                  value: seguridad
+                - tag: remediation
+                  value: none
+      tags:
+        - tag: capa
+          value: red
+      macros:
+        - macro: '{$IFCONTROL:"Gi0/0/0"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Gi0/0/1"}'
+          value: '0'
+        - macro: '{$SNMP_COMMUNITY}'
+          type: SECRET_TEXT
+      inventory_mode: DISABLED
+    - host: sw1
+      name: 'sw1 (Switch 2960)'
+      templates:
+        - name: 'Cisco IOS by SNMP'
+      groups:
+        - name: 'Integrador II'
+      interfaces:
+        - type: SNMP
+          ip: 10.10.99.2
+          port: '161'
+          details:
+            community: '{$SNMP_COMMUNITY}'
+          interface_ref: if1
+      items:
+        - name: 'Configuración en uso: momento del último cambio'
+          type: SNMP_AGENT
+          snmp_oid: 'get[1.3.6.1.4.1.9.9.43.1.1.1.0]'
+          key: ip2.config.running.changed
+          interface_ref: if1
+          tags:
+            - tag: component
+              value: configuracion
+          triggers:
+            - expression: change(/sw1/ip2.config.running.changed)<>0
+              name: 'T18 Configuración de sw1 modificada'
+              priority: WARNING
+              description: 'Confirmar que el cambio fue autorizado. n8n también cambia la configuración en uso cuando reinicia un puerto de acceso.'
+              tags:
+                - tag: capa
+                  value: seguridad
+                - tag: remediation
+                  value: none
+      tags:
+        - tag: capa
+          value: red
+      macros:
+        - macro: '{$IFCONTROL:"Fa0/1"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Fa0/2"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Fa0/3"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Fa0/4"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Fa0/5"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Fa0/6"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Fa0/7"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Fa0/8"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Fa0/9"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Fa0/10"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Fa0/11"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Fa0/12"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Fa0/13"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Fa0/14"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Fa0/15"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Fa0/16"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Fa0/17"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Fa0/18"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Fa0/19"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Fa0/20"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Gi0/1"}'
+          value: '0'
+        - macro: '{$IFCONTROL:"Gi0/2"}'
+          value: '0'
+        - macro: '{$SNMP_COMMUNITY}'
+          type: SECRET_TEXT
+      inventory_mode: DISABLED
+    - host: vm-app
+      name: 'vm-app (App MS Motos)'
+      templates:
+        - name: 'Docker by Zabbix agent 2'
+        - name: 'Linux by Zabbix agent'
+        - name: 'Nginx by Zabbix agent'
+      groups:
+        - name: 'Integrador II'
+      interfaces:
+        - ip: 10.10.30.11
+          interface_ref: if1
+      items:
+        - name: 'Certificado HTTPS de la aplicación: días para vencer'
+          type: DEPENDENT
+          key: ip2.cert.dias
+          delay: '0'
+          units: días
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.x509.not_after.timestamp
+            - type: JAVASCRIPT
+              parameters:
+                - 'return Math.floor((Number(value) - Date.now() / 1000) / 86400);'
+          master_item:
+            key: 'web.certificate.get[10.10.30.11,443]'
+          tags:
+            - tag: component
+              value: certificado
+          triggers:
+            - expression: last(/vm-app/ip2.cert.dias)<15
+              name: 'T20 Certificado HTTPS de la aplicación por vencer (menos de 15 días)'
+              opdata: 'quedan {ITEM.LASTVALUE1}'
+              priority: WARNING
+              description: 'Renovarlo con infra/proxmox/ca-interna.sh en el servidor Proxmox.'
+              tags:
+                - tag: capa
+                  value: seguridad
+                - tag: remediation
+                  value: none
+        - name: 'SSH: intento fallido'
+          type: ZABBIX_ACTIVE
+          key: 'log[/var/log/auth.log,"sshd.*(Failed password|Invalid user|authentication failure|Connection closed by invalid user)",,,skip]'
+          delay: 30s
+          value_type: LOG
+          trends: '0'
+          tags:
+            - tag: component
+              value: seguridad
+          triggers:
+            - expression: 'count(/vm-app/log[/var/log/auth.log,"sshd.*(Failed password|Invalid user|authentication failure|Connection closed by invalid user)",,,skip],5m)>10 and now()>0'
+              name: 'T19 Intentos de SSH fallidos en vm-app (más de 10 en 5 min)'
+              priority: WARNING
+              description: 'Posible intento de adivinar contraseñas por SSH. Revisar /var/log/auth.log.'
+              tags:
+                - tag: capa
+                  value: seguridad
+                - tag: remediation
+                  value: none
+        - name: 'Servicio Nginx: estado'
+          key: 'systemd.unit.info["nginx.service"]'
+          delay: 30s
+          value_type: CHAR
+          trends: '0'
+          interface_ref: if1
+          tags:
+            - tag: component
+              value: servicio
+          triggers:
+            - expression: 'find(/vm-app/systemd.unit.info["nginx.service"],1m,"regexp","^active$")=0'
+              name: 'T03 Servicio Nginx detenido'
+              priority: HIGH
+              description: 'Recuperación automática: n8n inicia el servicio (IP2-53).'
+              tags:
+                - tag: capa
+                  value: servicio
+                - tag: remediation
+                  value: restart-service
+                - tag: target
+                  value: nginx
+        - name: 'Certificado HTTPS de la aplicación'
+          key: 'web.certificate.get[10.10.30.11,443]'
+          delay: 1h
+          history: 7d
+          value_type: TEXT
+          trends: '0'
+          interface_ref: if1
+          tags:
+            - tag: component
+              value: certificado
+      tags:
+        - tag: capa
+          value: vm
+      macros:
+        - macro: '{$NGINX.STUB_STATUS.HOST}'
+          value: 127.0.0.1
+      inventory_mode: DISABLED
+    - host: vm-app-win
+      name: 'vm-app-win (App MS Motos · Windows)'
+      templates:
+        - name: 'Windows by Zabbix agent'
+      groups:
+        - name: 'Integrador II'
+      interfaces:
+        - ip: 10.10.30.16
+          interface_ref: if1
+      items:
+        - name: 'Servicio MSMotos: estado (0 = en ejecución)'
+          key: 'service.info[MSMotos,state]'
+          delay: 30s
+          interface_ref: if1
+          tags:
+            - tag: component
+              value: servicio
+          triggers:
+            - expression: 'min(/vm-app-win/service.info[MSMotos,state],1m)<>0'
+              name: 'T03-W Servicio MSMotos detenido (Windows)'
+              opdata: 'estado {ITEM.LASTVALUE1}'
+              priority: HIGH
+              description: 'Recuperación automática: n8n inicia el servicio de Windows (IP2-74).'
+              tags:
+                - tag: capa
+                  value: servicio
+                - tag: remediation
+                  value: restart-service-win
+                - tag: target
+                  value: MSMotos
+      tags:
+        - tag: capa
+          value: vm
+      macros:
+        - macro: '{$SERVICE.NAME.NOT_MATCHES}'
+          value: '^(?:StateRepository|RemoteRegistry|MMCSS|gupdate|SysmonLog|clr_optimization_v.+|sppsvc|gpsvc|Pml Driver HPZ12|Net Driver HPZ12|MapsBroker|IntelAudioService|Intel\(R\) TPM Provisioning Service|dbupdate|DoSvc|CDPUserSvc_.+|WpnUserService_.+|OneSyncSvc_.+|WbioSrvc|BITS|tiledatamodelsvc|GISvc|ShellHWDetection|TrustedInstaller|TabletInputService|CDPSvc|wuauserv|edgeupdate|cbdhsvc_.+)$'
+      inventory_mode: DISABLED
+    - host: vm-dc
+      name: 'vm-dc (Controlador de dominio)'
+      templates:
+        - name: 'Windows by Zabbix agent'
+      groups:
+        - name: 'Integrador II'
+      interfaces:
+        - ip: 10.10.30.17
+          interface_ref: if1
+      items:
+        - name: 'Seguridad: inicio de sesión fallido (cuenta)'
+          type: ZABBIX_ACTIVE
+          key: 'eventlog[Security,,,,4625,,skip]'
+          delay: 30s
+          value_type: LOG
+          trends: '0'
+          preprocessing:
+            - type: REGEX
+              parameters:
+                - 'Account For Which Logon Failed:[\s\S]*?Account Name:\s+(\S+)'
+                - \1
+              error_handler: CUSTOM_VALUE
+              error_handler_params: desconocida
+          tags:
+            - tag: component
+              value: seguridad
+          triggers:
+            - expression: 'count(/vm-dc/eventlog[Security,,,,4625,,skip],5m)>10 and now()>0'
+              name: 'T16 Muchos inicios de sesión fallidos en el dominio (más de 10 en 5 min)'
+              opdata: 'última cuenta: {ITEM.LASTVALUE1}'
+              priority: WARNING
+              description: 'Posible intento de adivinar contraseñas. Revisar el registro de seguridad de vm-dc.'
+              tags:
+                - tag: capa
+                  value: identidad
+                - tag: remediation
+                  value: none
+        - name: 'Seguridad: cuenta bloqueada (cuenta)'
+          type: ZABBIX_ACTIVE
+          key: 'eventlog[Security,,,,4740,,skip]'
+          delay: 30s
+          value_type: LOG
+          trends: '0'
+          preprocessing:
+            - type: REGEX
+              parameters:
+                - 'Account That Was Locked Out:[\s\S]*?Account Name:\s+(\S+)'
+                - \1
+              error_handler: CUSTOM_VALUE
+              error_handler_params: desconocida
+          tags:
+            - tag: component
+              value: seguridad
+          triggers:
+            - expression: 'count(/vm-dc/eventlog[Security,,,,4740,,skip],15m)>0 and now()>0'
+              name: 'T17 Cuenta del dominio bloqueada'
+              opdata: 'cuenta: {ITEM.LASTVALUE1}'
+              priority: WARNING
+              description: 'El dominio bloqueó una cuenta por intentos fallidos (política de 5 intentos).'
+              tags:
+                - tag: capa
+                  value: identidad
+                - tag: remediation
+                  value: none
+        - name: 'Servicio DNS: estado (0 = en ejecución)'
+          key: 'service.info[DNS,state]'
+          delay: 30s
+          interface_ref: if1
+          tags:
+            - tag: component
+              value: dominio
+        - name: 'Servicio Kerberos: estado (0 = en ejecución)'
+          key: 'service.info[Kdc,state]'
+          delay: 30s
+          interface_ref: if1
+          tags:
+            - tag: component
+              value: dominio
+        - name: 'Servicio Active Directory: estado (0 = en ejecución)'
+          key: 'service.info[NTDS,state]'
+          delay: 30s
+          interface_ref: if1
+          tags:
+            - tag: component
+              value: dominio
+      tags:
+        - tag: capa
+          value: vm
+      macros:
+        - macro: '{$SERVICE.NAME.NOT_MATCHES}'
+          value: '^(?:StateRepository|RemoteRegistry|MMCSS|gupdate|SysmonLog|clr_optimization_v.+|sppsvc|gpsvc|Pml Driver HPZ12|Net Driver HPZ12|MapsBroker|IntelAudioService|Intel\(R\) TPM Provisioning Service|dbupdate|DoSvc|CDPUserSvc_.+|WpnUserService_.+|OneSyncSvc_.+|WbioSrvc|BITS|tiledatamodelsvc|GISvc|ShellHWDetection|TrustedInstaller|TabletInputService|CDPSvc|wuauserv|edgeupdate|cbdhsvc_.+)$'
+      inventory_mode: DISABLED
+    - host: vm-grafana
+      name: 'vm-grafana (Dashboards)'
+      templates:
+        - name: 'Linux by Zabbix agent'
+      groups:
+        - name: 'Integrador II'
+      interfaces:
+        - ip: 10.10.30.13
+          interface_ref: if1
+      items:
+        - name: 'SSH: intento fallido'
+          type: ZABBIX_ACTIVE
+          key: 'log[/var/log/auth.log,"sshd.*(Failed password|Invalid user|authentication failure|Connection closed by invalid user)",,,skip]'
+          delay: 30s
+          value_type: LOG
+          trends: '0'
+          tags:
+            - tag: component
+              value: seguridad
+          triggers:
+            - expression: 'count(/vm-grafana/log[/var/log/auth.log,"sshd.*(Failed password|Invalid user|authentication failure|Connection closed by invalid user)",,,skip],5m)>10 and now()>0'
+              name: 'T19 Intentos de SSH fallidos en vm-grafana (más de 10 en 5 min)'
+              priority: WARNING
+              description: 'Posible intento de adivinar contraseñas por SSH. Revisar /var/log/auth.log.'
+              tags:
+                - tag: capa
+                  value: seguridad
+                - tag: remediation
+                  value: none
+      tags:
+        - tag: capa
+          value: vm
+      inventory_mode: DISABLED
+    - host: vm-n8n
+      name: 'vm-n8n (Automatización)'
+      templates:
+        - name: 'Linux by Zabbix agent'
+      groups:
+        - name: 'Integrador II'
+      interfaces:
+        - ip: 10.10.30.14
+          interface_ref: if1
+      items:
+        - name: 'SSH: intento fallido'
+          type: ZABBIX_ACTIVE
+          key: 'log[/var/log/auth.log,"sshd.*(Failed password|Invalid user|authentication failure|Connection closed by invalid user)",,,skip]'
+          delay: 30s
+          value_type: LOG
+          trends: '0'
+          tags:
+            - tag: component
+              value: seguridad
+          triggers:
+            - expression: 'count(/vm-n8n/log[/var/log/auth.log,"sshd.*(Failed password|Invalid user|authentication failure|Connection closed by invalid user)",,,skip],5m)>10 and now()>0'
+              name: 'T19 Intentos de SSH fallidos en vm-n8n (más de 10 en 5 min)'
+              priority: WARNING
+              description: 'Posible intento de adivinar contraseñas por SSH. Revisar /var/log/auth.log.'
+              tags:
+                - tag: capa
+                  value: seguridad
+                - tag: remediation
+                  value: none
+      tags:
+        - tag: capa
+          value: vm
+      inventory_mode: DISABLED
+    - host: vm-rpa
+      name: 'vm-rpa (Usuario sintético)'
+      templates:
+        - name: 'Linux by Zabbix agent'
+      groups:
+        - name: 'Integrador II'
+      interfaces:
+        - ip: 10.10.30.15
+          interface_ref: if1
+      items:
+        - name: 'SSH: intento fallido'
+          type: ZABBIX_ACTIVE
+          key: 'log[/var/log/auth.log,"sshd.*(Failed password|Invalid user|authentication failure|Connection closed by invalid user)",,,skip]'
+          delay: 30s
+          value_type: LOG
+          trends: '0'
+          tags:
+            - tag: component
+              value: seguridad
+          triggers:
+            - expression: 'count(/vm-rpa/log[/var/log/auth.log,"sshd.*(Failed password|Invalid user|authentication failure|Connection closed by invalid user)",,,skip],5m)>10 and now()>0'
+              name: 'T19 Intentos de SSH fallidos en vm-rpa (más de 10 en 5 min)'
+              priority: WARNING
+              description: 'Posible intento de adivinar contraseñas por SSH. Revisar /var/log/auth.log.'
+              tags:
+                - tag: capa
+                  value: seguridad
+                - tag: remediation
+                  value: none
+      tags:
+        - tag: capa
+          value: vm
+      inventory_mode: DISABLED
+    - host: vm-zabbix
+      name: 'vm-zabbix (Monitoreo)'
+      templates:
+        - name: 'Linux by Zabbix agent'
+      groups:
+        - name: 'Integrador II'
+      interfaces:
+        - ip: 10.10.30.12
+          interface_ref: if1
+      items:
+        - name: 'SSH: intento fallido'
+          type: ZABBIX_ACTIVE
+          key: 'log[/var/log/auth.log,"sshd.*(Failed password|Invalid user|authentication failure|Connection closed by invalid user)",,,skip]'
+          delay: 30s
+          value_type: LOG
+          trends: '0'
+          tags:
+            - tag: component
+              value: seguridad
+          triggers:
+            - expression: 'count(/vm-zabbix/log[/var/log/auth.log,"sshd.*(Failed password|Invalid user|authentication failure|Connection closed by invalid user)",,,skip],5m)>10 and now()>0'
+              name: 'T19 Intentos de SSH fallidos en vm-zabbix (más de 10 en 5 min)'
+              priority: WARNING
+              description: 'Posible intento de adivinar contraseñas por SSH. Revisar /var/log/auth.log.'
+              tags:
+                - tag: capa
+                  value: seguridad
+                - tag: remediation
+                  value: none
+      tags:
+        - tag: capa
+          value: vm
+      inventory_mode: DISABLED
+  triggers:
+    - expression: 'min(/msmotos-web/web.test.fail[App MS Motos],90s)>0'
+      name: 'T04 App MS Motos no disponible'
+      priority: DISASTER
+      dependencies:
+        - name: 'T01 Contenedor msmotos-app detenido'
+          expression: 'max(/vm-app/docker.container_info.state.running["/msmotos-app"],1m)=0'
+        - name: 'T03 Servicio Nginx detenido'
+          expression: 'find(/vm-app/systemd.unit.info["nginx.service"],1m,"regexp","^active$")=0'
+      tags:
+        - tag: capa
+          value: aplicacion
+        - tag: remediation
+          value: none
+    - expression: 'min(/msmotos-web-win/web.test.fail[App MS Motos Windows],90s)>0'
+      name: 'T04-W App MS Motos no disponible (Windows)'
+      priority: DISASTER
+      dependencies:
+        - name: 'T03-W Servicio MSMotos detenido (Windows)'
+          expression: 'min(/vm-app-win/service.info[MSMotos,state],1m)<>0'
+      tags:
+        - tag: capa
+          value: aplicacion
+        - tag: remediation
+          value: none
+    - expression: 'avg(/msmotos-web/web.test.time[App MS Motos,health,resp],5m)>2'
+      name: 'T05 App MS Motos lenta (health > 2 s)'
+      priority: WARNING
+      tags:
+        - tag: capa
+          value: aplicacion
+        - tag: remediation
+          value: none
+    - expression: 'avg(/msmotos-web-win/web.test.time[App MS Motos Windows,health,resp],5m)>2'
+      name: 'T05-W App MS Motos lenta en Windows (health > 2 s)'
+      priority: WARNING
+      tags:
+        - tag: capa
+          value: aplicacion
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-app/system.cpu.util,5m)>85'
+      name: 'T06 CPU alta en {HOST.HOST} (> 85 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: WARNING
+      dependencies:
+        - name: 'T06 CPU alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+          expression: 'avg(/vm-app/system.cpu.util,5m)>95'
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-grafana/system.cpu.util,5m)>85'
+      name: 'T06 CPU alta en {HOST.HOST} (> 85 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: WARNING
+      dependencies:
+        - name: 'T06 CPU alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+          expression: 'avg(/vm-grafana/system.cpu.util,5m)>95'
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-n8n/system.cpu.util,5m)>85'
+      name: 'T06 CPU alta en {HOST.HOST} (> 85 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: WARNING
+      dependencies:
+        - name: 'T06 CPU alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+          expression: 'avg(/vm-n8n/system.cpu.util,5m)>95'
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-rpa/system.cpu.util,5m)>85'
+      name: 'T06 CPU alta en {HOST.HOST} (> 85 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: WARNING
+      dependencies:
+        - name: 'T06 CPU alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+          expression: 'avg(/vm-rpa/system.cpu.util,5m)>95'
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-zabbix/system.cpu.util,5m)>85'
+      name: 'T06 CPU alta en {HOST.HOST} (> 85 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: WARNING
+      dependencies:
+        - name: 'T06 CPU alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+          expression: 'avg(/vm-zabbix/system.cpu.util,5m)>95'
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-app/system.cpu.util,5m)>95'
+      name: 'T06 CPU alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: HIGH
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-grafana/system.cpu.util,5m)>95'
+      name: 'T06 CPU alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: HIGH
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-n8n/system.cpu.util,5m)>95'
+      name: 'T06 CPU alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: HIGH
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-rpa/system.cpu.util,5m)>95'
+      name: 'T06 CPU alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: HIGH
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-zabbix/system.cpu.util,5m)>95'
+      name: 'T06 CPU alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: HIGH
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-app/vm.memory.util,5m)>85'
+      name: 'T07 Memoria alta en {HOST.HOST} (> 85 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: WARNING
+      dependencies:
+        - name: 'T07 Memoria alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+          expression: 'avg(/vm-app/vm.memory.util,5m)>95'
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-grafana/vm.memory.util,5m)>85'
+      name: 'T07 Memoria alta en {HOST.HOST} (> 85 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: WARNING
+      dependencies:
+        - name: 'T07 Memoria alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+          expression: 'avg(/vm-grafana/vm.memory.util,5m)>95'
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-n8n/vm.memory.util,5m)>85'
+      name: 'T07 Memoria alta en {HOST.HOST} (> 85 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: WARNING
+      dependencies:
+        - name: 'T07 Memoria alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+          expression: 'avg(/vm-n8n/vm.memory.util,5m)>95'
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-rpa/vm.memory.util,5m)>85'
+      name: 'T07 Memoria alta en {HOST.HOST} (> 85 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: WARNING
+      dependencies:
+        - name: 'T07 Memoria alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+          expression: 'avg(/vm-rpa/vm.memory.util,5m)>95'
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-zabbix/vm.memory.util,5m)>85'
+      name: 'T07 Memoria alta en {HOST.HOST} (> 85 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: WARNING
+      dependencies:
+        - name: 'T07 Memoria alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+          expression: 'avg(/vm-zabbix/vm.memory.util,5m)>95'
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-app/vm.memory.util,5m)>95'
+      name: 'T07 Memoria alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: HIGH
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-grafana/vm.memory.util,5m)>95'
+      name: 'T07 Memoria alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: HIGH
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-n8n/vm.memory.util,5m)>95'
+      name: 'T07 Memoria alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: HIGH
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-rpa/vm.memory.util,5m)>95'
+      name: 'T07 Memoria alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: HIGH
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'avg(/vm-zabbix/vm.memory.util,5m)>95'
+      name: 'T07 Memoria alta en {HOST.HOST} (> 95 %, promedio de 5 min)'
+      opdata: '{ITEM.LASTVALUE1}'
+      priority: HIGH
+      tags:
+        - tag: capa
+          value: capacidad
+        - tag: remediation
+          value: none
+    - expression: 'max(/r1/icmpping,2m)=0'
+      name: 'T11b Equipo de red sin respuesta: r1'
+      priority: DISASTER
+      description: 'No responde al ping desde Zabbix. Sin red no hay acción automática posible.'
+      tags:
+        - tag: capa
+          value: red
+        - tag: remediation
+          value: none
+    - expression: 'max(/sw1/icmpping,2m)=0'
+      name: 'T11b Equipo de red sin respuesta: sw1'
+      priority: DISASTER
+      description: 'No responde al ping desde Zabbix. Sin red no hay acción automática posible.'
+      tags:
+        - tag: capa
+          value: red
+        - tag: remediation
+          value: none
+    - expression: 'last(/msmotos-rpa-linux/rpa.status[agendar])=0 and length(last(/msmotos-rpa-linux/rpa.failed_step[agendar]))>=0'
+      name: 'T12 El cliente no pudo completar: agendar (msmotos-rpa-linux)'
+      opdata: 'Paso: {ITEM.LASTVALUE2}'
+      priority: HIGH
+      description: 'El detalle está en el ítem «RPA: último error» y la captura en /opt/rpa/salidas de vm-rpa.'
+      tags:
+        - tag: capa
+          value: experiencia
+        - tag: recorrido
+          value: agendar
+        - tag: remediation
+          value: none
+    - expression: 'last(/msmotos-rpa-windows/rpa.status[agendar])=0 and length(last(/msmotos-rpa-windows/rpa.failed_step[agendar]))>=0'
+      name: 'T12 El cliente no pudo completar: agendar (msmotos-rpa-windows)'
+      opdata: 'Paso: {ITEM.LASTVALUE2}'
+      priority: HIGH
+      description: 'El detalle está en el ítem «RPA: último error» y la captura en /opt/rpa/salidas de vm-rpa.'
+      tags:
+        - tag: capa
+          value: experiencia
+        - tag: recorrido
+          value: agendar
+        - tag: remediation
+          value: none
+    - expression: 'last(/msmotos-rpa-linux/rpa.status[consulta])=0 and length(last(/msmotos-rpa-linux/rpa.failed_step[consulta]))>=0'
+      name: 'T12 El cliente no pudo completar: consulta (msmotos-rpa-linux)'
+      opdata: 'Paso: {ITEM.LASTVALUE2}'
+      priority: HIGH
+      description: 'El detalle está en el ítem «RPA: último error» y la captura en /opt/rpa/salidas de vm-rpa.'
+      tags:
+        - tag: capa
+          value: experiencia
+        - tag: recorrido
+          value: consulta
+        - tag: remediation
+          value: none
+    - expression: 'last(/msmotos-rpa-windows/rpa.status[consulta])=0 and length(last(/msmotos-rpa-windows/rpa.failed_step[consulta]))>=0'
+      name: 'T12 El cliente no pudo completar: consulta (msmotos-rpa-windows)'
+      opdata: 'Paso: {ITEM.LASTVALUE2}'
+      priority: HIGH
+      description: 'El detalle está en el ítem «RPA: último error» y la captura en /opt/rpa/salidas de vm-rpa.'
+      tags:
+        - tag: capa
+          value: experiencia
+        - tag: recorrido
+          value: consulta
+        - tag: remediation
+          value: none
+    - expression: 'min(/vm-dc/service.info[NTDS,state],1m)<>0 or min(/vm-dc/service.info[DNS,state],1m)<>0 or min(/vm-dc/service.info[Kdc,state],1m)<>0'
+      name: 'T15 Servicio del dominio caído en vm-dc'
+      priority: HIGH
+      description: 'Active Directory, DNS o Kerberos no están en ejecución: nadie puede validar su cuenta.'
+      tags:
+        - tag: capa
+          value: identidad
+        - tag: remediation
+          value: none
